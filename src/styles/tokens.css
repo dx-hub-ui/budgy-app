@@ -1,0 +1,98 @@
+:root {
+  /* spacing */
+  --cc-space-0: 0;
+  --cc-space-1: 4px;
+  --cc-space-2: 8px;
+  --cc-space-3: 12px;
+  --cc-space-4: 16px;
+  --cc-space-5: 20px;
+  --cc-space-6: 24px;
+  --cc-space-8: 32px;
+  --cc-space-10: 40px;
+
+  /* radius */
+  --cc-radius-0: 0;
+  --cc-radius-1: 6px;
+  --cc-radius-2: 10px;
+  --cc-radius-3: 14px;
+
+  /* elevation */
+  --cc-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --cc-shadow-2: 0 4px 10px rgba(0, 0, 0, 0.12);
+
+  /* sizing */
+  --cc-topbar-h: 56px;
+  --cc-sidebar-w: 264px;
+  --cc-sidebar-w-collapsed: 72px;
+  --cc-content-maxw: 1280px;
+
+  /* z-index */
+  --cc-z-topbar: 50;
+  --cc-z-sidebar: 40;
+  --cc-z-overlay: 100;
+
+  /* colors - dark default */
+  --cc-bg: #0f1115;
+  --cc-bg-elev: #151922;
+  --cc-surface: #1a2030;
+  --cc-text: #e6e8ee;
+  --cc-text-muted: #a8aec2;
+  --cc-border: #2a3142;
+  --cc-accent: #6ea8fe;
+  --cc-danger: #ff6b6b;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --cc-bg: #f6f7fb;
+    --cc-bg-elev: #ffffff;
+    --cc-surface: #ffffff;
+    --cc-text: #151922;
+    --cc-text-muted: #5b6378;
+    --cc-border: #e5e7ef;
+    --cc-accent: #2563eb;
+    --cc-danger: #dc2626;
+  }
+}
+
+:root.theme-light,
+body.theme-light {
+  --cc-bg: #f6f7fb;
+  --cc-bg-elev: #ffffff;
+  --cc-surface: #ffffff;
+  --cc-text: #151922;
+  --cc-text-muted: #5b6378;
+  --cc-border: #e5e7ef;
+  --cc-accent: #2563eb;
+  --cc-danger: #dc2626;
+}
+
+:root.theme-dark,
+body.theme-dark {
+  --cc-bg: #0f1115;
+  --cc-bg-elev: #151922;
+  --cc-surface: #1a2030;
+  --cc-text: #e6e8ee;
+  --cc-text-muted: #a8aec2;
+  --cc-border: #2a3142;
+  --cc-accent: #6ea8fe;
+  --cc-danger: #ff6b6b;
+}
+
+.cc--sidebar-expanded {
+  --dynamic-sidebar-w: var(--cc-sidebar-w);
+}
+
+.cc--sidebar-collapsed {
+  --dynamic-sidebar-w: var(--cc-sidebar-w-collapsed);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cc-transition-grid {
+    transition: grid-template-columns 160ms ease-in-out;
+  }
+
+  .cc-transition-width {
+    transition: width 160ms ease-in-out;
+  }
+}
