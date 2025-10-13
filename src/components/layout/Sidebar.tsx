@@ -2,16 +2,23 @@
 
 import IconButton from "@/components/ui/IconButton";
 import Tooltip from "@/components/ui/Tooltip";
-import { Home, FolderKanban, FileText, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Home,
+  FolderKanban,
+  FileText,
+  CirclePlus,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
 import Link from "next/link";
 
 type Props = { collapsed: boolean; onToggle: () => void };
 
 const items = [
   { href: "/", label: "Início", icon: Home },
+  { href: "/new", label: "Nova despesa", icon: CirclePlus },
   { href: "/categories", label: "Categorias", icon: FolderKanban },
-  { href: "/export", label: "Exportar", icon: FileText },
-  { href: "/settings", label: "Configurações", icon: Settings }
+  { href: "/export", label: "Exportar", icon: FileText }
 ];
 
 export default function Sidebar({ collapsed, onToggle }: Props) {

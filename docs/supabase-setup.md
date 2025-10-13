@@ -52,3 +52,14 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and visit `/login` to request a magic link. After authenticating, the top bar will display your Supabase user email and offer a sign-out button.
+
+## 5. Sprint 2 CRUD validation
+
+With a signed-in session you can exercise the new category and expense flows:
+
+1. Navigate to `/categories` and add a couple of sample categories with distinct colors.
+2. Use the delete action to confirm that Supabase writes propagate instantly.
+3. Head to `/new` to create expenses, selecting a category, payment method, and optional description.
+4. After saving, you will be redirected to the dashboard (`/`), where the latest expenses will surface once sprint 3 lands.
+
+These steps verify the Supabase mutations and client-side validation introduced in sprint 2.
