@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens */
+:root {
+  --cc-space-2: 8px;
+  --cc-space-3: 12px;
+  --cc-space-4: 16px;
+  --cc-space-6: 24px;
+  --cc-topbar-h: 56px;
+  --cc-sidebar-w: 264px;
+  --cc-sidebar-w-collapsed: 72px;
+  --cc-content-maxw: 1280px;
+
+  --cc-bg: #0f1115;
+  --cc-bg-elev: #151922;
+  --cc-surface: #1a2030;
+  --cc-text: #e6e8ee;
+  --cc-text-muted: #a8aec2;
+  --cc-border: #2a3142;
+  --cc-accent: #6ea8fe;
+
+  --cc-shadow-1: 0 1px 2px rgba(0,0,0,.08);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --cc-bg: #f6f7fb;
+    --cc-bg-elev: #ffffff;
+    --cc-surface: #ffffff;
+    --cc-text: #151922;
+    --cc-text-muted: #5b6378;
+    --cc-border: #e5e7ef;
+    --cc-accent: #2563eb;
+  }
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body { background: var(--cc-bg); color: var(--cc-text); margin: 0; overflow: hidden; }
+
+/* Shell layout helpers */
+.cc-shell {
+  display: grid;
+  grid-template-rows: var(--cc-topbar-h) 1fr;
+  grid-template-columns: var(--dynamic-sidebar-w) 1fr;
+  height: 100vh;
+}
+.cc--sidebar-expanded { --dynamic-sidebar-w: var(--cc-sidebar-w); }
+.cc--sidebar-collapsed { --dynamic-sidebar-w: var(--cc-sidebar-w-collapsed); }
+
+header.cc-topbar {
+  grid-column: 1 / span 2;
+  position: sticky; /* sticky within shell row */
+  top: 0;
+  z-index: 50;
+  height: var(--cc-topbar-h);
+  background: var(--cc-surface);
+  border-bottom: 1px solid var(--cc-border);
+  box-shadow: var(--cc-shadow-1);
+}
+
+nav.cc-sidebar {
+  grid-row: 2 / 3;
+  grid-column: 1 / 2;
+  position: sticky;
+  top: 0;
+  height: calc(100vh - var(--cc-topbar-h));
+  background: var(--cc-surface);
+  border-right: 1px solid var(--cc-border);
+  overflow: hidden;
+}
+
+main.cc-main {
+  grid-row: 2 / 3;
+  grid-column: 2 / 3;
+  overflow: auto;
+  height: calc(100vh - var(--cc-topbar-h));
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar thin */
+main.cc-main::-webkit-scrollbar { width: 10px; }
+main.cc-main::-webkit-scrollbar-thumb { background: var(--cc-border); border-radius: 6px; }
