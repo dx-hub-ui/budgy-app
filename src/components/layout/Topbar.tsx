@@ -1,14 +1,19 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 import IconButton from "@/components/ui/IconButton";
 import Input from "@/components/ui/Input";
 import Avatar from "@/components/ui/Avatar";
 import { Search, Bell, PanelsTopLeft } from "lucide-react";
 import useHotkeys from "@/hooks/useHotkeys";
-import { useRef } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const searchRef = useRef<HTMLInputElement>(null);
+  const [user, setUser] = useState<User | null>();
+  const [signingOut, setSigningOut] = useState(false);
 
   useHotkeys([
     {
@@ -28,6 +33,37 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => voi
       }
     }
   ]);
+
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setUser(data.user ?? null);
+    });
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleSignOut() {
+    try {
+      setSigningOut(true);
+      await supabase.auth.signOut();
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
+  const userInitial = user?.email?.charAt(0)?.toUpperCase() ?? "?";
 
   return (
     <header id="topbar" className="cc-topbar">
@@ -52,16 +88,42 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => voi
                 aria-label="Buscar"
                 className="w-full"
               />
-              <span className="hidden md:inline text-xs opacity-60">/ ou Ctrl/⌘+K</span>
+              <span className="hidden text-xs opacity-60 md:inline">/ ou Ctrl/⌘+K</span>
             </form>
           </div>
 
           {/* Right col */}
           <div className="col-span-3 md:col-span-3 flex items-center justify-end gap-2">
-            <IconButton aria-label="Notificações">
-              <Bell size={18} />
-            </IconButton>
-            <Avatar label="A" />
+            {user === undefined ? (
+              <span className="text-sm opacity-60">Carregando…</span>
+            ) : user ? (
+              <>
+                <IconButton aria-label="Notificações">
+                  <Bell size={18} />
+                </IconButton>
+                <span className="hidden text-sm opacity-80 md:inline" aria-live="polite">
+                  {user.email}
+                </span>
+                <button
+                  type="button"
+                  className="rounded-md border px-3 py-1 text-xs"
+                  style={{ borderColor: "var(--cc-border)" }}
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                >
+                  {signingOut ? "Saindo..." : "Sair"}
+                </button>
+                <Avatar label={userInitial} />
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-md border px-3 py-1 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+              >
+                Entrar
+              </Link>
+            )}
           </div>
         </div>
       </div>
