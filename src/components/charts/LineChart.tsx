@@ -13,6 +13,8 @@ import {
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 
+import { useTheme } from "../theme/ThemeProvider";
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 const Line = dynamic(() => import("react-chartjs-2").then((mod) => mod.Line), {
@@ -30,8 +32,61 @@ type LineChartProps = {
   ariaLabel?: string;
 };
 
+const COLOR_KEYS = [
+  "brand",
+  "brandSoftFill",
+  "brandSoftFillStrong",
+  "chartGrid",
+  "chartPointBorder",
+  "muted",
+] as const;
+
+type ColorKey = (typeof COLOR_KEYS)[number];
+type Colors = Record<ColorKey, string>;
+
+const FALLBACK_COLORS: Colors = {
+  brand: "#22c55e",
+  brandSoftFill: "rgba(34, 197, 94, 0.12)",
+  brandSoftFillStrong: "rgba(34, 197, 94, 0.24)",
+  chartGrid: "rgba(34, 197, 94, 0.18)",
+  chartPointBorder: "#ffffff",
+  muted: "#5b7065",
+};
+
+const CSS_VARIABLES: Record<ColorKey, string> = {
+  brand: "--brand",
+  brandSoftFill: "--brand-soft-fill",
+  brandSoftFillStrong: "--brand-soft-fill-strong",
+  chartGrid: "--chart-grid",
+  chartPointBorder: "--chart-point-border",
+  muted: "--muted",
+};
+
+function readCssVariable(variable: ColorKey) {
+  if (typeof window === "undefined") {
+    return FALLBACK_COLORS[variable];
+  }
+
+  const styles = window.getComputedStyle(window.document.documentElement);
+  const value = styles.getPropertyValue(CSS_VARIABLES[variable]);
+  return value.trim() || FALLBACK_COLORS[variable];
+}
+
 export default function LineChart({ labels, data, className, ariaLabel }: LineChartProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
+  const { theme } = useTheme();
+  const [colors, setColors] = useState<Colors>(() => ({ ...FALLBACK_COLORS }));
+
+  useEffect(() => {
+    setColors({
+      brand: readCssVariable("brand"),
+      brandSoftFill: readCssVariable("brandSoftFill"),
+      brandSoftFillStrong: readCssVariable("brandSoftFillStrong"),
+      chartGrid: readCssVariable("chartGrid"),
+      chartPointBorder: readCssVariable("chartPointBorder"),
+      muted: readCssVariable("muted"),
+    });
+  }, [theme]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -52,20 +107,20 @@ export default function LineChart({ labels, data, className, ariaLabel }: LineCh
           label: "Saldo",
           data,
           tension: 0.4,
-          borderColor: "var(--brand)",
-          backgroundColor: "var(--brand-soft-fill-strong)",
+          borderColor: colors.brand,
+          backgroundColor: colors.brandSoftFillStrong,
           pointRadius: 4,
           pointHoverRadius: 6,
-          pointBackgroundColor: "var(--brand)",
-          pointBorderColor: "var(--chart-point-border)",
+          pointBackgroundColor: colors.brand,
+          pointBorderColor: colors.chartPointBorder,
           fill: {
             target: "origin",
-            above: "var(--brand-soft-fill)",
+            above: colors.brandSoftFill,
           },
         },
       ],
     }),
-    [labels, data]
+    [labels, data, colors]
   );
 
   const options = useMemo<ChartOptions<"line">>(
@@ -101,16 +156,16 @@ export default function LineChart({ labels, data, className, ariaLabel }: LineCh
             display: false,
           },
           ticks: {
-            color: "var(--muted)",
+            color: colors.muted,
           },
         },
         y: {
           grid: {
-            color: "var(--chart-grid)",
+            color: colors.chartGrid,
             drawBorder: false,
           },
           ticks: {
-            color: "var(--muted)",
+            color: colors.muted,
             callback: (value) =>
               new Intl.NumberFormat("pt-BR", {
                 style: "currency",
@@ -121,7 +176,7 @@ export default function LineChart({ labels, data, className, ariaLabel }: LineCh
         },
       },
     }),
-    [reducedMotion]
+    [reducedMotion, colors]
   );
 
   return (
