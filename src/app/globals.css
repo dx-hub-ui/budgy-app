@@ -121,7 +121,7 @@ nav.cc-sidebar {
   position: sticky;
   top: 0;
   height: calc(100vh - var(--cc-topbar-h));
-  background: var(--sidebar-dark);
+  background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   overflow: hidden;
   color: var(--sidebar-foreground);
