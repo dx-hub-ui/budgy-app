@@ -6,6 +6,11 @@
 - A escolha do tema é persistida localmente no navegador (`localStorage`) e respeita mudanças de preferência do sistema quando não houver uma seleção explícita.
 - A logomarca exibida na Topbar respeita o tema ativo, utilizando as versões claras e escuras disponibilizadas em `/public/brand`.
 
+## Esquema de cores do painel
+- O painel financeiro utiliza uma paleta azul derivada do tom principal `--brand` (`#2563eb`), aplicada a estados de foco (`--ring`), destaques de cards e badges e ao gráfico de saldo.
+- A barra lateral deixou de usar o verde original e agora herda tokens dedicados (`--sidebar-dark`, `--sidebar-foreground`, `--sidebar-hover` e `--sidebar-border`) para manter contraste em ambos os temas.
+- Os estados positivos dos componentes (ex.: métricas, transações concluídas) reaproveitam os tokens suaves `--brand-soft-*`, garantindo consistência cromática sem perder legibilidade no modo escuro.
+
 ## Proteção de acesso
 - Todas as rotas internas dependem de autenticação. Usuários não autenticados são redirecionados para `/login` antes de qualquer conteúdo do app ser renderizado.
 - Durante a checagem da sessão é exibido apenas um estado de carregamento, evitando o vazamento de conteúdo sensível.
@@ -22,7 +27,7 @@
 ## Painel financeiro
 - A nova rota `/dashboard` reúne o gráfico de saldo, cartões de métricas e uma tabela responsiva de transações recentes seguindo a composição de colunas 2fr/1fr em telas grandes.
 - A rota raiz `/` agora redireciona imediatamente para `/dashboard`, evitando conflitos de build entre páginas do grupo `(app)` e garantindo que o painel seja sempre exibido primeiro.
-- O tema inclui novos tokens globais para cartões e widgets (`--card-bg-light`, `--card-bg-dark`, `--muted`, `--ring`, `--shadow`, `--radius`, `--sidebar-dark` e `--brand`) que podem ser reutilizados em futuros componentes.
+- O tema inclui novos tokens globais para cartões e widgets (`--card-bg-light`, `--card-bg-dark`, `--muted`, `--ring`, `--shadow`, `--radius`, `--sidebar-dark`, `--sidebar-foreground`, `--sidebar-hover`, `--sidebar-border` e `--brand`) que podem ser reutilizados em futuros componentes.
 - Tokens adicionais para o painel (`--brand-rgb`, `--brand-soft-bg`, `--brand-soft-fill`, `--brand-soft-fill-strong`, `--chart-grid` e `--chart-point-border`) mantêm o contraste adequado do gráfico e dos ícones em ambos os temas.
 - O gráfico utiliza Chart.js com carregamento dinâmico no cliente, respeitando a preferência de movimento reduzido do sistema.
 - Os cards de estatísticas empregam botões de overflow acessíveis com foco visível (`ring-[var(--ring)]`) e usam o brand como destaque de ícones.

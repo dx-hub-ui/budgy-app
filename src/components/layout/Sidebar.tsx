@@ -35,7 +35,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                 <li key={it.href}>
                   <Link
                     href={it.href}
-                    className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-dark)] hover:bg-white/10 focus:bg-white/10"
+                    className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[var(--sidebar-foreground)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-dark)] hover:bg-[var(--sidebar-hover)] focus:bg-[var(--sidebar-hover)]"
                   >
                     <Icon size={18} className="text-[var(--brand)]" />
                     {!collapsed && <span>{it.label}</span>}
@@ -51,10 +51,14 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
           </ul>
         </li>
 
-        <li className="border-t" style={{ borderColor: "var(--cc-border)" }}>
+        <li className="border-t" style={{ borderColor: "var(--sidebar-border)" }}>
           <div className="p-2 flex justify-end">
             <IconButton
-              className="border-white/10 text-white hover:bg-white/10 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-dark)]"
+              className="text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-hover)] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-dark)]"
+              style={{
+                borderColor: "var(--sidebar-border)",
+                color: "var(--sidebar-foreground)",
+              }}
               aria-label={collapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
               aria-pressed={collapsed}
               onClick={onToggle}
