@@ -17,4 +17,6 @@
 - O botão de sair utiliza a API do Supabase e também está disponível dentro do menu, em vez de exposto diretamente na Topbar.
 
 ## Layout da Topbar
-- A Topbar foi dividida em três áreas principais: branding com largura fixa igual a `var(--cc-sidebar-w)`, um espaço central livre para conteúdo adicional e a área de ações do usuário (alternância de tema, notificações e menu do avatar).
+- A Topbar agora ocupa 100% da largura disponível, mantendo apenas um espaçamento lateral pelo padding padrão do layout.
+- A área de branding permanece ancorada à esquerda exibindo a logomarca adequada ao tema ativo, enquanto as ações do usuário (alternância de tema, notificações e menu do avatar) ficam agrupadas no extremo direito.
+- O botão de colapsar a sidebar foi removido da Topbar; a alternância continua disponível diretamente na própria sidebar e via atalho de teclado.
