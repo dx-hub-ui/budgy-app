@@ -36,7 +36,7 @@
   --brand-soft-fill-strong: rgba(var(--brand-rgb), 0.26);
   --chart-grid: rgba(59, 99, 255, 0.16);
   --chart-point-border: #ffffff;
-  --sidebar-dark: #1d2b52;
+  --sidebar-bg: #cedafa;
   --sidebar-foreground: rgba(239, 244, 255, 0.96);
   --sidebar-muted: rgba(163, 178, 214, 0.68);
   --sidebar-hover: rgba(59, 99, 255, 0.2);
@@ -59,7 +59,7 @@
   --muted: #8fa2d9;
   --ring: #8aa7ff;
   --shadow: 0 40px 70px rgba(2, 7, 24, 0.7);
-  --sidebar-dark: #0d1936;
+  --sidebar-bg: #0d1936;
   --sidebar-foreground: rgba(227, 234, 255, 0.94);
   --sidebar-muted: rgba(157, 175, 220, 0.62);
   --sidebar-hover: rgba(138, 167, 255, 0.26);
