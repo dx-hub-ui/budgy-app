@@ -1,6 +1,5 @@
 # .github/workflows/supabase-migrations.yml
-# Secret required: SUPABASE_DB_URL
-# Example: postgres://USER:PASSWORD@HOST:5432/DB?sslmode=require
+# Requires secret: SUPABASE_DB_URL
 
 name: Supabase Migrations (Direct)
 
@@ -8,11 +7,11 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "supabase/migrations/**/*.sql"
+      - "supabase/migrations/*.sql"
   pull_request:
     branches: [ main ]
     paths:
-      - "supabase/migrations/**/*.sql"
+      - "supabase/migrations/*.sql"
   workflow_dispatch:
 
 jobs:
@@ -46,7 +45,7 @@ jobs:
             exit 0
           fi
 
-          mapfile -t FILES < <(find "$MIGRATIONS_DIR" -type f -name '*.sql' | sort)
+          mapfile -t FILES < <(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.sql' | sort)
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "No .sql files. Nothing to do."
             exit 0
