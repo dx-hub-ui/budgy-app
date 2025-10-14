@@ -21,6 +21,7 @@
 
 ## Painel financeiro
 - A nova rota `/dashboard` reúne o gráfico de saldo, cartões de métricas e uma tabela responsiva de transações recentes seguindo a composição de colunas 2fr/1fr em telas grandes.
+- A rota raiz `/` agora redireciona imediatamente para `/dashboard`, evitando conflitos de build entre páginas do grupo `(app)` e garantindo que o painel seja sempre exibido primeiro.
 - O tema inclui novos tokens globais para cartões e widgets (`--card-bg-light`, `--card-bg-dark`, `--muted`, `--ring`, `--shadow`, `--radius`, `--sidebar-dark` e `--brand`) que podem ser reutilizados em futuros componentes.
 - O gráfico utiliza Chart.js com carregamento dinâmico no cliente, respeitando a preferência de movimento reduzido do sistema.
 - Os cards de estatísticas empregam botões de overflow acessíveis com foco visível (`ring-[var(--ring)]`) e usam o brand como destaque de ícones.
