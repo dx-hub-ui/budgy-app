@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import IconButton from "@/components/ui/IconButton";
 import Avatar from "@/components/ui/Avatar";
-import { Bell, PanelsTopLeft, Moon, Sun, LogOut } from "lucide-react";
+import { Bell, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useAuth } from "@/components/auth/AuthGate";
 
@@ -92,55 +92,49 @@ function UserMenu({ user, signingOut, onSignOut }: UserMenuProps) {
   );
 }
 
-export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+export default function Topbar() {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut, signingOut } = useAuth();
   const brandLogoSrc = theme === "dark" ? "/brand/budgy_logo_escuro.png" : "/brand/budgy_logo_claro.png";
 
   return (
     <header id="topbar" className="cc-topbar">
-      <div className="mx-auto h-full max-w-[var(--cc-content-maxw)] px-3 md:px-4">
-        <div className="grid h-full grid-cols-[var(--cc-sidebar-w)_1fr_auto] items-center gap-2">
-          <div className="flex h-full items-center gap-2">
-            <IconButton type="button" aria-label="Alternar menu" onClick={onToggleSidebar}>
-              <PanelsTopLeft size={18} />
-            </IconButton>
-            <Link
-              href="/"
-              className="flex items-center"
-              aria-label="Ir para a página inicial"
-            >
-              <Image
-                src={brandLogoSrc}
-                alt="Budgy"
-                width={200}
-                height={70}
-                className="h-8 w-auto"
-                priority
-              />
-            </Link>
-          </div>
-          <div className="h-full" aria-hidden="true" />
+      <div className="flex h-full items-center justify-between px-3 md:px-4">
+        <div className="flex h-full items-center">
+          <Link
+            href="/"
+            className="flex items-center"
+            aria-label="Ir para a página inicial"
+          >
+            <Image
+              src={brandLogoSrc}
+              alt="Budgy"
+              width={200}
+              height={70}
+              className="h-8 w-auto"
+              priority
+            />
+          </Link>
+        </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <IconButton
-              type="button"
-              aria-label="Alternar tema"
-              onClick={toggleTheme}
-              aria-pressed={theme === "dark"}
-              title={
-                theme === "dark"
-                  ? "Alternar para tema claro"
-                  : "Alternar para tema escuro"
-              }
-            >
-              {theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
-            </IconButton>
-            <IconButton type="button" aria-label="Notificações">
-              <Bell size={18} />
-            </IconButton>
-            <UserMenu user={user} signingOut={signingOut} onSignOut={signOut} />
-          </div>
+        <div className="flex items-center gap-2">
+          <IconButton
+            type="button"
+            aria-label="Alternar tema"
+            onClick={toggleTheme}
+            aria-pressed={theme === "dark"}
+            title={
+              theme === "dark"
+                ? "Alternar para tema claro"
+                : "Alternar para tema escuro"
+            }
+          >
+            {theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
+          </IconButton>
+          <IconButton type="button" aria-label="Notificações">
+            <Bell size={18} />
+          </IconButton>
+          <UserMenu user={user} signingOut={signingOut} onSignOut={signOut} />
         </div>
       </div>
     </header>
