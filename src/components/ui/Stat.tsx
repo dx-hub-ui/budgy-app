@@ -45,7 +45,7 @@ export default function Stat({
           <span
             className="grid h-9 w-9 place-items-center rounded-full"
             style={{
-              backgroundColor: "rgba(52, 195, 143, 0.12)",
+              backgroundColor: "var(--brand-soft-bg)",
               color: "var(--brand)",
             }}
             aria-hidden

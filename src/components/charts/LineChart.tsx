@@ -53,14 +53,14 @@ export default function LineChart({ labels, data, className, ariaLabel }: LineCh
           data,
           tension: 0.4,
           borderColor: "var(--brand)",
-          backgroundColor: "rgba(52, 195, 143, 0.16)",
+          backgroundColor: "var(--brand-soft-fill-strong)",
           pointRadius: 4,
           pointHoverRadius: 6,
           pointBackgroundColor: "var(--brand)",
-          pointBorderColor: "#ffffff",
+          pointBorderColor: "var(--chart-point-border)",
           fill: {
             target: "origin",
-            above: "rgba(52, 195, 143, 0.12)",
+            above: "var(--brand-soft-fill)",
           },
         },
       ],
@@ -106,7 +106,7 @@ export default function LineChart({ labels, data, className, ariaLabel }: LineCh
         },
         y: {
           grid: {
-            color: "rgba(148, 163, 184, 0.18)",
+            color: "var(--chart-grid)",
             drawBorder: false,
           },
           ticks: {
