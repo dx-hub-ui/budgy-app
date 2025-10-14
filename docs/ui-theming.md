@@ -24,3 +24,5 @@
 - O tema inclui novos tokens globais para cartões e widgets (`--card-bg-light`, `--card-bg-dark`, `--muted`, `--ring`, `--shadow`, `--radius`, `--sidebar-dark` e `--brand`) que podem ser reutilizados em futuros componentes.
 - O gráfico utiliza Chart.js com carregamento dinâmico no cliente, respeitando a preferência de movimento reduzido do sistema.
 - Os cards de estatísticas empregam botões de overflow acessíveis com foco visível (`ring-[var(--ring)]`) e usam o brand como destaque de ícones.
+- A lógica do painel agora vive em um hook client-side dedicado que tenta carregar dados reais do Supabase; em caso de indisponibilidade, o painel recorre automaticamente aos mocks sem quebrar o layout.
+- Quando não há transações no período selecionado, apresentamos um estado vazio textual acessível em vez de exibir a tabela vazia.

@@ -10,12 +10,32 @@ import LineChart from "@/components/charts/LineChart";
 import RecentTable, { type RecentRow } from "@/components/transactions/RecentTable";
 import { listExpensesByMonth, type MonthFilter } from "@/domain/repo";
 
-type DashboardState = {
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+const chartLabelFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "short",
+});
+
+type DashboardSnapshot = {
   chart: {
     labels: string[];
     data: number[];
   };
-  transactions: RecentRow[];
   balances: {
     total: number;
     main: number;
@@ -27,69 +47,14 @@ type DashboardState = {
     savings: string;
     expenses: string;
   };
+  transactions: RecentRow[];
 };
 
-const fallbackData: DashboardState = {
+const MOCK_SNAPSHOT: DashboardSnapshot = {
   chart: {
     labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
     data: [49520, 49780, 49340, 50010, 50420, 50890, 51230],
   },
-  transactions: [
-    {
-      id: "1",
-      name: "Supermercado Real",
-      note: "Método: CARTÃO CRÉDITO",
-      date: "12/04/2024",
-      time: "10:24",
-      status: "completed" as const,
-      amount: 284.5,
-    },
-    {
-      id: "2",
-      name: "Assinatura Stream+",
-      note: "Método: PIX",
-      date: "11/04/2024",
-      time: "07:15",
-      status: "completed" as const,
-      amount: 39.9,
-    },
-    {
-      id: "3",
-      name: "Posto Lago Azul",
-      note: "Método: CARTÃO DÉBITO",
-      date: "10/04/2024",
-      time: "19:42",
-      status: "completed" as const,
-      amount: 212.7,
-    },
-    {
-      id: "4",
-      name: "Padaria Sol Nascente",
-      note: "Método: DINHEIRO",
-      date: "09/04/2024",
-      time: "08:08",
-      status: "pending" as const,
-      amount: 32.4,
-    },
-    {
-      id: "5",
-      name: "Academia Viva",
-      note: "Plano mensal",
-      date: "08/04/2024",
-      time: "06:45",
-      status: "completed" as const,
-      amount: 139.0,
-    },
-    {
-      id: "6",
-      name: "Restaurante Dona Maria",
-      note: "Método: CARTÃO DÉBITO",
-      date: "07/04/2024",
-      time: "13:27",
-      status: "failed" as const,
-      amount: 86.9,
-    },
-  ] satisfies RecentRow[],
   balances: {
     total: 51230,
     main: 32180,
@@ -101,48 +66,111 @@ const fallbackData: DashboardState = {
     savings: "+8,4%",
     expenses: "-5,1%",
   },
+  transactions: [
+    {
+      id: "1",
+      name: "Supermercado Real",
+      note: "Método: CARTÃO CRÉDITO",
+      date: "12/04/2024",
+      time: "10:24",
+      status: "completed",
+      amount: 284.5,
+    },
+    {
+      id: "2",
+      name: "Assinatura Stream+",
+      note: "Método: PIX",
+      date: "11/04/2024",
+      time: "07:15",
+      status: "completed",
+      amount: 39.9,
+    },
+    {
+      id: "3",
+      name: "Posto Lago Azul",
+      note: "Método: CARTÃO DÉBITO",
+      date: "10/04/2024",
+      time: "19:42",
+      status: "completed",
+      amount: 212.7,
+    },
+    {
+      id: "4",
+      name: "Padaria Sol Nascente",
+      note: "Método: DINHEIRO",
+      date: "09/04/2024",
+      time: "08:08",
+      status: "pending",
+      amount: 32.4,
+    },
+    {
+      id: "5",
+      name: "Academia Viva",
+      note: "Plano mensal",
+      date: "08/04/2024",
+      time: "06:45",
+      status: "completed",
+      amount: 139,
+    },
+    {
+      id: "6",
+      name: "Restaurante Dona Maria",
+      note: "Método: CARTÃO DÉBITO",
+      date: "07/04/2024",
+      time: "13:27",
+      status: "failed",
+      amount: 86.9,
+    },
+  ],
 };
 
 type Expense = Awaited<ReturnType<typeof listExpensesByMonth>>[number];
 
-const hasSupabaseEnv = Boolean(
+const hasSupabaseCredentials = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 );
 
-function getCurrentFilter(): MonthFilter {
+function currentMonth(): MonthFilter {
   const now = new Date();
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
-function toCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
-
-function formatISO(date: Date) {
+function toISODate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function formatLabel(date: Date) {
-  return date
-    .toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
-    .replace(".", "");
+function formatChartLabel(date: Date) {
+  return chartLabelFormatter
+    .format(date)
+    .replace(".", "")
+    .replace(/\bde\b/gi, "")
+    .trim();
+}
+
+function formatCurrency(value: number) {
+  return currencyFormatter.format(value);
 }
 
 function formatDate(iso: string | null | undefined) {
-  if (!iso) return "--";
-  const date = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  if (!iso) return "--/--/----";
+  const parsed = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return dateFormatter.format(parsed);
 }
 
 function formatTime(iso: string | null | undefined) {
   if (!iso) return "--:--";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "--:--";
-  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return "--:--";
+  return timeFormatter.format(parsed);
+}
+
+function normalizeStatus(expense: Expense): RecentRow["status"] {
+  const value = (expense?.status as string | undefined)?.toLowerCase();
+  if (value === "pending" || value === "completed" || value === "failed") {
+    return value;
+  }
+  return "completed";
 }
 
 function toMethodLabel(method: string | null | undefined) {
@@ -150,25 +178,39 @@ function toMethodLabel(method: string | null | undefined) {
   return `Método: ${method.toUpperCase()}`;
 }
 
-function buildFromExpenses(expenses: Expense[]): DashboardState {
+function formatDelta(current: number, baseline: number) {
+  if (!Number.isFinite(baseline) || baseline === 0) {
+    return "+0,0%";
+  }
+  const diff = Number((((current - baseline) / Math.abs(baseline)) * 100).toFixed(1));
+  const sign = diff >= 0 ? "+" : "-";
+  const formatted = Math.abs(diff).toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return `${sign}${formatted}%`;
+}
+
+function buildSnapshot(expenses: Expense[]): DashboardSnapshot {
+  const safeExpenses = Array.isArray(expenses) ? expenses : [];
   const baseBalance = 54000;
   const totalsByDay = new Map<string, number>();
   let monthlyExpenses = 0;
 
-  expenses.forEach((expense) => {
-    const value = ((expense?.amount_cents ?? 0) as number) / 100;
+  safeExpenses.forEach((expense) => {
+    const value = Number((expense?.amount_cents ?? 0) as number) / 100;
     monthlyExpenses += value;
-    if (expense?.date) {
-      const current = totalsByDay.get(expense.date) ?? 0;
-      totalsByDay.set(expense.date, current + value);
+    const isoDay = expense?.date as string | undefined;
+    if (isoDay) {
+      totalsByDay.set(isoDay, (totalsByDay.get(isoDay) ?? 0) + value);
     }
   });
 
   const days: Date[] = [];
-  const now = new Date();
-  for (let i = 6; i >= 0; i -= 1) {
-    const day = new Date(now);
-    day.setDate(now.getDate() - i);
+  const today = new Date();
+  for (let index = 6; index >= 0; index -= 1) {
+    const day = new Date(today);
+    day.setDate(today.getDate() - index);
     days.push(day);
   }
 
@@ -177,43 +219,37 @@ function buildFromExpenses(expenses: Expense[]): DashboardState {
   const data: number[] = [];
 
   days.forEach((day) => {
-    const iso = formatISO(day);
+    const iso = toISODate(day);
     const spent = totalsByDay.get(iso) ?? 0;
-    running = Math.max(0, running - spent);
-    labels.push(formatLabel(day));
-    data.push(Number(running.toFixed(2)));
+    running = Math.max(0, Number((running - spent).toFixed(2)));
+    labels.push(formatChartLabel(day));
+    data.push(running);
   });
 
-  const total = Number(running.toFixed(2));
+  const total = data[data.length - 1] ?? baseBalance;
   const main = Number((total * 0.64).toFixed(2));
   const savings = Number((total - main).toFixed(2));
 
-  const diff = total - fallbackData.balances.total;
-  const totalDelta = `${diff >= 0 ? "+" : "-"}${Math.abs((diff / fallbackData.balances.total) * 100).toFixed(1)}%`;
-  const savingsDelta = `+${Math.max(2, Math.min(9, ((savings - fallbackData.balances.savings) / Math.max(1, fallbackData.balances.savings)) * 100)).toFixed(1)}%`;
-  const expensesDelta = `-${Math.min(9.9, (monthlyExpenses / baseBalance) * 100).toFixed(1)}%`;
-
-  const transactions: RecentRow[] = expenses
+  const transactions: RecentRow[] = safeExpenses
     .slice()
     .sort((a, b) => {
       const dateA = new Date((a?.created_at as string) ?? `${a?.date ?? ""}T00:00:00`).getTime();
       const dateB = new Date((b?.created_at as string) ?? `${b?.date ?? ""}T00:00:00`).getTime();
       return dateB - dateA;
     })
-    .slice(0, 6)
+    .slice(0, 10)
     .map((expense, index) => ({
       id: (expense?.id as string) ?? `expense-${index}`,
       name: expense?.description ?? "Despesa",
       note: toMethodLabel(expense?.method as string),
       date: formatDate(expense?.date as string),
       time: formatTime((expense?.created_at as string) ?? null),
-      status: "completed",
-      amount: ((expense?.amount_cents ?? 0) as number) / 100,
+      status: normalizeStatus(expense),
+      amount: Number((expense?.amount_cents ?? 0) as number) / 100,
     }));
 
   return {
     chart: { labels, data },
-    transactions: transactions.length > 0 ? transactions : fallbackData.transactions,
     balances: {
       total,
       main,
@@ -221,36 +257,38 @@ function buildFromExpenses(expenses: Expense[]): DashboardState {
       expenses: Number(monthlyExpenses.toFixed(2)),
     },
     deltas: {
-      total: totalDelta,
-      savings: savingsDelta,
-      expenses: expensesDelta,
+      total: formatDelta(total, MOCK_SNAPSHOT.balances.total),
+      savings: formatDelta(savings, MOCK_SNAPSHOT.balances.savings),
+      expenses: formatDelta(monthlyExpenses, MOCK_SNAPSHOT.balances.expenses),
     },
+    transactions,
   };
 }
 
-export default function DashboardPage() {
-  const [state, setState] = useState<DashboardState>(fallbackData);
-  const [loading, setLoading] = useState(true);
+function useDashboardSnapshot() {
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot>(MOCK_SNAPSHOT);
+  const [loading, setLoading] = useState(hasSupabaseCredentials);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasSupabaseEnv) {
-      setLoading(false);
+    if (!hasSupabaseCredentials) {
       return;
     }
 
     let active = true;
+    setLoading(true);
+
     async function load() {
       try {
-        const expenses = await listExpensesByMonth(getCurrentFilter());
+        const expenses = await listExpensesByMonth(currentMonth());
         if (!active) return;
-        const computed = buildFromExpenses(expenses ?? []);
-        setState(computed);
+        const computed = buildSnapshot(expenses ?? []);
+        setSnapshot(computed);
         setError(null);
       } catch (err) {
         if (!active) return;
         console.error(err);
-        setState(fallbackData);
+        setSnapshot(MOCK_SNAPSHOT);
         setError("Não foi possível sincronizar com o Supabase. Mostrando dados demonstrativos.");
       } finally {
         if (active) {
@@ -271,29 +309,49 @@ export default function DashboardPage() {
       {
         icon: <Wallet2 size={18} />,
         label: "Saldo total",
-        value: toCurrency(state.balances.total),
-        delta: { value: state.deltas.total, positive: !state.deltas.total.startsWith("-") },
+        value: formatCurrency(snapshot.balances.total),
+        delta: {
+          value: snapshot.deltas.total,
+          positive: !snapshot.deltas.total.startsWith("-"),
+        },
       },
       {
         icon: <CreditCard size={18} />,
         label: "Conta principal",
-        value: toCurrency(state.balances.main),
+        value: formatCurrency(snapshot.balances.main),
       },
       {
         icon: <PiggyBank size={18} />,
         label: "Poupança",
-        value: toCurrency(state.balances.savings),
-        delta: { value: state.deltas.savings, positive: true },
+        value: formatCurrency(snapshot.balances.savings),
+        delta: {
+          value: snapshot.deltas.savings,
+          positive: !snapshot.deltas.savings.startsWith("-"),
+        },
       },
       {
         icon: <ArrowDownRight size={18} />,
         label: "Despesas do mês",
-        value: toCurrency(state.balances.expenses),
-        delta: { value: state.deltas.expenses, positive: false },
+        value: formatCurrency(snapshot.balances.expenses),
+        delta: {
+          value: snapshot.deltas.expenses,
+          positive: snapshot.deltas.expenses.startsWith("-"),
+        },
       },
     ],
-    [state]
+    [snapshot],
   );
+
+  return {
+    snapshot,
+    stats,
+    loading,
+    error,
+  };
+}
+
+export default function DashboardPage() {
+  const { snapshot, stats, loading, error } = useDashboardSnapshot();
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-[var(--cc-content-maxw)] flex-col gap-6 p-4 md:p-6">
@@ -311,15 +369,25 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="pb-2">
             {loading ? (
-              <div className="flex h-[280px] items-center justify-center text-sm text-[var(--muted)]">
+              <div
+                className="flex h-[280px] items-center justify-center text-sm text-[var(--muted)]"
+                role="status"
+                aria-live="polite"
+              >
                 Carregando dados…
               </div>
             ) : (
-              <LineChart labels={state.chart.labels} data={state.chart.data} ariaLabel="Gráfico de linha com evolução do saldo" />
+              <LineChart
+                labels={snapshot.chart.labels}
+                data={snapshot.chart.data}
+                ariaLabel="Gráfico de linha com evolução do saldo"
+              />
             )}
           </CardContent>
           {error && (
-            <p className="px-6 pb-6 text-sm text-amber-500">{error}</p>
+            <p className="px-6 pb-6 text-sm text-amber-500" role="alert">
+              {error}
+            </p>
           )}
         </Card>
 
@@ -350,10 +418,12 @@ export default function DashboardPage() {
           </CardActions>
         </CardHeader>
         <CardContent>
-          {state.transactions.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">Nenhuma transação encontrada para este período.</p>
+          {snapshot.transactions.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">
+              Nenhuma transação encontrada para este período.
+            </p>
           ) : (
-            <RecentTable rows={state.transactions} />
+            <RecentTable rows={snapshot.transactions} />
           )}
         </CardContent>
       </Card>
