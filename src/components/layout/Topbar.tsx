@@ -1,19 +1,101 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import IconButton from "@/components/ui/IconButton";
 import Input from "@/components/ui/Input";
 import Avatar from "@/components/ui/Avatar";
-import { Search, Bell, PanelsTopLeft } from "lucide-react";
+import { Search, Bell, PanelsTopLeft, Moon, Sun, LogOut } from "lucide-react";
 import useHotkeys from "@/hooks/useHotkeys";
-import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/components/theme/ThemeProvider";
+import { useAuth } from "@/components/auth/AuthGate";
+
+type UserMenuProps = {
+  user: User;
+  signingOut: boolean;
+  onSignOut: () => Promise<void>;
+};
+
+function UserMenu({ user, signingOut, onSignOut }: UserMenuProps) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const email = user.email ?? "usuário";
+  const initial = email.charAt(0).toUpperCase() || "?";
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleClick(event: MouseEvent) {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  async function handleSignOut() {
+    setOpen(false);
+    await onSignOut();
+  }
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-accent)]"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Abrir menu do usuário"
+      >
+        <Avatar label={initial} />
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-md border bg-[var(--cc-surface)] shadow-lg"
+          style={{ borderColor: "var(--cc-border)" }}
+        >
+          <div
+            className="border-b px-3 py-2 text-sm"
+            style={{ borderColor: "var(--cc-border)" }}
+            aria-live="polite"
+          >
+            <p className="font-semibold">{email}</p>
+          </div>
+          <button
+            type="button"
+            role="menuitem"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--cc-bg-elev)] disabled:opacity-60"
+            onClick={handleSignOut}
+            disabled={signingOut}
+          >
+            <LogOut size={16} />
+            {signingOut ? "Saindo..." : "Sair"}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const searchRef = useRef<HTMLInputElement>(null);
-  const [user, setUser] = useState<User | null>();
-  const [signingOut, setSigningOut] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { user, signOut, signingOut } = useAuth();
 
   useHotkeys([
     {
@@ -34,44 +116,13 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => voi
     }
   ]);
 
-  useEffect(() => {
-    let active = true;
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (!active) return;
-      setUser(data.user ?? null);
-    });
-
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  async function handleSignOut() {
-    try {
-      setSigningOut(true);
-      await supabase.auth.signOut();
-    } finally {
-      setSigningOut(false);
-    }
-  }
-
-  const userInitial = user?.email?.charAt(0)?.toUpperCase() ?? "?";
-
   return (
     <header id="topbar" className="cc-topbar">
       <div className="mx-auto h-full max-w-[var(--cc-content-maxw)] px-3 md:px-4">
         <div className="grid h-full grid-cols-12 items-center gap-2">
           {/* Left col */}
-          <div className="col-span-4 md:col-span-3 flex items-center gap-2">
-            <IconButton aria-label="Alternar menu" onClick={onToggleSidebar}>
+          <div className="col-span-4 flex items-center gap-2 md:col-span-3">
+            <IconButton type="button" aria-label="Alternar menu" onClick={onToggleSidebar}>
               <PanelsTopLeft size={18} />
             </IconButton>
             <div className="text-sm font-semibold opacity-90">ContaCerta</div>
@@ -93,37 +144,24 @@ export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => voi
           </div>
 
           {/* Right col */}
-          <div className="col-span-3 md:col-span-3 flex items-center justify-end gap-2">
-            {user === undefined ? (
-              <span className="text-sm opacity-60">Carregando…</span>
-            ) : user ? (
-              <>
-                <IconButton aria-label="Notificações">
-                  <Bell size={18} />
-                </IconButton>
-                <span className="hidden text-sm opacity-80 md:inline" aria-live="polite">
-                  {user.email}
-                </span>
-                <button
-                  type="button"
-                  className="rounded-md border px-3 py-1 text-xs"
-                  style={{ borderColor: "var(--cc-border)" }}
-                  onClick={handleSignOut}
-                  disabled={signingOut}
-                >
-                  {signingOut ? "Saindo..." : "Sair"}
-                </button>
-                <Avatar label={userInitial} />
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-md border px-3 py-1 text-sm"
-                style={{ borderColor: "var(--cc-border)" }}
-              >
-                Entrar
-              </Link>
-            )}
+          <div className="col-span-3 flex items-center justify-end gap-2 md:col-span-3">
+            <IconButton
+              type="button"
+              aria-label="Alternar tema"
+              onClick={toggleTheme}
+              aria-pressed={theme === "dark"}
+              title={
+                theme === "dark"
+                  ? "Alternar para tema claro"
+                  : "Alternar para tema escuro"
+              }
+            >
+              {theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}
+            </IconButton>
+            <IconButton type="button" aria-label="Notificações">
+              <Bell size={18} />
+            </IconButton>
+            <UserMenu user={user} signingOut={signingOut} onSignOut={signOut} />
           </div>
         </div>
       </div>
