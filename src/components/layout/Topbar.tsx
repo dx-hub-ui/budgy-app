@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import Image from "next/image";
+import Link from "next/link";
 import IconButton from "@/components/ui/IconButton";
-import Input from "@/components/ui/Input";
 import Avatar from "@/components/ui/Avatar";
-import { Search, Bell, PanelsTopLeft, Moon, Sun, LogOut } from "lucide-react";
-import useHotkeys from "@/hooks/useHotkeys";
+import { Bell, PanelsTopLeft, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useAuth } from "@/components/auth/AuthGate";
 
@@ -93,58 +93,36 @@ function UserMenu({ user, signingOut, onSignOut }: UserMenuProps) {
 }
 
 export default function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
-  const searchRef = useRef<HTMLInputElement>(null);
   const { theme, toggleTheme } = useTheme();
   const { user, signOut, signingOut } = useAuth();
-
-  useHotkeys([
-    {
-      key: "/",
-      handler: (e) => {
-        if ((e.target as HTMLElement).tagName === "INPUT") return;
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    },
-    {
-      key: "k",
-      ctrlOrMeta: true,
-      handler: (e) => {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    }
-  ]);
+  const brandLogoSrc = theme === "dark" ? "/brand/budgy_logo_escuro.png" : "/brand/budgy_logo_claro.png";
 
   return (
     <header id="topbar" className="cc-topbar">
       <div className="mx-auto h-full max-w-[var(--cc-content-maxw)] px-3 md:px-4">
-        <div className="grid h-full grid-cols-12 items-center gap-2">
-          {/* Left col */}
-          <div className="col-span-4 flex items-center gap-2 md:col-span-3">
+        <div className="grid h-full grid-cols-[var(--cc-sidebar-w)_1fr_auto] items-center gap-2">
+          <div className="flex h-full items-center gap-2">
             <IconButton type="button" aria-label="Alternar menu" onClick={onToggleSidebar}>
               <PanelsTopLeft size={18} />
             </IconButton>
-            <div className="text-sm font-semibold opacity-90">ContaCerta</div>
-          </div>
-
-          {/* Center col */}
-          <div className="col-span-5 md:col-span-6">
-            <form role="search" className="flex items-center gap-2">
-              <Search size={16} className="opacity-60" />
-              <Input
-                ref={searchRef}
-                type="search"
-                placeholder="Buscar"
-                aria-label="Buscar"
-                className="w-full"
+            <Link
+              href="/"
+              className="flex items-center"
+              aria-label="Ir para a página inicial"
+            >
+              <Image
+                src={brandLogoSrc}
+                alt="Budgy"
+                width={200}
+                height={70}
+                className="h-8 w-auto"
+                priority
               />
-              <span className="hidden text-xs opacity-60 md:inline">/ ou Ctrl/⌘+K</span>
-            </form>
+            </Link>
           </div>
+          <div className="h-full" aria-hidden="true" />
 
-          {/* Right col */}
-          <div className="col-span-3 flex items-center justify-end gap-2 md:col-span-3">
+          <div className="flex items-center justify-end gap-2">
             <IconButton
               type="button"
               aria-label="Alternar tema"
