@@ -55,7 +55,7 @@ Open [http://localhost:3000](http://localhost:3000) and visit `/login` to reques
 
 > **Magic link redirect URL**
 >
-> Add `http://localhost:3000/auth/callback` (and any deployed domains such as `https://app.budgy.com.br/auth/callback`) to **Authentication → URL Configuration → Redirect URLs** in the Supabase dashboard. The app relies on this callback route to store the access and refresh tokens before navigating to `/dashboard`, which fixes the missing-session issue observed on custom domains.
+> Add `http://localhost:3000/auth/callback` (and any deployed domains such as `https://app.budgy.com.br/auth/callback`) to **Authentication → URL Configuration → Redirect URLs** in the Supabase dashboard. The callback screen now lives at `src/app/auth/callback/page.tsx`, so every environment must point Supabase to `/auth/callback` to ensure the page can capture the access and refresh tokens before navigating to `/dashboard`.
 
 ## 5. Load development seed data
 
