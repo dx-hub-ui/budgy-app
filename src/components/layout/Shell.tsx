@@ -33,7 +33,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={shellClass}>
-      <Topbar onToggleSidebar={() => setCollapsed((v) => !v)} />
+      <Topbar />
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
       <main id="main-content" className="cc-main focus:outline-none" tabIndex={-1}>
         {children}
