@@ -7,7 +7,12 @@ name: Supabase Migrations (Direct)
 on:
   push:
     branches: [ main ]
-    paths: [ "supabase/migrations/**/*.sql" ]
+    paths:
+      - "supabase/migrations/**/*.sql"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "supabase/migrations/**/*.sql"
   workflow_dispatch:
 
 jobs:
@@ -17,7 +22,8 @@ jobs:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       MIGRATIONS_DIR: supabase/migrations
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install psql
         run: |
@@ -42,7 +48,7 @@ jobs:
 
           mapfile -t FILES < <(find "$MIGRATIONS_DIR" -type f -name '*.sql' | sort)
           if [ ${#FILES[@]} -eq 0 ]; then
-            echo "No .sql files in '$MIGRATIONS_DIR'. Nothing to do."
+            echo "No .sql files. Nothing to do."
             exit 0
           fi
 
