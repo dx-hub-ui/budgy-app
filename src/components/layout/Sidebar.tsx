@@ -6,8 +6,7 @@ import {
   LayoutDashboard,
   Wallet,
   Receipt,
-  BarChart3,
-  Settings,
+  FileDown,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -17,10 +16,9 @@ type Props = { collapsed: boolean; onToggle: () => void };
 
 const items = [
   { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
-  { href: "/budgets", label: "Orçamentos", icon: Wallet },
-  { href: "/expenses", label: "Despesas", icon: Receipt },
-  { href: "/reports", label: "Relatórios", icon: BarChart3 },
-  { href: "/settings", label: "Configurações", icon: Settings }
+  { href: "/new", label: "Nova despesa", icon: Receipt },
+  { href: "/categories", label: "Categorias", icon: Wallet },
+  { href: "/export", label: "Exportar dados", icon: FileDown }
 ];
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
