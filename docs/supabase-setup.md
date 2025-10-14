@@ -53,6 +53,10 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) and visit `/login` to request a magic link. After authenticating, the top bar will display your Supabase user email and offer a sign-out button.
 
+> **Magic link redirect URL**
+>
+> Add `http://localhost:3000/auth/callback` (and any deployed domains such as `https://app.budgy.com.br/auth/callback`) to **Authentication → URL Configuration → Redirect URLs** in the Supabase dashboard. The app relies on this callback route to store the access and refresh tokens before navigating to `/dashboard`, which fixes the missing-session issue observed on custom domains.
+
 ## 5. Load development seed data
 
 To populate the dashboard with realistic fixtures, use the included seed script. It creates a confirmed Supabase user (`demo@contacerta.test` by default), ensures the related profile, and inserts example categories and expenses covering the last two months.
