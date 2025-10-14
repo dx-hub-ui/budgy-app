@@ -19,7 +19,8 @@ const statusTokens: Record<RecentRow["status"], { label: string; className: stri
   },
   completed: {
     label: "Concluída",
-    className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200",
+    className:
+      "bg-[var(--brand-soft-bg)] text-[var(--brand)] dark:bg-[var(--brand-soft-fill)] dark:text-[var(--brand)]",
   },
   failed: {
     label: "Falhou",
@@ -62,7 +63,10 @@ export default function RecentTable({ rows }: RecentTableProps) {
           {rows.map((row) => {
             const status = statusTokens[row.status];
             return (
-              <tr key={row.id} className="hover:bg-black/5 focus-within:bg-black/5 dark:hover:bg-white/5 dark:focus-within:bg-white/5">
+              <tr
+                key={row.id}
+                className="hover:bg-[rgba(37,99,235,0.06)] focus-within:bg-[rgba(37,99,235,0.06)] dark:hover:bg-[rgba(96,165,250,0.08)] dark:focus-within:bg-[rgba(96,165,250,0.08)]"
+              >
                 <td className="whitespace-nowrap px-4 py-4">
                   <div className="flex flex-col">
                     <span className="font-medium text-[var(--cc-text)]">{row.name}</span>

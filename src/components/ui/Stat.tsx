@@ -62,7 +62,7 @@ export default function Stat({
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-semibold",
                     delta.positive
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200"
+                      ? "bg-[var(--brand-soft-bg)] text-[var(--brand)] dark:bg-[var(--brand-soft-fill)] dark:text-[var(--brand)]"
                       : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
                   )}
                 >
