@@ -3,10 +3,11 @@
 import IconButton from "@/components/ui/IconButton";
 import Tooltip from "@/components/ui/Tooltip";
 import {
-  Home,
-  FolderKanban,
-  FileText,
-  CirclePlus,
+  LayoutDashboard,
+  Wallet,
+  Receipt,
+  BarChart3,
+  Settings,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -15,10 +16,11 @@ import Link from "next/link";
 type Props = { collapsed: boolean; onToggle: () => void };
 
 const items = [
-  { href: "/", label: "Início", icon: Home },
-  { href: "/new", label: "Nova despesa", icon: CirclePlus },
-  { href: "/categories", label: "Categorias", icon: FolderKanban },
-  { href: "/export", label: "Exportar", icon: FileText }
+  { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
+  { href: "/budgets", label: "Orçamentos", icon: Wallet },
+  { href: "/expenses", label: "Despesas", icon: Receipt },
+  { href: "/reports", label: "Relatórios", icon: BarChart3 },
+  { href: "/settings", label: "Configurações", icon: Settings }
 ];
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
@@ -33,10 +35,10 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                 <li key={it.href}>
                   <Link
                     href={it.href}
-                    className="group flex items-center gap-3 px-3 py-2 hover:bg-[var(--cc-bg-elev)] focus:bg-[var(--cc-bg-elev)]"
+                    className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-dark)] hover:bg-white/10 focus:bg-white/10"
                   >
-                    <Icon size={18} className="opacity-80" />
-                    {!collapsed && <span className="text-sm">{it.label}</span>}
+                    <Icon size={18} className="text-[var(--brand)]" />
+                    {!collapsed && <span>{it.label}</span>}
                     {collapsed && (
                       <Tooltip content={it.label}>
                         <span className="sr-only">{it.label}</span>
@@ -52,6 +54,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         <li className="border-t" style={{ borderColor: "var(--cc-border)" }}>
           <div className="p-2 flex justify-end">
             <IconButton
+              className="border-white/10 text-white hover:bg-white/10 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-dark)]"
               aria-label={collapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
               aria-pressed={collapsed}
               onClick={onToggle}

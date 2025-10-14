@@ -17,6 +17,13 @@
 - O botão de sair utiliza a API do Supabase e também está disponível dentro do menu, em vez de exposto diretamente na Topbar.
 
 ## Layout da Topbar
-- A Topbar agora ocupa 100% da largura disponível, mantendo apenas um espaçamento lateral pelo padding padrão do layout.
-- A área de branding permanece ancorada à esquerda exibindo a logomarca adequada ao tema ativo, enquanto as ações do usuário (alternância de tema, notificações e menu do avatar) ficam agrupadas no extremo direito.
-- O botão de colapsar a sidebar foi removido da Topbar; a alternância continua disponível diretamente na própria sidebar e via atalho de teclado.
+- A Topbar foi dividida em três áreas principais: branding com largura fixa igual a `var(--cc-sidebar-w)`, um espaço central livre para conteúdo adicional e a área de ações do usuário (alternância de tema, notificações e menu do avatar).
+
+## Painel financeiro
+- A nova rota `/dashboard` reúne o gráfico de saldo, cartões de métricas e uma tabela responsiva de transações recentes seguindo a composição de colunas 2fr/1fr em telas grandes.
+- A rota raiz `/` agora redireciona imediatamente para `/dashboard`, evitando conflitos de build entre páginas do grupo `(app)` e garantindo que o painel seja sempre exibido primeiro.
+- O tema inclui novos tokens globais para cartões e widgets (`--card-bg-light`, `--card-bg-dark`, `--muted`, `--ring`, `--shadow`, `--radius`, `--sidebar-dark` e `--brand`) que podem ser reutilizados em futuros componentes.
+- O gráfico utiliza Chart.js com carregamento dinâmico no cliente, respeitando a preferência de movimento reduzido do sistema.
+- Os cards de estatísticas empregam botões de overflow acessíveis com foco visível (`ring-[var(--ring)]`) e usam o brand como destaque de ícones.
+- A lógica do painel agora vive em um hook client-side dedicado que tenta carregar dados reais do Supabase; em caso de indisponibilidade, o painel recorre automaticamente aos mocks sem quebrar o layout.
+- Quando não há transações no período selecionado, apresentamos um estado vazio textual acessível em vez de exibir a tabela vazia.

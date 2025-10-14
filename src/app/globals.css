@@ -23,6 +23,14 @@
   --cc-accent: #2563eb;
 
   --cc-shadow-1: 0 1px 2px rgba(15, 17, 21, 0.08);
+  --card-bg-light: #ffffff;
+  --card-bg-dark: #111827;
+  --muted: #6b7280;
+  --ring: #34c38f;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --radius: 16px;
+  --sidebar-dark: #0b2a27;
+  --brand: #34c38f;
 }
 
 :root[data-theme="dark"] {
@@ -36,6 +44,11 @@
   --cc-accent: #6ea8fe;
 
   --cc-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --card-bg-light: #151922;
+  --card-bg-dark: #111827;
+  --muted: #a8aec2;
+  --shadow: 0 6px 32px rgba(0, 0, 0, 0.4);
+  --sidebar-dark: #071f1d;
 }
 
 * {
@@ -88,9 +101,14 @@ nav.cc-sidebar {
   position: sticky;
   top: 0;
   height: calc(100vh - var(--cc-topbar-h));
-  background: var(--cc-surface);
+  background: var(--sidebar-dark);
   border-right: 1px solid var(--cc-border);
   overflow: hidden;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+nav.cc-sidebar a {
+  color: inherit;
 }
 
 main.cc-main {
