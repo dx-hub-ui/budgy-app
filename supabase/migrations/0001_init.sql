@@ -50,7 +50,8 @@ create policy "cats select own" on public.categories
 create policy "cats ins own" on public.categories
   for insert with check (user_id = auth.uid());
 create policy "cats upd own" on public.categories
-  for update using (user_id = auth.uid());
+  for update using (user_id = auth.uid())
+  with check (user_id = auth.uid());
 create policy "cats del own" on public.categories
   for delete using (user_id = auth.uid());
 
@@ -59,7 +60,8 @@ create policy "exp select own" on public.expenses
 create policy "exp ins own" on public.expenses
   for insert with check (user_id = auth.uid());
 create policy "exp upd own" on public.expenses
-  for update using (user_id = auth.uid());
+  for update using (user_id = auth.uid())
+  with check (user_id = auth.uid());
 create policy "exp del own" on public.expenses
   for delete using (user_id = auth.uid());
 
