@@ -16,7 +16,7 @@ export default function NewExpensePage() {
     date: ymd(new Date()),
     category_id: null as string | null,
     method: "pix",
-    description: ""
+    description: "",
   });
 
   useEffect(() => {
@@ -58,91 +58,101 @@ export default function NewExpensePage() {
   }
 
   return (
-    <div className="mx-auto max-w-[var(--cc-content-maxw)] p-4 md:p-6">
-      <h1 className="text-2xl font-semibold">Nova despesa</h1>
-      <form onSubmit={onSubmit} className="mt-4 space-y-3">
-        <label className="block text-sm">
-          Valor (centavos)
-          <input
-            className="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            type="number"
-            min={1}
-            step={1}
-            value={form.amount_cents}
-            onChange={(e) =>
-              setForm({ ...form, amount_cents: Number.parseInt(e.target.value || "0", 10) })
-            }
-            required
-          />
-        </label>
-        <label className="block text-sm">
-          Data
-          <input
-            className="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-            required
-          />
-        </label>
-        <label className="block text-sm">
-          Categoria
-          <select
-            className="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            value={form.category_id ?? ""}
-            onChange={(e) => setForm({ ...form, category_id: e.target.value || null })}
-            disabled={loadingCats && cats.length === 0}
-          >
-            <option value="">Sem categoria</option>
-            {cats.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          Método
-          <select
-            className="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            value={form.method}
-            onChange={(e) => setForm({ ...form, method: e.target.value as any })}
-          >
-            <option value="pix">Pix</option>
-            <option value="debito">Débito</option>
-            <option value="credito">Crédito</option>
-            <option value="dinheiro">Dinheiro</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          Descrição
-          <input
-            className="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            value={form.description || ""}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            maxLength={140}
-          />
-        </label>
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
-        <div className="pt-2">
-          <button
-            className="h-9 rounded-md border px-4 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            type="submit"
-          >
-            Salvar
-          </button>
-        </div>
-      </form>
+    <div className="mx-auto w-full max-w-[var(--cc-content-maxw)]">
+      <div className="grid gap-6 md:grid-cols-12">
+        <header className="md:col-span-12">
+          <div className="cc-stack-24">
+            <h1 className="text-[28px] leading-[36px] font-semibold">Nova despesa</h1>
+            <p className="cc-section-sub text-sm">Cadastre um novo lançamento financeiro.</p>
+          </div>
+        </header>
+
+        <section className="cc-card p-4 md:col-span-12 md:p-6 lg:col-span-6">
+          <form onSubmit={onSubmit} className="cc-stack-24">
+            <label className="cc-stack-24 text-sm">
+              <span className="font-medium text-[var(--cc-text)]">Valor (centavos)</span>
+              <input
+                className="h-11 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                type="number"
+                min={1}
+                step={1}
+                value={form.amount_cents}
+                onChange={(e) =>
+                  setForm({ ...form, amount_cents: Number.parseInt(e.target.value || "0", 10) })
+                }
+                required
+              />
+            </label>
+            <label className="cc-stack-24 text-sm">
+              <span className="font-medium text-[var(--cc-text)]">Data</span>
+              <input
+                className="h-11 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                required
+              />
+            </label>
+            <label className="cc-stack-24 text-sm">
+              <span className="font-medium text-[var(--cc-text)]">Categoria</span>
+              <select
+                className="h-11 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                value={form.category_id ?? ""}
+                onChange={(e) => setForm({ ...form, category_id: e.target.value || null })}
+                disabled={loadingCats && cats.length === 0}
+              >
+                <option value="">Sem categoria</option>
+                {cats.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="cc-stack-24 text-sm">
+              <span className="font-medium text-[var(--cc-text)]">Método</span>
+              <select
+                className="h-11 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                value={form.method}
+                onChange={(e) => setForm({ ...form, method: e.target.value as any })}
+              >
+                <option value="pix">Pix</option>
+                <option value="debito">Débito</option>
+                <option value="credito">Crédito</option>
+                <option value="dinheiro">Dinheiro</option>
+              </select>
+            </label>
+            <label className="cc-stack-24 text-sm">
+              <span className="font-medium text-[var(--cc-text)]">Descrição</span>
+              <input
+                className="h-11 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                value={form.description || ""}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                maxLength={140}
+              />
+            </label>
+            {error && (
+              <p role="alert" className="text-sm text-red-600">
+                {error}
+              </p>
+            )}
+            <div className="pt-2">
+              <button
+                className="h-11 rounded-md border px-4 text-sm font-medium"
+                style={{ borderColor: "var(--cc-border)" }}
+                type="submit"
+              >
+                Salvar
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
     </div>
   );
 }

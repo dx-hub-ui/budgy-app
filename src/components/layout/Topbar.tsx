@@ -99,7 +99,7 @@ export default function Topbar() {
 
   return (
     <header id="topbar" className="cc-topbar">
-      <div className="flex h-full items-center justify-between px-3 md:px-4">
+      <div className="cc-topbar-inner flex items-center justify-between px-3 md:px-4">
         <div className="flex h-full items-center">
           <Link
             href="/"
