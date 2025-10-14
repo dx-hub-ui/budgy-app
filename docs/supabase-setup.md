@@ -53,7 +53,28 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) and visit `/login` to request a magic link. After authenticating, the top bar will display your Supabase user email and offer a sign-out button.
 
-## 5. Sprint 2 CRUD validation
+## 5. Load development seed data
+
+To populate the dashboard with realistic fixtures, use the included seed script. It creates a confirmed Supabase user (`demo@contacerta.test` by default), ensures the related profile, and inserts example categories and expenses covering the last two months.
+
+1. Add your Supabase service role key to the environment (locally you can place it in `.env.local` or export it inline) alongside the existing URL:
+
+   ```
+   export NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   export SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
+
+   Optionally override `SEED_EMAIL` and `SEED_PASSWORD` if you prefer different demo credentials.
+
+2. Run the script:
+
+   ```
+   pnpm seed
+   ```
+
+Re-running the command is safe—the script is idempotent and only inserts records that are missing for the configured user.
+
+## 6. Sprint 2 CRUD validation
 
 With a signed-in session you can exercise the new category and expense flows:
 
@@ -64,7 +85,7 @@ With a signed-in session you can exercise the new category and expense flows:
 
 These steps verify the Supabase mutations and client-side validation introduced in sprint 2.
 
-## 6. Sprint 3 dashboard and export validation
+## 7. Sprint 3 dashboard and export validation
 
 Sprint 3 wires the dashboard metrics and CSV export to live Supabase data. After completing the steps above:
 
