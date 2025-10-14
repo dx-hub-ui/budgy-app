@@ -8,6 +8,8 @@
 ## Proteção de acesso
 - Todas as rotas internas dependem de autenticação. Usuários não autenticados são redirecionados para `/login` antes de qualquer conteúdo do app ser renderizado.
 - Durante a checagem da sessão é exibido apenas um estado de carregamento, evitando o vazamento de conteúdo sensível.
+- O gerenciamento de sessão evita o uso de hooks condicionais, garantindo que os builds de produção concluam sem erros de lint.
+- Quando variáveis de ambiente do Supabase não estiverem presentes, o cliente de autenticação entra em modo de simulação para permitir builds locais sem falhas.
 
 ## Menu global do usuário
 - O avatar na Topbar agora abre um menu suspenso com o e-mail da conta e a ação de sair (com ícone).

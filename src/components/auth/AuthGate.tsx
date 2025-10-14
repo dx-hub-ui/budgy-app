@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -65,14 +65,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      signOut,
-      signingOut
-    }),
-    [user, signOut, signingOut]
-  );
+  const value: AuthContextValue = {
+    user,
+    signOut,
+    signingOut
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
