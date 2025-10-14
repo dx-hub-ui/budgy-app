@@ -32,16 +32,28 @@ type LineChartProps = {
   ariaLabel?: string;
 };
 
-const FALLBACK_COLORS = {
+const COLOR_KEYS = [
+  "brand",
+  "brandSoftFill",
+  "brandSoftFillStrong",
+  "chartGrid",
+  "chartPointBorder",
+  "muted",
+] as const;
+
+type ColorKey = (typeof COLOR_KEYS)[number];
+type Colors = Record<ColorKey, string>;
+
+const FALLBACK_COLORS: Colors = {
   brand: "#22c55e",
   brandSoftFill: "rgba(34, 197, 94, 0.12)",
   brandSoftFillStrong: "rgba(34, 197, 94, 0.24)",
   chartGrid: "rgba(34, 197, 94, 0.18)",
   chartPointBorder: "#ffffff",
   muted: "#5b7065",
-} as const;
+};
 
-const CSS_VARIABLES: Record<keyof typeof FALLBACK_COLORS, string> = {
+const CSS_VARIABLES: Record<ColorKey, string> = {
   brand: "--brand",
   brandSoftFill: "--brand-soft-fill",
   brandSoftFillStrong: "--brand-soft-fill-strong",
@@ -50,7 +62,7 @@ const CSS_VARIABLES: Record<keyof typeof FALLBACK_COLORS, string> = {
   muted: "--muted",
 };
 
-function readCssVariable(variable: keyof typeof FALLBACK_COLORS) {
+function readCssVariable(variable: ColorKey) {
   if (typeof window === "undefined") {
     return FALLBACK_COLORS[variable];
   }
@@ -63,7 +75,7 @@ function readCssVariable(variable: keyof typeof FALLBACK_COLORS) {
 export default function LineChart({ labels, data, className, ariaLabel }: LineChartProps) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const { theme } = useTheme();
-  const [colors, setColors] = useState(() => ({ ...FALLBACK_COLORS }));
+  const [colors, setColors] = useState<Colors>(() => ({ ...FALLBACK_COLORS }));
 
   useEffect(() => {
     setColors({
