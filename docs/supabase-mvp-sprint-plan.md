@@ -30,6 +30,7 @@ ContaCerta will ship a Supabase-backed MVP in three focused sprints. Each sprint
 - Implement `/categories` management UI wired to Supabase CRUD endpoints.
 - Implement `/new` expense creation page with validation, category selection, and navigation.
 - Add navigation links in Sidebar and ensure mobile accessibility.
+  - Ensure Sidebar links map to implemented screens (`/dashboard`, `/new`, `/categories`, `/export`).
 
 **Deliverables**
 - Fully functional category and expense creation flows against Supabase backend.
