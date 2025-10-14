@@ -17,11 +17,10 @@ export function Card({ title, actions, children, className, id }: CardProps) {
     <section
       id={id}
       className={cn(
-        "card flex flex-col rounded-[var(--radius)] border bg-[var(--card-bg-light)] text-[var(--cc-text)] shadow-[var(--shadow)] transition-colors",
+        "cc-card flex flex-col p-4 md:p-6 text-[var(--cc-text)] transition-colors",
         "dark:bg-[var(--card-bg-dark)]",
         className
       )}
-      style={{ borderColor: "var(--cc-border)" }}
     >
       {(title || actions) && (
         <CardHeader>
@@ -40,8 +39,8 @@ export function CardHeader({ children, className }: CardHeaderProps) {
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-3 border-b px-6 pb-4 pt-6",
-        "text-[var(--cc-text)]",
+        "-mx-4 flex items-start justify-between gap-3 border-b px-4 pb-4 pt-2",
+        "md:-mx-6 md:px-6 md:pb-5 md:pt-3",
         className
       )}
       style={{ borderColor: "var(--cc-border)" }}
@@ -54,7 +53,11 @@ export function CardHeader({ children, className }: CardHeaderProps) {
 type CardTitleProps = { children: ReactNode; className?: string };
 
 export function CardTitle({ children, className }: CardTitleProps) {
-  return <h2 className={cn("text-lg font-semibold", className)}>{children}</h2>;
+  return (
+    <h2 className={cn("text-[15px] leading-[22px] font-semibold", className)}>
+      {children}
+    </h2>
+  );
 }
 
 type CardActionsProps = { children: ReactNode; className?: string };
@@ -70,7 +73,7 @@ export function CardActions({ children, className }: CardActionsProps) {
 type CardContentProps = { children: ReactNode; className?: string };
 
 export function CardContent({ children, className }: CardContentProps) {
-  return <div className={cn("px-6 pb-6 pt-4", className)}>{children}</div>;
+  return <div className={cn("pt-4 md:pt-6", className)}>{children}</div>;
 }
 
 export default Card;

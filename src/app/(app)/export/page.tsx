@@ -77,74 +77,95 @@ export default function ExportPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[var(--cc-content-maxw)] p-4 md:p-6">
-      <h1 className="text-2xl font-semibold">Exportar CSV</h1>
-      <p className="mt-2 text-sm opacity-70">
-        Exporte as despesas do mês selecionado em um arquivo CSV para planilhas ou contabilidade.
-      </p>
+    <div className="mx-auto w-full max-w-[var(--cc-content-maxw)]">
+      <div className="grid gap-6 md:grid-cols-12">
+        <header className="md:col-span-12">
+          <div className="cc-stack-24">
+            <h1 className="text-[28px] leading-[36px] font-semibold">Exportar CSV</h1>
+            <p className="cc-section-sub text-sm">
+              Exporte as despesas do mês selecionado em um arquivo CSV para planilhas ou contabilidade.
+            </p>
+          </div>
+        </header>
 
-      <form className="mt-4 flex flex-col gap-3 md:flex-row md:items-end" aria-label="Filtros">
-        <label className="flex flex-col text-sm" htmlFor="export-month">
-          <span className="mb-1 text-xs uppercase tracking-wide opacity-70">Mês</span>
-          <select
-            id="export-month"
-            className="h-9 rounded-md border px-2 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            value={filter.month}
-            onChange={(event) => setFilter({ ...filter, month: Number(event.target.value) })}
-          >
-            {monthOptions.map((month) => (
-              <option key={month} value={month}>
-                {month.toString().padStart(2, "0")}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col text-sm" htmlFor="export-year">
-          <span className="mb-1 text-xs uppercase tracking-wide opacity-70">Ano</span>
-          <input
-            id="export-year"
-            className="h-9 w-28 rounded-md border px-2 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-            type="number"
-            inputMode="numeric"
-            min={2000}
-            max={9999}
-            value={filter.year}
-            onChange={(event) => setFilter({ ...filter, year: Number(event.target.value) })}
-          />
-        </label>
-        <button
-          type="button"
-          className="h-9 rounded-md border px-4 text-sm md:ml-auto"
-          style={{ borderColor: "var(--cc-border)" }}
-          onClick={handleDownload}
-          disabled={loading || !csv}
-        >
-          Baixar CSV
-        </button>
-      </form>
+        <section className="cc-card cc-stack-24 p-4 md:col-span-12 md:p-6 lg:col-span-7">
+          <form className="flex flex-col gap-4 md:flex-row md:items-end" aria-label="Filtros">
+            <label className="cc-stack-24 text-sm" htmlFor="export-month">
+              <span className="font-medium text-[var(--cc-text)]">Mês</span>
+              <select
+                id="export-month"
+                className="h-11 rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                value={filter.month}
+                onChange={(event) => setFilter({ ...filter, month: Number(event.target.value) })}
+              >
+                {monthOptions.map((month) => (
+                  <option key={month} value={month}>
+                    {month.toString().padStart(2, "0")}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="cc-stack-24 text-sm" htmlFor="export-year">
+              <span className="font-medium text-[var(--cc-text)]">Ano</span>
+              <input
+                id="export-year"
+                className="h-11 w-28 rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                type="number"
+                inputMode="numeric"
+                min={2000}
+                max={9999}
+                value={filter.year}
+                onChange={(event) => setFilter({ ...filter, year: Number(event.target.value) })}
+              />
+            </label>
+            <button
+              type="button"
+              className="h-11 rounded-md border px-4 text-sm font-medium md:ml-auto"
+              style={{ borderColor: "var(--cc-border)" }}
+              onClick={handleDownload}
+              disabled={loading || !csv}
+            >
+              Baixar CSV
+            </button>
+          </form>
+          {error && (
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
+        </section>
 
-      <section className="mt-6 rounded-lg border p-4" style={{ borderColor: "var(--cc-border)" }}>
-        {loading ? (
-          <p className="text-sm opacity-70">Carregando…</p>
-        ) : error ? (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        ) : (
-          <dl className="grid gap-2 text-sm md:grid-cols-2">
-            <div>
-              <dt className="opacity-70">Linhas exportadas</dt>
-              <dd className="font-semibold">{expenses.length}</dd>
-            </div>
-            <div>
-              <dt className="opacity-70">Total em BRL</dt>
-              <dd className="font-semibold">{fmtBRL(expenses.reduce((sum, exp) => sum + exp.amount_cents, 0))}</dd>
-            </div>
-          </dl>
-        )}
-      </section>
+        <section className="cc-card p-4 md:col-span-12 md:p-6 lg:col-span-5">
+          {loading ? (
+            <p className="text-sm text-[var(--cc-text-muted)]">Carregando…</p>
+          ) : error ? (
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+          ) : (
+            <dl className="grid gap-4 text-sm">
+              <div className="cc-stack-24">
+                <dt className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--cc-text-muted)]">
+                  Linhas exportadas
+                </dt>
+                <dd className="text-[22px] leading-[28px] font-semibold text-[var(--cc-text)]">
+                  {expenses.length}
+                </dd>
+              </div>
+              <div className="cc-stack-24">
+                <dt className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--cc-text-muted)]">
+                  Total em BRL
+                </dt>
+                <dd className="text-[22px] leading-[28px] font-semibold text-[var(--cc-text)]">
+                  {fmtBRL(expenses.reduce((sum, exp) => sum + exp.amount_cents, 0))}
+                </dd>
+              </div>
+            </dl>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

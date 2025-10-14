@@ -7,6 +7,14 @@
 :root {
   color-scheme: light;
 
+  --cc-topbar-h: 56px;                    /* antes: maior */
+  --cc-sidebar-w: 232px;
+  --cc-sidebar-w-collapsed: 72px;
+  --cc-content-maxw: 1180px;
+
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 8px 24px rgba(15, 23, 42, 0.08);
+
   --cc-bg: #eef7f2;            /* page background */
   --cc-bg-elev: #f6fbf8;       /* subtle panels */
   --cc-surface: #ffffff;       /* cards/topbar */
@@ -14,8 +22,6 @@
   --cc-text-muted: #5b7065;    /* desaturated green-gray */
   --cc-border: #cbe7d8;        /* soft mint border */
   --cc-accent: #22c55e;        /* brand accent (green-600) */
-
-  --cc-shadow-1: 0 12px 32px rgba(16, 185, 129, 0.12);
 
   --card-bg-light: #ffffff;
   --card-bg-dark: #f1faf5;     /* slightly tinted card for contrast */
@@ -45,6 +51,9 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 12px 28px rgba(0, 0, 0, 0.45);
+
   --cc-bg: #06130f;            /* near-black green */
   --cc-bg-elev: #0b1e18;
   --cc-surface: #0f241d;       /* cards/topbar */
@@ -52,8 +61,6 @@
   --cc-text-muted: #96c7b1;
   --cc-border: #1a3a2e;
   --cc-accent: #7ae7b3;        /* light mint for contrast */
-
-  --cc-shadow-1: 0 16px 36px rgba(2, 20, 14, 0.7);
 
   --card-bg-light: #0f241d;
   --card-bg-dark: #081610;
@@ -118,7 +125,7 @@ header.cc-topbar {
   height: var(--cc-topbar-h);
   background: var(--cc-surface);
   border-bottom: 1px solid var(--cc-border);
-  box-shadow: var(--cc-shadow-1);
+  box-shadow: var(--shadow-1);
 }
 
 nav.cc-sidebar {
@@ -143,6 +150,8 @@ main.cc-main {
   overflow: auto;
   height: calc(100vh - var(--cc-topbar-h));
   -webkit-overflow-scrolling: touch;
+  background: var(--cc-bg-elev);
+  padding: 24px;
 }
 
 /* Scrollbar thin */
@@ -151,6 +160,86 @@ main.cc-main::-webkit-scrollbar {
 }
 
 main.cc-main::-webkit-scrollbar-thumb {
-  background: var(--cc-border);
-  border-radius: 6px;
+  background: #dfe7e2;
+}
+
+/* Topbar more compact */
+header.cc-topbar .cc-topbar-inner {
+  height: 100%;
+}
+
+/* Sidebar clara (versão leve) */
+.cc-sidebar--light {
+  --sidebar-bg: #fafdfa;
+  --sidebar-foreground: #0f172a;
+  --sidebar-muted: #64748b;
+  --sidebar-hover: rgba(2, 6, 23, 0.04);
+  --sidebar-border: #e2e8f0;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-foreground);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+.cc-sidebar--light .cc-nav-item {
+  color: var(--sidebar-muted);
+}
+
+.cc-sidebar--light .cc-nav-item[aria-current="page"],
+.cc-sidebar--light .cc-nav-item:hover {
+  color: var(--sidebar-foreground);
+  background: var(--sidebar-hover);
+  border-radius: 10px;
+}
+
+/* Cards */
+.cc-card {
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-1);
+}
+
+.cc-card--quiet {
+  background: var(--card-bg-dark);
+}
+
+/* Sections */
+.cc-section-title {
+  font-weight: 600;
+  color: var(--cc-text);
+  letter-spacing: 0.2px;
+}
+
+.cc-section-sub {
+  color: var(--cc-text-muted);
+}
+
+/* Chart */
+.cc-chart {
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-1);
+}
+
+.cc-chart .grid line {
+  stroke: rgba(15, 23, 42, 0.08);
+}
+
+.cc-chart text {
+  fill: var(--cc-text-muted);
+  font-size: 12px;
+}
+
+/* Spacing */
+.cc-stack-24 > * + * {
+  margin-top: 24px;
+}
+
+:root[data-theme="dark"] .cc-sidebar--light {
+  --sidebar-bg: #0f241d;
+  --sidebar-foreground: #e6fff3;
+  --sidebar-muted: #96c7b1;
+  --sidebar-hover: rgba(230, 255, 243, 0.06);
+  --sidebar-border: #1a3a2e;
 }

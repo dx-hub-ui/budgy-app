@@ -354,23 +354,27 @@ export default function DashboardPage() {
   const { snapshot, stats, loading, error } = useDashboardSnapshot();
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[var(--cc-content-maxw)] flex-col gap-6 p-4 md:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div>
-          <p className="text-sm uppercase tracking-wider text-[var(--muted)]">Painel</p>
-          <h1 className="text-3xl font-semibold">Visão geral</h1>
-        </div>
-      </header>
+    <div className="mx-auto w-full max-w-[var(--cc-content-maxw)]">
+      <div className="grid gap-6 md:grid-cols-12">
+        <header className="md:col-span-12">
+          <div className="cc-stack-24">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--cc-text-muted)]">
+              Painel
+            </p>
+            <h1 className="text-[28px] leading-[36px] font-semibold text-[var(--cc-text)]">
+              Visão geral
+            </h1>
+          </div>
+        </header>
 
-      <section className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-        <Card>
+        <Card className="cc-chart md:col-span-12 lg:col-span-8">
           <CardHeader>
             <CardTitle>Evolução do saldo</CardTitle>
           </CardHeader>
           <CardContent className="pb-2">
             {loading ? (
               <div
-                className="flex h-[280px] items-center justify-center text-sm text-[var(--muted)]"
+                className="flex h-[280px] items-center justify-center text-sm text-[var(--cc-text-muted)]"
                 role="status"
                 aria-live="polite"
               >
@@ -385,13 +389,13 @@ export default function DashboardPage() {
             )}
           </CardContent>
           {error && (
-            <p className="px-6 pb-6 text-sm text-amber-500" role="alert">
+            <p className="text-sm text-amber-500" role="alert">
               {error}
             </p>
           )}
         </Card>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+        <div className="cc-stack-24 md:col-span-12 lg:col-span-4">
           {stats.map((stat) => (
             <Stat
               key={stat.label}
@@ -403,30 +407,30 @@ export default function DashboardPage() {
             />
           ))}
         </div>
-      </section>
 
-      <Card>
-        <CardHeader className="flex flex-wrap items-center gap-3 pb-3">
-          <CardTitle>Transações recentes</CardTitle>
-          <CardActions>
-            <Link
-              href="/expenses"
-              className="text-sm font-medium text-[var(--brand)] underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--card-bg-light)] dark:focus-visible:ring-offset-[var(--card-bg-dark)]"
-            >
-              Ver todas
-            </Link>
-          </CardActions>
-        </CardHeader>
-        <CardContent>
-          {snapshot.transactions.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">
-              Nenhuma transação encontrada para este período.
-            </p>
-          ) : (
-            <RecentTable rows={snapshot.transactions} />
-          )}
-        </CardContent>
-      </Card>
+        <Card className="md:col-span-12 lg:col-span-8">
+          <CardHeader className="flex flex-wrap items-center gap-3 pb-3">
+            <CardTitle>Transações recentes</CardTitle>
+            <CardActions>
+              <Link
+                href="/expenses"
+                className="text-sm font-medium text-[var(--brand)] underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cc-surface)]"
+              >
+                Ver todas
+              </Link>
+            </CardActions>
+          </CardHeader>
+          <CardContent>
+            {snapshot.transactions.length === 0 ? (
+              <p className="text-sm text-[var(--cc-text-muted)]">
+                Nenhuma transação encontrada para este período.
+              </p>
+            ) : (
+              <RecentTable rows={snapshot.transactions} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
