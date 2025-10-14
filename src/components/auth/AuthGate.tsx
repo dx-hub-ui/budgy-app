@@ -21,30 +21,51 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getUser().then(({ data }) => {
+    const handleUnauthenticated = () => {
       if (!active) return;
-      const nextUser = data.user ?? null;
-      if (!nextUser) {
-        router.replace("/login");
-      }
-      setUser(nextUser);
-    });
+      setUser(null);
+      router.replace("/login");
+    };
 
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const loadUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!active) return;
+        if (error) {
+          handleUnauthenticated();
+          return;
+        }
+
+        const nextUser = data.user ?? null;
+        if (!nextUser) {
+          handleUnauthenticated();
+          return;
+        }
+
+        setUser(nextUser);
+      } catch (_error) {
+        handleUnauthenticated();
+      }
+    };
+
+    void loadUser();
+
+    const { data: subscriptionData, error } = supabase.auth.onAuthStateChange((_event, session) => {
       const nextUser = session?.user ?? null;
       if (!nextUser) {
-        setUser(null);
-        router.replace("/login");
+        handleUnauthenticated();
       } else {
         setUser(nextUser);
       }
     });
 
+    if (error) {
+      handleUnauthenticated();
+    }
+
     return () => {
       active = false;
-      subscription.unsubscribe();
+      subscriptionData?.subscription.unsubscribe();
     };
   }, [router]);
 
