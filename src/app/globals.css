@@ -3,73 +3,79 @@
 @tailwind utilities;
 
 /* Tokens */
+/* Budgy Mint scheme (light) */
 :root {
   color-scheme: light;
-  --cc-space-2: 8px;
-  --cc-space-3: 12px;
-  --cc-space-4: 16px;
-  --cc-space-6: 24px;
-  --cc-topbar-h: 56px;
-  --cc-sidebar-w: 264px;
-  --cc-sidebar-w-collapsed: 72px;
-  --cc-content-maxw: 1280px;
 
-  --cc-bg: #e7edff;
-  --cc-bg-elev: #f8faff;
-  --cc-surface: #ffffff;
-  --cc-text: #101a34;
-  --cc-text-muted: #5a6b92;
-  --cc-border: #c6d4fb;
-  --cc-accent: #3b63ff;
+  --cc-bg: #eef7f2;            /* page background */
+  --cc-bg-elev: #f6fbf8;       /* subtle panels */
+  --cc-surface: #ffffff;       /* cards/topbar */
+  --cc-text: #0f172a;          /* slate-900 */
+  --cc-text-muted: #5b7065;    /* desaturated green-gray */
+  --cc-border: #cbe7d8;        /* soft mint border */
+  --cc-accent: #22c55e;        /* brand accent (green-600) */
 
-  --cc-shadow-1: 0 12px 32px rgba(35, 64, 154, 0.12);
+  --cc-shadow-1: 0 12px 32px rgba(16, 185, 129, 0.12);
+
   --card-bg-light: #ffffff;
-  --card-bg-dark: #eff3ff;
-  --muted: #5f6f95;
-  --ring: #3b63ff;
-  --shadow: 0 32px 64px rgba(38, 63, 150, 0.14);
+  --card-bg-dark: #f1faf5;     /* slightly tinted card for contrast */
+
+  --muted: #5b7065;
+  --ring: #22c55e;
+  --shadow: 0 32px 64px rgba(16, 185, 129, 0.14);
   --radius: 18px;
-  --brand: #3b63ff;
-  --brand-rgb: 59, 99, 255;
-  --brand-soft-bg: rgba(var(--brand-rgb), 0.18);
-  --brand-soft-fill: rgba(var(--brand-rgb), 0.14);
-  --brand-soft-fill-strong: rgba(var(--brand-rgb), 0.26);
-  --chart-grid: rgba(59, 99, 255, 0.16);
+
+  --brand: #22c55e;
+  --brand-rgb: 34, 197, 94;
+  --brand-soft-bg: rgba(var(--brand-rgb), 0.16);
+  --brand-soft-fill: rgba(var(--brand-rgb), 0.12);
+  --brand-soft-fill-strong: rgba(var(--brand-rgb), 0.24);
+
+  --chart-grid: rgba(34, 197, 94, 0.18);
   --chart-point-border: #ffffff;
-  --sidebar-bg: #cedafa;
-  --sidebar-foreground: rgba(239, 244, 255, 0.96);
-  --sidebar-muted: rgba(163, 178, 214, 0.68);
-  --sidebar-hover: rgba(59, 99, 255, 0.2);
-  --sidebar-border: rgba(59, 99, 255, 0.22);
+
+  --sidebar-bg: #0e2a22;                        /* dark left rail for focus */
+  --sidebar-foreground: rgba(234, 250, 243, 0.96);
+  --sidebar-muted: rgba(165, 208, 189, 0.68);
+  --sidebar-hover: rgba(var(--brand-rgb), 0.22);
+  --sidebar-border: rgba(34, 197, 94, 0.22);
 }
 
+/* Budgy Mint scheme (dark) */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --cc-bg: #060b1d;
-  --cc-bg-elev: #0b1430;
-  --cc-surface: #111d3f;
-  --cc-text: #e6ecff;
-  --cc-text-muted: #8fa2d9;
-  --cc-border: #1a2754;
-  --cc-accent: #8aa7ff;
 
-  --cc-shadow-1: 0 16px 36px rgba(3, 9, 28, 0.7);
-  --card-bg-light: #121f46;
-  --card-bg-dark: #090f24;
-  --muted: #8fa2d9;
-  --ring: #8aa7ff;
-  --shadow: 0 40px 70px rgba(2, 7, 24, 0.7);
-  --sidebar-bg: #0d1936;
-  --sidebar-foreground: rgba(227, 234, 255, 0.94);
-  --sidebar-muted: rgba(157, 175, 220, 0.62);
-  --sidebar-hover: rgba(138, 167, 255, 0.26);
-  --sidebar-border: rgba(138, 167, 255, 0.28);
+  --cc-bg: #06130f;            /* near-black green */
+  --cc-bg-elev: #0b1e18;
+  --cc-surface: #0f241d;       /* cards/topbar */
+  --cc-text: #e6fff3;
+  --cc-text-muted: #96c7b1;
+  --cc-border: #1a3a2e;
+  --cc-accent: #7ae7b3;        /* light mint for contrast */
+
+  --cc-shadow-1: 0 16px 36px rgba(2, 20, 14, 0.7);
+
+  --card-bg-light: #0f241d;
+  --card-bg-dark: #081610;
+
+  --muted: #96c7b1;
+  --ring: #7ae7b3;
+  --shadow: 0 40px 70px rgba(2, 20, 14, 0.72);
+
+  --sidebar-bg: #0a1f18;
+  --sidebar-foreground: rgba(218, 245, 235, 0.94);
+  --sidebar-muted: rgba(150, 199, 177, 0.62);
+  --sidebar-hover: rgba(122, 231, 179, 0.26);
+  --sidebar-border: rgba(122, 231, 179, 0.28);
+
   --brand-soft-bg: rgba(var(--brand-rgb), 0.26);
   --brand-soft-fill: rgba(var(--brand-rgb), 0.16);
   --brand-soft-fill-strong: rgba(var(--brand-rgb), 0.34);
-  --chart-grid: rgba(138, 167, 255, 0.34);
-  --chart-point-border: #090f24;
+
+  --chart-grid: rgba(122, 231, 179, 0.34);
+  --chart-point-border: #081610;
 }
+
 
 * {
   -webkit-tap-highlight-color: transparent;
