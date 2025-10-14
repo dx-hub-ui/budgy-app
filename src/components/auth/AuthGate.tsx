@@ -50,22 +50,32 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     void loadUser();
 
-    const { data: subscriptionData, error } = supabase.auth.onAuthStateChange((_event, session) => {
-      const nextUser = session?.user ?? null;
-      if (!nextUser) {
-        handleUnauthenticated();
-      } else {
-        setUser(nextUser);
-      }
-    });
+    let unsubscribe: (() => void) | undefined;
 
-    if (error) {
+    try {
+      const { data: subscriptionData } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!active) {
+          return;
+        }
+
+        const nextUser = session?.user ?? null;
+        if (!nextUser) {
+          handleUnauthenticated();
+        } else {
+          setUser(nextUser);
+        }
+      });
+
+      unsubscribe = () => {
+        subscriptionData.subscription.unsubscribe();
+      };
+    } catch (_error) {
       handleUnauthenticated();
     }
 
     return () => {
       active = false;
-      subscriptionData?.subscription.unsubscribe();
+      unsubscribe?.();
     };
   }, [router]);
 

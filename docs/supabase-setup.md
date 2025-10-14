@@ -74,3 +74,9 @@ Sprint 3 wires the dashboard metrics and CSV export to live Supabase data. After
 4. Open the CSV in a spreadsheet editor to confirm UTF-8 encoding and escaped quotes.
 
 If any of these steps fail, re-run `pnpm dev` to observe console output and ensure the Supabase environment variables are set.
+
+## Troubleshooting authentication issues
+
+- When developing offline or before Supabase credentials are configured correctly, the app may briefly show the `Carregando…` sta
+  te before redirecting you back to `/login`. The AuthGate now treats initialization errors as an unauthenticated state so you can
+  recover by fixing the connection or credentials and attempting to log in again.
