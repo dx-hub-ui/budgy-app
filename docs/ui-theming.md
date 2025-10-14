@@ -7,9 +7,10 @@
 - A logomarca exibida na Topbar respeita o tema ativo, utilizando as versões claras e escuras disponibilizadas em `/public/brand`.
 
 ## Esquema de cores do painel
-- O painel financeiro utiliza uma paleta azul derivada do tom principal `--brand` (`#2563eb`), aplicada a estados de foco (`--ring`), destaques de cards e badges e ao gráfico de saldo.
-- A barra lateral deixou de usar o verde original e agora herda tokens dedicados (`--sidebar-dark`, `--sidebar-foreground`, `--sidebar-hover` e `--sidebar-border`) para manter contraste em ambos os temas.
-- Os estados positivos dos componentes (ex.: métricas, transações concluídas) reaproveitam os tokens suaves `--brand-soft-*`, garantindo consistência cromática sem perder legibilidade no modo escuro.
+- O painel financeiro agora replica a paleta azul-arroxeada do novo layout, com fundo claro `--cc-bg` (`#e7edff`), cartões translúcidos (`--cc-bg-elev`) e um brand principal atualizado (`--brand` `#3b63ff`). Os valores derivados (`--ring`, `--brand-soft-*`, `--chart-grid`) foram reajustados para harmonizar gradientes suaves e destaques fortes.
+- O tema escuro recebeu equivalentes azulados profundos (`--cc-bg` `#060b1d`, `--cc-bg-elev` `#0b1430`) para preservar contraste e legibilidade, mantendo a proporção entre superfícies, bordas e sombras observada no mockup.
+- A barra lateral usa agora variações dedicadas (`--sidebar-dark`, `--sidebar-foreground`, `--sidebar-hover`, `--sidebar-border`) alinhadas ao novo brand em ambos os temas, garantindo contraste adequado e sensação de profundidade.
+- Os estados positivos dos componentes (ex.: métricas, transações concluídas) continuam a reaproveitar os tokens suaves `--brand-soft-*`, porém com opacidades recalibradas para que badges e gráficos tenham presença visual semelhante nos dois temas.
 
 ## Proteção de acesso
 - Todas as rotas internas dependem de autenticação. Usuários não autenticados são redirecionados para `/login` antes de qualquer conteúdo do app ser renderizado.
