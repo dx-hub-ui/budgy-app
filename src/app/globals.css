@@ -4,6 +4,7 @@
 
 /* Tokens */
 :root {
+  color-scheme: light;
   --cc-space-2: 8px;
   --cc-space-3: 12px;
   --cc-space-4: 16px;
@@ -13,6 +14,19 @@
   --cc-sidebar-w-collapsed: 72px;
   --cc-content-maxw: 1280px;
 
+  --cc-bg: #f6f7fb;
+  --cc-bg-elev: #ffffff;
+  --cc-surface: #ffffff;
+  --cc-text: #151922;
+  --cc-text-muted: #5b6378;
+  --cc-border: #e5e7ef;
+  --cc-accent: #2563eb;
+
+  --cc-shadow-1: 0 1px 2px rgba(15, 17, 21, 0.08);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --cc-bg: #0f1115;
   --cc-bg-elev: #151922;
   --cc-surface: #1a2030;
@@ -21,24 +35,25 @@
   --cc-border: #2a3142;
   --cc-accent: #6ea8fe;
 
-  --cc-shadow-1: 0 1px 2px rgba(0,0,0,.08);
+  --cc-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --cc-bg: #f6f7fb;
-    --cc-bg-elev: #ffffff;
-    --cc-surface: #ffffff;
-    --cc-text: #151922;
-    --cc-text-muted: #5b6378;
-    --cc-border: #e5e7ef;
-    --cc-accent: #2563eb;
-  }
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
-* { -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; }
-body { background: var(--cc-bg); color: var(--cc-text); margin: 0; overflow: hidden; }
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--cc-bg);
+  color: var(--cc-text);
+  margin: 0;
+  overflow: hidden;
+  transition: background 0.2s ease, color 0.2s ease;
+}
 
 /* Shell layout helpers */
 .cc-shell {
@@ -47,8 +62,14 @@ body { background: var(--cc-bg); color: var(--cc-text); margin: 0; overflow: hid
   grid-template-columns: var(--dynamic-sidebar-w) 1fr;
   height: 100vh;
 }
-.cc--sidebar-expanded { --dynamic-sidebar-w: var(--cc-sidebar-w); }
-.cc--sidebar-collapsed { --dynamic-sidebar-w: var(--cc-sidebar-w-collapsed); }
+
+.cc--sidebar-expanded {
+  --dynamic-sidebar-w: var(--cc-sidebar-w);
+}
+
+.cc--sidebar-collapsed {
+  --dynamic-sidebar-w: var(--cc-sidebar-w-collapsed);
+}
 
 header.cc-topbar {
   grid-column: 1 / span 2;
@@ -81,5 +102,11 @@ main.cc-main {
 }
 
 /* Scrollbar thin */
-main.cc-main::-webkit-scrollbar { width: 10px; }
-main.cc-main::-webkit-scrollbar-thumb { background: var(--cc-border); border-radius: 6px; }
+main.cc-main::-webkit-scrollbar {
+  width: 10px;
+}
+
+main.cc-main::-webkit-scrollbar-thumb {
+  background: var(--cc-border);
+  border-radius: 6px;
+}
