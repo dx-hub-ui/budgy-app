@@ -15,7 +15,9 @@ export function createServerSupabaseClient() {
     );
   }
 
-  return createClient(supabaseUrl, serviceKey, {
+  const resolvedServiceKey: string = serviceKey;
+
+  return createClient(supabaseUrl, resolvedServiceKey, {
     auth: { persistSession: false },
     global: {
       headers: Object.fromEntries(headers().entries())

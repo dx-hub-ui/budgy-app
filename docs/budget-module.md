@@ -28,7 +28,9 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 | `POST` | `/api/budget/goal/:categoryId/apply` | Calcula diferença para a meta do mês e atualiza `budget_allocation`. |
 | `PUT` | `/api/budget/allocation` | Edição inline de atribuído (debounce de 300 ms no front). |
 
-Todas as rotas usam o client server-side (`createServerSupabaseClient`) e herdam os triggers de auditoria.
+Todas as rotas usam o client server-side (`createServerSupabaseClient`) e herdam os triggers de auditoria. Para builds e testes
+locais funcionarem, é obrigatório definir `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; sem estas variáveis a
+criação do client falha deliberadamente com mensagem em PT-BR.
 
 ## Fluxo de UI/UX
 
