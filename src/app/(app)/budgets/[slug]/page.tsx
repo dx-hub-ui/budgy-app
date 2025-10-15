@@ -270,6 +270,9 @@ export default function BudgetMonthPage() {
         await flushBudgetUpdates(entries);
       } catch {
         // erro já tratado
+        if (pendingBudgetUpdates.current.size > 0) {
+          scheduleBudgetSave();
+        }
       }
     }, 400);
   }
@@ -284,6 +287,9 @@ export default function BudgetMonthPage() {
         await flushFundsUpdate(value);
       } catch {
         // erro já tratado
+        if (pendingFunds.current !== null) {
+          scheduleFundsSave();
+        }
       }
     }, 400);
   }
