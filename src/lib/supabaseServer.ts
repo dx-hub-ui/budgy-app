@@ -26,11 +26,17 @@ function resolveServiceRoleKey(): string {
 export function createServerSupabaseClient() {
   const supabaseUrl = resolveSupabaseUrl();
   const serviceKey: string = resolveServiceRoleKey();
+  const incomingHeaders = Object.fromEntries(headers().entries());
+  const orgId = resolveOrgId();
+
+  if (!incomingHeaders["x-cc-org-id"] && orgId) {
+    incomingHeaders["x-cc-org-id"] = orgId;
+  }
 
   return createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
     global: {
-      headers: Object.fromEntries(headers().entries())
+      headers: incomingHeaders
     }
   });
 }
