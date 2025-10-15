@@ -1,23 +1,33 @@
 import { cookies, headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+function resolveSupabaseUrl(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
 
-if (!supabaseUrl) {
-  throw new Error("Supabase URL não configurada. Defina NEXT_PUBLIC_SUPABASE_URL.");
+  if (!url) {
+    throw new Error("Supabase URL não configurada. Defina NEXT_PUBLIC_SUPABASE_URL.");
+  }
+
+  return url as string;
 }
 
-export function createServerSupabaseClient() {
-  if (!serviceKey) {
+function resolveServiceRoleKey(): string {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!key) {
     throw new Error(
       "Chave de serviço do Supabase não configurada. Defina SUPABASE_SERVICE_ROLE_KEY para operações seguras."
     );
   }
 
-  const resolvedServiceKey: string = serviceKey;
+  return key as string;
+}
 
-  return createClient(supabaseUrl, resolvedServiceKey, {
+export function createServerSupabaseClient() {
+  const supabaseUrl = resolveSupabaseUrl();
+  const serviceKey: string = resolveServiceRoleKey();
+
+  return createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
     global: {
       headers: Object.fromEntries(headers().entries())

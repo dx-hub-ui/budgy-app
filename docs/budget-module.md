@@ -30,7 +30,8 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 
 Todas as rotas usam o client server-side (`createServerSupabaseClient`) e herdam os triggers de auditoria. Para builds e testes
 locais funcionarem, é obrigatório definir `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; sem estas variáveis a
-criação do client falha deliberadamente com mensagem em PT-BR.
+criação do client falha deliberadamente com mensagem em PT-BR. O helper valida ambas a cada chamada antes de instanciar o SDK,
+evitando que valores `undefined` cheguem ao `createClient` em builds ou requests SSR.
 
 ## Fluxo de UI/UX
 
