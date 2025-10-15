@@ -28,7 +28,7 @@
   --ring: #7cc46e;
   --shadow: 0 32px 64px rgba(15, 23, 42, 0.14);
   --radius: 18px;
-  --sidebar-bg: #0d1b4c;
+  --sidebar-bg: #0b1220;
   --sidebar-foreground: rgba(255, 255, 255, 0.96);
   --sidebar-muted: rgba(255, 255, 255, 0.7);
   --sidebar-hover: rgba(255, 255, 255, 0.08);
@@ -55,7 +55,7 @@
   --muted: #9ca3af;
   --ring: #92d786;
   --shadow: 0 40px 70px rgba(0, 0, 0, 0.6);
-  --sidebar-bg: #091234;
+  --sidebar-bg: #0b1220;
   --sidebar-foreground: rgba(255, 255, 255, 0.94);
   --sidebar-muted: rgba(200, 210, 230, 0.66);
   --sidebar-hover: rgba(255, 255, 255, 0.08);
