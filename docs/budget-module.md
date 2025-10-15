@@ -6,10 +6,17 @@ Este documento descreve como o módulo de orçamento mensal funciona no Budgy.
 
 O módulo pode ser acessado diretamente pelo item **Orçamento** no menu lateral da aplicação, que leva o usuário para a visão de lista (`/budgets`).
 
+### Visão de lista
+
+- A tela inicial consulta o Supabase por meio de `listRecentBudgets` e exibe apenas os orçamentos que foram efetivamente criados pelo usuário (sem meses mockados).
+- Cada cartão mostra o saldo disponível, status (verde/atenção/estourado) e os valores orçado x gasto, aproximando-se do layout clean do YNAB.
+- Quando não há dados, o usuário vê um estado vazio convidando a criar o primeiro orçamento do mês atual.
+
 ## Estrutura de dados
 
 - **Tabela `budgets`**: Cabeçalho mensal com `year`, `month`, `to_budget_cents` e nota opcional.
 - **Tabela `budget_categories`**: Linhas do orçamento para cada categoria com os campos `budgeted_cents`, `activity_cents`, `available_cents` e `rollover`.
+- Ao sincronizar as categorias, novos registros são enviados sem `id` explícito para que o Supabase gere o UUID automaticamente e evite violações de `NOT NULL`.
 - **View `v_budget_activity`**: Soma das despesas (`expenses`) por categoria/mês usada para preencher a coluna de gasto (activity).
 
 ## Fluxo geral
