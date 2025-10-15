@@ -4,6 +4,7 @@ import IconButton from "@/components/ui/IconButton";
 import Tooltip from "@/components/ui/Tooltip";
 import {
   LayoutDashboard,
+  PiggyBank,
   Wallet,
   Receipt,
   FileDown,
@@ -21,6 +22,7 @@ type Props = { collapsed: boolean; onToggle: () => void };
 
 const items = [
   { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
+  { href: "/budgets", label: "Orçamento", icon: PiggyBank },
   { href: "/new", label: "Nova despesa", icon: Receipt },
   { href: "/categories", label: "Categorias", icon: Wallet },
   { href: "/export", label: "Exportar dados", icon: FileDown }

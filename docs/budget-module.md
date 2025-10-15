@@ -2,6 +2,10 @@
 
 Este documento descreve como o módulo de orçamento mensal funciona no Budgy.
 
+## Navegação
+
+O módulo pode ser acessado diretamente pelo item **Orçamento** no menu lateral da aplicação, que leva o usuário para a visão de lista (`/budgets`).
+
 ## Estrutura de dados
 
 - **Tabela `budgets`**: Cabeçalho mensal com `year`, `month`, `to_budget_cents` e nota opcional.
