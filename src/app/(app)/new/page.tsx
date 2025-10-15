@@ -62,7 +62,6 @@ export default function NewExpensePage() {
       <div className="grid gap-6 md:grid-cols-12">
         <header className="md:col-span-12">
           <div className="cc-stack-24">
-            <h1 className="text-[28px] leading-[36px] font-semibold">Nova despesa</h1>
             <p className="cc-section-sub text-sm">Cadastre um novo lançamento financeiro.</p>
           </div>
         </header>

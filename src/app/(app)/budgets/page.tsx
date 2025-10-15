@@ -64,7 +64,6 @@ export default function BudgetsPage() {
               Visão mensal
             </p>
             <div className="space-y-1">
-              <h1 className="text-3xl font-semibold text-[var(--cc-text)]">Orçamentos</h1>
               <p className="text-sm text-[var(--cc-text-muted)]">
                 Acompanhe os meses planejados e mantenha seu dinheiro trabalhando para você.
               </p>

@@ -45,11 +45,22 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                     href={it.href}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "cc-nav-item group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
-                      "transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]"
+                      "cc-nav-item group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]",
+                      isActive
+                        ? "text-[var(--sidebar-foreground)]"
+                        : "text-[var(--sidebar-muted)] hover:text-[var(--sidebar-foreground)]"
                     )}
                   >
-                    <Icon size={18} className="text-[var(--brand)]" />
+                    <Icon
+                      size={18}
+                      className={cn(
+                        "transition-colors",
+                        isActive
+                          ? "text-[var(--sidebar-foreground)]"
+                          : "text-[var(--sidebar-muted)] group-hover:text-[var(--sidebar-foreground)]"
+                      )}
+                    />
                     {!collapsed && <span>{it.label}</span>}
                     {collapsed && (
                       <Tooltip content={it.label}>

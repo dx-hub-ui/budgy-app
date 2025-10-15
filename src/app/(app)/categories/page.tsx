@@ -55,7 +55,6 @@ export default function CategoriesPage() {
       <div className="grid gap-6 md:grid-cols-12">
         <header className="md:col-span-12">
           <div className="cc-stack-24">
-            <h1 className="text-[28px] leading-[36px] font-semibold">Categorias</h1>
             <p className="cc-section-sub text-sm">
               Gerencie os grupos para organizar seus gastos.
             </p>
