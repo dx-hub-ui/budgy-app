@@ -340,7 +340,13 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
     async aplicarMeta(categoryId: string) {
       const month = get().month.selected;
       const response = await aplicarMeta(categoryId, month);
+      const previousSnapshot = captureHistory(get() as unknown as BudgetPlannerState);
       setImmer((draft) => {
+        draft.history.past.push(previousSnapshot);
+        if (draft.history.past.length > MAX_HISTORY) {
+          draft.history.past.shift();
+        }
+        draft.history.future = [];
         updateAllocation(draft, categoryId, month, (allocation) => {
           allocation.assigned_cents = response.allocation.assigned_cents;
           allocation.activity_cents = response.allocation.activity_cents;
@@ -359,12 +365,6 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
         draft.readyToAssignByMonth[month] = calcularAAtribuir(inflows, totals.assigned);
         draft.toast = { type: "success", message: "Meta aplicada" };
         updateNextMonthPrevAvailable(draft, categoryId, month, response.allocation.available_cents);
-        const history = captureHistory(draft as unknown as BudgetPlannerState);
-        draft.history.past.push(history);
-        if (draft.history.past.length > MAX_HISTORY) {
-          draft.history.past.shift();
-        }
-        draft.history.future = [];
       });
     },
     async editarAtribuido(categoryId: string, valor: number) {
@@ -377,8 +377,14 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
         ...(state.totalsByMonth[month] ?? { assigned: 0, activity: 0, available: 0 }),
       };
       const readyPrev = state.readyToAssignByMonth[month] ?? 0;
+      const historySnapshot = captureHistory(state as unknown as BudgetPlannerState);
 
       setImmer((draft) => {
+        draft.history.past.push(historySnapshot);
+        if (draft.history.past.length > MAX_HISTORY) {
+          draft.history.past.shift();
+        }
+        draft.history.future = [];
         updateAllocation(draft, categoryId, month, (allocation) => {
           const prevAvailable = allocation.prev_available_cents;
           allocation.assigned_cents = valor;
@@ -434,11 +440,6 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
             response.allocation.available_cents,
           );
           draft.toast = { type: "success", message: "Salvo com sucesso" };
-          draft.history.past.push(captureHistory(draft as unknown as BudgetPlannerState));
-          if (draft.history.past.length > MAX_HISTORY) {
-            draft.history.past.shift();
-          }
-          draft.history.future = [];
         });
       } catch (error) {
         setImmer((draft) => {
@@ -460,10 +461,11 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
     },
     desfazer() {
       setImmer((draft) => {
-        const last = draft.history.past.pop();
-        if (!last) return;
-        draft.history.future.unshift(captureHistory(draft as unknown as BudgetPlannerState));
-        applyHistorySnapshot(setImmer, last);
+        const currentSnapshot = captureHistory(draft as unknown as BudgetPlannerState);
+        const previousSnapshot = draft.history.past.pop();
+        if (!previousSnapshot) return;
+        draft.history.future.unshift(currentSnapshot);
+        applyHistorySnapshot(setImmer, previousSnapshot);
       });
     },
     refazer() {
@@ -471,6 +473,9 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
         const next = draft.history.future.shift();
         if (!next) return;
         draft.history.past.push(captureHistory(draft as unknown as BudgetPlannerState));
+        if (draft.history.past.length > MAX_HISTORY) {
+          draft.history.past.shift();
+        }
         applyHistorySnapshot(setImmer, next);
       });
     },
