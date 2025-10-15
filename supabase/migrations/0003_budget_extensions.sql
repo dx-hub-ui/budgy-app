@@ -109,27 +109,26 @@ begin
 end;
 $$;
 
--- keep allocation snapshots in sync whenever expenses change
+create or replace function public.tr_expenses_budget_refresh()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform public.fn_recalc_month(
+    coalesce(new.user_id, old.user_id),
+    coalesce(date_trunc('month', new.date), date_trunc('month', old.date))::date
+  );
+  return coalesce(new, old);
+end;
+$$;
+
 DO $$
 BEGIN
   IF to_regclass('public.expenses') IS NOT NULL THEN
-    create or replace function public.tr_expenses_budget_refresh()
-    returns trigger
-    language plpgsql
-    as $$
-    begin
-      perform public.fn_recalc_month(
-        coalesce(new.user_id, old.user_id),
-        coalesce(date_trunc('month', new.date), date_trunc('month', old.date))::date
-      );
-      return coalesce(new, old);
-    end;
-    $$;
-
-    drop trigger if exists tr_expenses_budget_refresh on public.expenses;
-    create trigger tr_expenses_budget_refresh
-      after insert or update or delete on public.expenses
-      for each row execute function public.tr_expenses_budget_refresh();
+    EXECUTE 'drop trigger if exists tr_expenses_budget_refresh on public.expenses';
+    EXECUTE 'create trigger tr_expenses_budget_refresh '
+      'after insert or update or delete on public.expenses '
+      'for each row execute function public.tr_expenses_budget_refresh()';
   END IF;
 END;
 $$;

@@ -22,7 +22,9 @@ O módulo pode ser acessado diretamente pelo item **Orçamento** no menu lateral
 - **Tabela `budget_quick_stats`**: cache JSON dos cálculos de Quick Budget.
 - **Tabela `budget_audit`**: log de alterações (antes/depois, usuário, timestamp, razão).
 - **Funções `fn_recalc_month` e `fn_apply_quick_budget`**: mantêm as agregações em dia e permitem aplicar presets direto via SQL. A implementação atual é um placeholder seguro para não quebrar fluxos existentes; a equipe pode evoluir o algoritmo depois.
-- **Triggers**: ao inserir/alterar despesas, `fn_recalc_month` é chamado para atualizar os snapshots.
+- **Triggers**: ao inserir/alterar despesas, `fn_recalc_month` é chamado para atualizar os snapshots. A migration cria o trigger
+  somente quando a tabela `public.expenses` está disponível, permitindo que projetos sem esse recurso apliquem o script sem
+  falhas.
 
 ## Fluxo geral
 
