@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getContext, handleError, toMonthDate } from "../../utils";
+import { ensureBudgetSchema, getContext, handleError, toMonthDate } from "../../utils";
 
 const GOAL_TYPES = new Set(["TB", "TBD", "MFG", "CUSTOM"]);
 const CADENCES = new Set(["weekly", "monthly", "yearly", "custom"]);
@@ -19,6 +19,7 @@ export async function PUT(
     }
 
     const { supabase, orgId } = getContext();
+    await ensureBudgetSchema(supabase);
 
     const payload: Record<string, any> = {
       org_id: orgId,
@@ -56,6 +57,7 @@ export async function DELETE(
 ) {
   try {
     const { supabase, orgId } = getContext();
+    await ensureBudgetSchema(supabase);
     const { error } = await supabase
       .from("budget_goal")
       .delete()

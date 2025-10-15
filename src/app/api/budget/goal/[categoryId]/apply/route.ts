@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   calcularDisponivel,
+  ensureBudgetSchema,
   getContext,
   handleError,
   previousMonth,
@@ -32,6 +33,7 @@ export async function POST(
     }
 
     const { supabase, orgId } = getContext();
+    await ensureBudgetSchema(supabase);
     const { data: goal, error: goalError } = await supabase
       .from("budget_goal")
       .select("*")
