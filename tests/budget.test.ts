@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   budgetInternals,
   computeAvailable,
+  calculateToBeBudgeted,
   NULL_CATEGORY_KEY,
   suggestFromAvg3m
 } from "../src/domain/budget.ts";
@@ -42,9 +43,24 @@ async function testSuggestFromAvg3m() {
   }
 }
 
+function testCalculateToBeBudgeted() {
+  const inflows = 100_00;
+  const categories = [
+    { budgeted_cents: 25_00 },
+    { budgeted_cents: 15_00 },
+    { budgeted_cents: 10_00 }
+  ];
+  const result = calculateToBeBudgeted(inflows, categories);
+  assert.equal(result, inflows - 50_00);
+
+  const withAdjustments = calculateToBeBudgeted(inflows, categories, 10_00, 5_00);
+  assert.equal(withAdjustments, inflows - 50_00 - 10_00 + 5_00);
+}
+
 (async () => {
   try {
     testComputeAvailable();
+    testCalculateToBeBudgeted();
     await testSuggestFromAvg3m();
     console.log("Budget tests passed");
   } catch (err) {
