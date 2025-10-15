@@ -81,10 +81,37 @@ begin
   end if;
 
   -- enable RLS
-  execute 'alter table public.budget_category enable row level security';
-  execute 'alter table public.budget_goal enable row level security';
-  execute 'alter table public.budget_allocation enable row level security';
-  execute 'alter table public.budget_audit enable row level security';
+  if not exists (
+    select 1 from pg_class
+    where oid = 'public.budget_category'::regclass
+      and relrowsecurity
+  ) then
+    execute 'alter table public.budget_category enable row level security';
+  end if;
+
+  if not exists (
+    select 1 from pg_class
+    where oid = 'public.budget_goal'::regclass
+      and relrowsecurity
+  ) then
+    execute 'alter table public.budget_goal enable row level security';
+  end if;
+
+  if not exists (
+    select 1 from pg_class
+    where oid = 'public.budget_allocation'::regclass
+      and relrowsecurity
+  ) then
+    execute 'alter table public.budget_allocation enable row level security';
+  end if;
+
+  if not exists (
+    select 1 from pg_class
+    where oid = 'public.budget_audit'::regclass
+      and relrowsecurity
+  ) then
+    execute 'alter table public.budget_audit enable row level security';
+  end if;
 
   -- policies
   if not exists (
