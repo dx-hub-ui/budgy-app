@@ -1,418 +1,191 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 
+import { BudgetGrid } from "@/components/orcamento/BudgetGrid";
+import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
+import { CategoryDrawer } from "@/components/orcamento/CategoryDrawer";
+import { CategoryNameModal } from "@/components/orcamento/CategoryNameModal";
+import { formatMonthLabel, mesAtual } from "@/domain/budgeting";
 import {
-  BudgetAllocationView,
-  BudgetMonthEnvelope,
-  formatMonthLabel,
-  listRecentBudgets,
-  loadBudgetMonth,
-  nowYM,
-  upsertBudget,
-  upsertBudgetCategories,
-  type UpsertBudgetCategoryInput
-} from "@/domain/budget";
-import { fmtBRL } from "@/domain/format";
-import { BudgetFooterStatus } from "@/components/budget/BudgetFooterStatus";
-import { BudgetGrid } from "@/components/budget/BudgetGrid";
-import { SummaryPanel } from "@/components/budget/SummaryPanel";
-import { TopBarBudget } from "@/components/budget/TopBarBudget";
-import {
-  QuickBudgetMode,
-  QuickBudgetResult,
-  budgetSelectors,
-  useBudgetMonthStore
-} from "@/stores/budgetMonthStore";
+  budgetPlannerSelectors,
+  useBudgetPlannerStore
+} from "@/stores/budgetPlannerStore";
 
-function parseMonth(value: string | null | undefined) {
-  if (!value) return null;
-  const [yearStr, monthStr] = value.split("-");
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
-    return null;
-  }
-  return { year, month };
-}
-
-function formatMonthKey(year: number, month: number) {
-  return `${year}-${String(month).padStart(2, "0")}`;
-}
-
-function buildMonthOptions(year: number, month: number) {
-  const current = new Date(Date.UTC(year, month - 1, 1));
+function buildMonthOptions(current: string) {
+  const [year, month] = current.split("-").map(Number);
+  const currentDate = new Date(Date.UTC(year, month - 1, 1));
   const options: { value: string; label: string }[] = [];
   for (let offset = -6; offset <= 6; offset += 1) {
-    const date = new Date(current);
-    date.setUTCMonth(current.getUTCMonth() + offset);
-    const y = date.getUTCFullYear();
-    const m = date.getUTCMonth() + 1;
-    const value = formatMonthKey(y, m);
-    options.push({ value, label: formatMonthLabel(y, m) });
+    const date = new Date(currentDate);
+    date.setUTCMonth(date.getUTCMonth() + offset);
+    const value = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    options.push({ value, label: formatMonthLabel(value) });
   }
   return options;
 }
 
-type ToastState = { type: "success" | "error" | "info"; message: string } | null;
-
-type MonthState = { year: number; month: number };
-
-function summarizeDiffs(result: QuickBudgetResult) {
-  const total = result.diffs.reduce((acc, diff) => acc + diff.delta, 0);
-  return {
-    total,
-    message:
-      result.diffs.length === 0
-        ? "Nenhuma alteração necessária"
-        : `${result.description}: ${fmtBRL(total)} aplicados`
-  };
-}
-
 export default function BudgetMonthPage() {
+  const params = useParams<{ slug: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const params = useParams<{ slug: string }>();
-  const slug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug ?? "";
 
-  const parsedSlug = parseMonth(slug);
-  const paramMonth = parseMonth(searchParams?.get("m"));
-  const fallbackMonth = parsedSlug ?? nowYM();
-  const [activeMonth, setActiveMonth] = useState<MonthState>(paramMonth ?? fallbackMonth);
+  const initializeMonth = useBudgetPlannerStore((state) => state.initializeMonth);
+  const selecionarMes = useBudgetPlannerStore((state) => state.selecionarMes);
+  const abrirModalNome = useBudgetPlannerStore((state) => state.abrirModalNome);
+  const abrirDrawer = useBudgetPlannerStore((state) => state.abrirDrawer);
+  const fecharOverlays = useBudgetPlannerStore((state) => state.fecharOverlays);
+  const irParaPasso = useBudgetPlannerStore((state) => state.irParaPasso);
+  const alternarOcultas = useBudgetPlannerStore((state) => state.alternarOcultas);
+  const salvarNome = useBudgetPlannerStore((state) => state.salvarNome);
+  const ocultarCategoria = useBudgetPlannerStore((state) => state.ocultarCategoria);
+  const excluirCategoria = useBudgetPlannerStore((state) => state.excluirCategoria);
+  const salvarMeta = useBudgetPlannerStore((state) => state.salvarMeta);
+  const aplicarMeta = useBudgetPlannerStore((state) => state.aplicarMeta);
+  const removerMeta = useBudgetPlannerStore((state) => state.removerMeta);
+  const editarAtribuido = useBudgetPlannerStore((state) => state.editarAtribuido);
+  const desfazer = useBudgetPlannerStore((state) => state.desfazer);
+  const refazer = useBudgetPlannerStore((state) => state.refazer);
+  const definirToast = useBudgetPlannerStore((state) => state.definirToast);
 
-  const initialize = useBudgetMonthStore((state) => state.initialize);
-  const setLoading = useBudgetMonthStore((state) => state.setLoading);
-  const setError = useBudgetMonthStore((state) => state.setError);
-  const setSaving = useBudgetMonthStore((state) => state.setSaving);
-  const markSaved = useBudgetMonthStore((state) => state.markSaved);
-  const setSummaryFunds = useBudgetMonthStore((state) => state.setSummaryFunds);
-  const editBudget = useBudgetMonthStore((state) => state.editBudget);
-  const toggleSelection = useBudgetMonthStore((state) => state.toggleSelection);
-  const replaceSelection = useBudgetMonthStore((state) => state.replaceSelection);
-  const setFocused = useBudgetMonthStore((state) => state.setFocused);
-  const undo = useBudgetMonthStore((state) => state.undo);
-  const redo = useBudgetMonthStore((state) => state.redo);
-  const applyQuickBudget = useBudgetMonthStore((state) => state.applyQuickBudget);
-  const previewQuickBudget = useBudgetMonthStore((state) => state.previewQuickBudget);
+  const ui = budgetPlannerSelectors.useUI();
+  const categories = budgetPlannerSelectors.useCategories();
+  const monthSelected = budgetPlannerSelectors.useMonth();
+  const readyToAssign = budgetPlannerSelectors.useReadyToAssign(monthSelected);
+  const toast = budgetPlannerSelectors.useToast();
+  const loading = budgetPlannerSelectors.useLoading();
+  const error = useBudgetPlannerStore((state) => state.error);
+  const allocations = useBudgetPlannerStore((state) => state.allocations.byCategoryIdMonth);
+  const goals = useBudgetPlannerStore((state) => state.goals.byCategoryId);
+  const history = useBudgetPlannerStore((state) => state.history);
 
-  const summary = budgetSelectors.useSummary();
-  const categories = budgetSelectors.useCategories();
-  const selection = budgetSelectors.useSelection();
-  const focusedId = budgetSelectors.useFocusedId();
-  const loading = budgetSelectors.useLoading();
-  const saving = budgetSelectors.useSaving();
-  const lastAction = budgetSelectors.useLastAction();
-  const canUndo = budgetSelectors.useCanUndo();
-  const canRedo = budgetSelectors.useCanRedo();
-
-  const [monthOptions, setMonthOptions] = useState<{ value: string; label: string }[]>(
-    buildMonthOptions(activeMonth.year, activeMonth.month)
-  );
-  const [toast, setToast] = useState<ToastState>(null);
-
-  const pendingBudgetUpdates = useRef<Map<string, number>>(new Map());
-  const budgetTimer = useRef<NodeJS.Timeout | null>(null);
-  const pendingFunds = useRef<number | null>(null);
-  const fundsTimer = useRef<NodeJS.Timeout | null>(null);
+  const monthOptions = useMemo(() => buildMonthOptions(monthSelected || mesAtual()), [monthSelected]);
 
   useEffect(() => {
-    const currentKey = formatMonthKey(activeMonth.year, activeMonth.month);
-    const targetPath = `/budgets/${currentKey}?m=${currentKey}`;
-    if (slug !== currentKey || searchParams?.get("m") !== currentKey) {
-      router.replace(targetPath, { scroll: false });
+    const slugMonth = Array.isArray(params?.slug) ? params?.slug[0] : params?.slug;
+    const queryMonth = searchParams?.get("m");
+    const target = (queryMonth ?? slugMonth ?? mesAtual()).slice(0, 7);
+    if (!monthSelected) {
+      void initializeMonth(target);
+      return;
     }
-  }, [activeMonth, router, searchParams, slug]);
+    if (monthSelected !== target) {
+      void selecionarMes(target);
+    }
+  }, [initializeMonth, monthSelected, params?.slug, searchParams, selecionarMes]);
 
   useEffect(() => {
-    const parsedParam = parseMonth(searchParams?.get("m"));
-    if (parsedParam && (parsedParam.year !== activeMonth.year || parsedParam.month !== activeMonth.month)) {
-      setActiveMonth(parsedParam);
-    }
-  }, [searchParams, activeMonth.year, activeMonth.month]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadMonth() {
-      if (!activeMonth) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const envelope: BudgetMonthEnvelope = await loadBudgetMonth(activeMonth.year, activeMonth.month);
-        if (cancelled) return;
-        initialize(envelope);
-      } catch (err: any) {
-        if (cancelled) return;
-        setError(err?.message ?? "Não foi possível carregar o orçamento.");
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-    pendingBudgetUpdates.current.clear();
-    pendingFunds.current = null;
-    if (budgetTimer.current) {
-      clearTimeout(budgetTimer.current);
-      budgetTimer.current = null;
-    }
-    if (fundsTimer.current) {
-      clearTimeout(fundsTimer.current);
-      fundsTimer.current = null;
-    }
-    void loadMonth();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeMonth, initialize, setError, setLoading]);
-
-  useEffect(() => {
-    let ignore = false;
-    async function loadOptions() {
-      try {
-        const recent = await listRecentBudgets(12);
-        if (ignore) return;
-        const mapped = recent.map((item) => ({
-          value: formatMonthKey(item.year, item.month),
-          label: formatMonthLabel(item.year, item.month)
-        }));
-        const currentKey = formatMonthKey(activeMonth.year, activeMonth.month);
-        if (!mapped.some((option) => option.value === currentKey)) {
-          mapped.unshift({ value: currentKey, label: formatMonthLabel(activeMonth.year, activeMonth.month) });
-        }
-        setMonthOptions(mapped.length > 0 ? mapped : buildMonthOptions(activeMonth.year, activeMonth.month));
-      } catch {
-        setMonthOptions(buildMonthOptions(activeMonth.year, activeMonth.month));
-      }
-    }
-    void loadOptions();
-    return () => {
-      ignore = true;
-    };
-  }, [activeMonth]);
+    if (!monthSelected) return;
+    router.replace(`/budgets/${monthSelected}?m=${monthSelected}`, { scroll: false });
+  }, [monthSelected, router]);
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 4000);
+    const timer = setTimeout(() => definirToast(null), 4000);
     return () => clearTimeout(timer);
-  }, [toast]);
+  }, [toast, definirToast]);
 
   useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      const isUndo = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z";
-      if (isUndo && event.shiftKey) {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
-        redo();
-      } else if (isUndo) {
-        event.preventDefault();
-        undo();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo]);
-
-  async function flushBudgetUpdates(entries: Array<[string, number]>) {
-    if (!summary) return;
-    if (entries.length === 0) return;
-    const payload: UpsertBudgetCategoryInput[] = [];
-    for (const [id, value] of entries) {
-      const category = categories.find((item) => item.id === id);
-      if (!category) continue;
-      payload.push({
-        id: category.id,
-        category_id: category.category_id,
-        budgeted_cents: value,
-        rollover: category.rollover
-      });
-    }
-    if (payload.length === 0) return;
-    setSaving(true);
-    try {
-      await upsertBudgetCategories(summary.budgetId, payload);
-      markSaved("Categorias atualizadas");
-    } catch (err: any) {
-      setError(err?.message ?? "Erro ao salvar categorias");
-      for (const [id, value] of entries) {
-        pendingBudgetUpdates.current.set(id, value);
-      }
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function flushFundsUpdate(value: number) {
-    if (!summary) return;
-    setSaving(true);
-    try {
-      await upsertBudget({
-        year: summary.year,
-        month: summary.month,
-        to_budget_cents: value
-      });
-      markSaved("Saldo a orçar salvo");
-    } catch (err: any) {
-      setError(err?.message ?? "Erro ao salvar saldo");
-      pendingFunds.current = value;
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function scheduleBudgetSave() {
-    if (budgetTimer.current) clearTimeout(budgetTimer.current);
-    budgetTimer.current = setTimeout(async () => {
-      const entries = Array.from(pendingBudgetUpdates.current.entries());
-      pendingBudgetUpdates.current.clear();
-      try {
-        await flushBudgetUpdates(entries);
-      } catch {
-        // erro já tratado
-        if (pendingBudgetUpdates.current.size > 0) {
-          scheduleBudgetSave();
+        if (event.shiftKey) {
+          refazer();
+        } else {
+          desfazer();
         }
       }
-    }, 400);
-  }
-
-  function scheduleFundsSave() {
-    if (fundsTimer.current) clearTimeout(fundsTimer.current);
-    fundsTimer.current = setTimeout(async () => {
-      const value = pendingFunds.current;
-      if (value === null) return;
-      pendingFunds.current = null;
-      try {
-        await flushFundsUpdate(value);
-      } catch {
-        // erro já tratado
-        if (pendingFunds.current !== null) {
-          scheduleFundsSave();
-        }
+      if (event.key === "Escape") {
+        fecharOverlays();
       }
-    }, 400);
-  }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [desfazer, refazer, fecharOverlays]);
 
-  function handleMonthChange(value: string) {
-    const parsed = parseMonth(value);
-    if (!parsed) return;
-    setActiveMonth(parsed);
-  }
-
-  function handleBudgetChange(id: string, value: number) {
-    editBudget(id, value);
-    pendingBudgetUpdates.current.set(id, value);
-    scheduleBudgetSave();
-  }
-
-  function handleUpdateFunds(value: number) {
-    setSummaryFunds(value);
-    pendingFunds.current = value;
-    scheduleFundsSave();
-  }
-
-  function handleApplyQuickBudget(mode: QuickBudgetMode) {
-    const result = applyQuickBudget(mode);
-    if (result.diffs.length === 0) {
-      setToast({ type: "info", message: "Nenhuma categoria foi alterada." });
-      return;
-    }
-    for (const diff of result.diffs) {
-      pendingBudgetUpdates.current.set(diff.id, diff.to);
-    }
-    scheduleBudgetSave();
-    const summaryText = summarizeDiffs(result);
-    setToast({ type: "success", message: summaryText.message });
-  }
-
-  const totals = useMemo(() => {
-    return categories.reduce(
-      (acc, item) => {
-        acc.budgeted += item.budgeted_cents;
-        acc.activity += item.activity_cents;
-        acc.available += item.available_cents;
-        return acc;
-      },
-      { budgeted: 0, activity: 0, available: 0 }
-    );
-  }, [categories]);
-
-  const inflows = summary?.funds_for_month_cents ?? 0;
-  const monthKey = formatMonthKey(activeMonth.year, activeMonth.month);
-  const summaryChips = summary
-    ? [
-        { label: `Fundos de ${formatMonthLabel(summary.year, summary.month)}`, value: summary.funds_for_month_cents },
-        { label: "Estouro mês anterior", value: summary.overspent_last_month_cents },
-        { label: `Orçado em ${formatMonthLabel(summary.year, summary.month)}`, value: totals.budgeted },
-        { label: "Orçado em futuro", value: summary.budgeted_in_future_cents }
-      ]
-    : [];
-
-  const toBeBudgeted = summary?.to_be_budgeted_cents ?? 0;
-
-  const pageTotals = {
-    budgeted: totals.budgeted,
-    activity: totals.activity,
-    available: totals.available,
-    inflows
-  };
+  const drawerCategory = categories.find((cat) => cat.id === ui.drawerCategoryId) ?? null;
+  const modalCategory = categories.find((cat) => cat.id === ui.nameModalId) ?? null;
+  const drawerGoal = drawerCategory ? goals[drawerCategory.id] : undefined;
+  const drawerAllocation = drawerCategory ? allocations[drawerCategory.id]?.[monthSelected] : undefined;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 pb-12">
-      <TopBarBudget
-        month={monthKey}
-        months={monthOptions}
-        toBeBudgeted={toBeBudgeted}
-        summaryChips={summaryChips}
-        onMonthChange={handleMonthChange}
+    <div className="min-h-screen bg-[var(--cc-bg)] text-[var(--cc-text)]">
+      <BudgetTopbar
+        month={monthSelected ?? mesAtual()}
+        options={monthOptions}
+        readyToAssignCents={readyToAssign}
+        onChangeMonth={(value) => {
+          void selecionarMes(value);
+        }}
+        onOpenGroups={alternarOcultas}
+        onUndo={desfazer}
+        onRedo={refazer}
+        canUndo={history.past.length > 0}
+        canRedo={history.future.length > 0}
       />
-
-      {loading && (
-        <div className="rounded-xl border border-dashed border-[var(--cc-border)] bg-[var(--cc-bg-elev)] p-6 text-sm text-[var(--cc-text-muted)]">
-          Carregando orçamento…
-        </div>
-      )}
-
-      {!loading && summary && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="space-y-4">
-            <BudgetGrid
-              categories={categories as BudgetAllocationView[]}
-              selection={selection}
-              focusedId={focusedId}
-              onToggleSelection={(id, multi) => toggleSelection(id, multi)}
-              onReplaceSelection={replaceSelection}
-              onFocus={setFocused}
-              onBudgetChange={handleBudgetChange}
-            />
-          </section>
-          <SummaryPanel
-            summary={summary}
-            totals={pageTotals}
-            selectionCount={selection.length}
-            onApplyQuickBudget={handleApplyQuickBudget}
-            previewQuickBudget={previewQuickBudget}
-            onUpdateFunds={handleUpdateFunds}
-            disabled={saving}
+      <main className="mx-auto flex max-w-[var(--cc-content-maxw)] flex-col gap-6 px-6 py-6">
+        {error && <div className="rounded-lg border border-[var(--state-danger)] bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+        {loading ? (
+          <div className="flex h-64 items-center justify-center text-sm text-[var(--cc-text-muted)]">Carregando orçamento…</div>
+        ) : (
+          <BudgetGrid
+            month={monthSelected ?? mesAtual()}
+            onEdit={(categoryId, value) => {
+              void editarAtribuido(categoryId, value);
+            }}
+            onOpenName={abrirModalNome}
+            onOpenDrawer={abrirDrawer}
           />
-        </div>
+        )}
+      </main>
+
+      {modalCategory && (
+        <CategoryNameModal
+          category={modalCategory}
+          onCancel={fecharOverlays}
+          onConfirm={(name) => {
+            void salvarNome(modalCategory.id, name);
+          }}
+          onHide={() => {
+            void ocultarCategoria(modalCategory.id);
+          }}
+          onDelete={() => {
+            void excluirCategoria(modalCategory.id);
+          }}
+        />
       )}
 
-      <BudgetFooterStatus
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
-        lastAction={lastAction}
-      />
+      {drawerCategory && monthSelected && (
+        <CategoryDrawer
+          category={drawerCategory}
+          goal={drawerGoal}
+          allocation={drawerAllocation}
+          month={monthSelected}
+          step={ui.wizardStep}
+          onClose={fecharOverlays}
+          onSaveGoal={(payload) => {
+            void salvarMeta(drawerCategory.id, payload as any);
+          }}
+          onApplyGoal={() => {
+            void aplicarMeta(drawerCategory.id);
+          }}
+          onRemoveGoal={() => {
+            void removerMeta(drawerCategory.id);
+          }}
+          onChangeStep={irParaPasso}
+        />
+      )}
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 rounded-lg px-4 py-3 text-sm text-white shadow-lg ${
-            toast.type === "success" ? "bg-emerald-500" : toast.type === "error" ? "bg-rose-500" : "bg-slate-500"
+          className={`fixed bottom-6 right-6 z-50 rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-lg ${
+            toast.type === "success"
+              ? "bg-emerald-500"
+              : toast.type === "error"
+              ? "bg-rose-500"
+              : "bg-slate-500"
           }`}
-          role="status"
         >
           {toast.message}
         </div>
