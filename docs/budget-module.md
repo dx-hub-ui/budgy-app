@@ -14,7 +14,7 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 - **`budget_goal`**: metas por categoria (`type` em `TB`/`TBD`/`MFG`/`CUSTOM`, `amount_cents`, `target_month`, `cadence`).
 - **`budget_allocation`**: `assigned_cents`, `activity_cents`, `available_cents` por categoria/mês (`month` = 1º dia). O front cria linhas faltantes on-demand.
 - **`budget_audit`**: log de alterações com triggers automáticos. Guarda `before`/`after`, `reason` e `user_id` (`auth.uid()`), facilitando auditoria.
-- **Função `current_org()`**: usa `request.jwt.claim.org_id` (fallback `auth.uid()`) para simplificar as políticas RLS.
+- **Função `current_org()`**: usa `request.jwt.claim.org_id` ou o header `x-cc-org-id` (fallback `auth.uid()`) para simplificar as políticas RLS.
 
 ### API Next.js
 
