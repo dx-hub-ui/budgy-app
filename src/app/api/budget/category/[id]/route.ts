@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getContext, handleError } from "../../utils";
+import { ensureBudgetSchema, getContext, handleError } from "../../utils";
 
 export async function PATCH(
   request: NextRequest,
@@ -8,6 +8,7 @@ export async function PATCH(
 ) {
   try {
     const { supabase, orgId } = getContext();
+    await ensureBudgetSchema(supabase);
     const body = await request.json();
     const updates: Record<string, any> = {};
 

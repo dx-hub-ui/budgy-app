@@ -35,6 +35,11 @@ export function getContext(): ApiContext {
   return { supabase, orgId, userId };
 }
 
+export async function ensureBudgetSchema(client: SupabaseClient) {
+  const { error } = await client.rpc("ensure_budget_category_schema");
+  if (error) throw error;
+}
+
 const GROUP_SEEDS: Array<{ name: string; categories: string[] }> = [
   {
     name: "Contas Fixas",
@@ -84,6 +89,7 @@ const GROUP_SEEDS: Array<{ name: string; categories: string[] }> = [
 ];
 
 export async function ensureSeedCategories(client: SupabaseClient, orgId: string) {
+  await ensureBudgetSchema(client);
   const { count, error } = await client
     .from("budget_category")
     .select("id", { count: "exact", head: true })

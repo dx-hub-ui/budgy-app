@@ -2,15 +2,7 @@
 
 import IconButton from "@/components/ui/IconButton";
 import Tooltip from "@/components/ui/Tooltip";
-import {
-  LayoutDashboard,
-  PiggyBank,
-  Wallet,
-  Receipt,
-  FileDown,
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react";
+import { LayoutDashboard, PiggyBank, Receipt, FileDown, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -24,7 +16,6 @@ const items = [
   { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
   { href: "/budgets", label: "Orçamento", icon: PiggyBank },
   { href: "/new", label: "Nova despesa", icon: Receipt },
-  { href: "/categories", label: "Categorias", icon: Wallet },
   { href: "/export", label: "Exportar dados", icon: FileDown }
 ];
 

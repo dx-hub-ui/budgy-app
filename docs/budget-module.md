@@ -4,13 +4,13 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 
 ## Navegação
 
-- A entrada continua como **Orçamento** no menu lateral.
+- A entrada continua como **Orçamento** no menu lateral; o atalho antigo **Categorias** foi removido porque o CRUD agora acontece dentro do próprio orçamento.
 - Cada mês é carregado em `/budgets/[slug]?m=YYYY-MM`; o parâmetro `m` é a referência de sincronização entre SSR e CSR.
 - Trocas de mês usam `router.replace`, evitando recarga da página e mantendo histórico do navegador.
 
 ## Estrutura de dados (Supabase)
 
-- **`budget_category`**: mantém `group_name`, `name`, `icon`, `sort`, flags `is_hidden` e `deleted_at`. A migration `0004_budget_v2.sql` semeia automaticamente seis grupos em PT-BR (Contas Fixas, Necessidades, Desejos, Reservas, Dívidas e Receitas).
+- **`budget_category`**: mantém `group_name`, `name`, `icon`, `sort`, flags `is_hidden` e `deleted_at`. A migration `0004_budget_v2.sql` semeia automaticamente seis grupos em PT-BR (Contas Fixas, Necessidades, Desejos, Reservas, Dívidas e Receitas). A função `ensure_budget_category_schema()` garante a criação dessas tabelas em instâncias onde o rollout Navy + Mint ainda não foi aplicado (é chamada pela API antes de qualquer operação).
 - **`budget_goal`**: metas por categoria (`type` em `TB`/`TBD`/`MFG`/`CUSTOM`, `amount_cents`, `target_month`, `cadence`).
 - **`budget_allocation`**: `assigned_cents`, `activity_cents`, `available_cents` por categoria/mês (`month` = 1º dia). O front cria linhas faltantes on-demand.
 - **`budget_audit`**: log de alterações com triggers automáticos. Guarda `before`/`after`, `reason` e `user_id` (`auth.uid()`), facilitando auditoria.

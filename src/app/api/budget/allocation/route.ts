@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { calcularDisponivel, getContext, handleError, previousMonth, toMonthDate } from "../utils";
+import { calcularDisponivel, ensureBudgetSchema, getContext, handleError, previousMonth, toMonthDate } from "../utils";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -17,6 +17,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const { supabase, orgId } = getContext();
+    await ensureBudgetSchema(supabase);
     const monthDate = toMonthDate(monthParam);
     const prevMonthKey = previousMonth(monthParam);
     const prevMonthDate = toMonthDate(prevMonthKey);
