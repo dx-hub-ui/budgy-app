@@ -147,6 +147,16 @@ export type UpsertBudgetCategoryInput = {
   rollover: boolean;
 };
 
+type BudgetCategoryUpsertPayload = {
+  id?: string;
+  budget_id: string;
+  category_id: string | null;
+  budgeted_cents: number;
+  rollover: boolean;
+  activity_cents: number;
+  available_cents: number;
+};
+
 export async function getActivityMap(year: number, month: number) {
   const { data, error } = await supabase
     .from("v_budget_activity")
@@ -201,13 +211,12 @@ export async function upsertBudgetCategories(
   const activityMap = await budgetInternals.getActivityMap(budget.year, budget.month);
   const prevAvailableMap = await getPreviousAvailableMap(budget.year, budget.month);
 
-  const payload = items.map((item) => {
+  const payload: BudgetCategoryUpsertPayload[] = items.map((item) => {
     const key = categoryKey(item.category_id ?? null);
     const prev = item.rollover ? prevAvailableMap[key] ?? 0 : 0;
     const activity = activityMap[key] ?? 0;
     const available = computeAvailable(prev, item.budgeted_cents, activity);
-    return {
-      id: item.id,
+    const payloadItem: BudgetCategoryUpsertPayload = {
       budget_id: budgetId,
       category_id: item.category_id,
       budgeted_cents: item.budgeted_cents,
@@ -215,6 +224,10 @@ export async function upsertBudgetCategories(
       activity_cents: activity,
       available_cents: available
     };
+    if (item.id) {
+      payloadItem.id = item.id;
+    }
+    return payloadItem;
   });
 
   const { data, error } = await supabase
@@ -309,6 +322,9 @@ export function centsToBRL(cents: number) {
 }
 
 export async function listRecentBudgets(limit = 6) {
+  if (typeof (supabase as any).from !== "function") {
+    return [] as Pick<BudgetRow, "id" | "year" | "month" | "to_budget_cents">[];
+  }
   const { data, error } = await supabase
     .from("budgets")
     .select("id, year, month, to_budget_cents")
