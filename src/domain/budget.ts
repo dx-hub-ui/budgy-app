@@ -27,10 +27,12 @@ type BudgetCategoryRow = {
   rollover: boolean;
   created_at: string;
   updated_at: string;
+  group_name?: string | null;
   category?: {
     id: UUID;
     name: string;
     color: string | null;
+    group_name?: string | null;
   } | null;
 };
 
@@ -40,6 +42,79 @@ export type BudgetWithCategories = BudgetRow & {
 
 export const NULL_CATEGORY_KEY = "__null__";
 const NULL_KEY = NULL_CATEGORY_KEY;
+
+const GROUP_SEQUENCE = [
+  "Immediate Obligations",
+  "Debt Payments",
+  "True Expenses",
+  "Quality of Life Goals",
+  "Just for Fun"
+];
+
+const GROUP_INDEX = new Map(GROUP_SEQUENCE.map((name, index) => [name, index]));
+
+const DEFAULT_GROUP = GROUP_SEQUENCE[0];
+
+function resolveGroupName(row: BudgetCategoryRow) {
+  const explicit = (row.group_name ?? (row as any)?.group) as string | null | undefined;
+  if (explicit && explicit.trim().length > 0) return explicit;
+  const categoryGroup = (row.category as any)?.group_name as string | null | undefined;
+  if (categoryGroup && categoryGroup.trim().length > 0) return categoryGroup;
+  return DEFAULT_GROUP;
+}
+
+function compareGroup(a: string, b: string) {
+  const ai = GROUP_INDEX.get(a) ?? GROUP_SEQUENCE.length;
+  const bi = GROUP_INDEX.get(b) ?? GROUP_SEQUENCE.length;
+  if (ai !== bi) return ai - bi;
+  return a.localeCompare(b, "en-US");
+}
+
+export type BudgetGoalType = "TB" | "TBD" | "MFG";
+
+export type BudgetGoal = {
+  id: UUID;
+  org_id?: UUID | null;
+  category_id: UUID;
+  goal_type: BudgetGoalType;
+  amount_cents: number;
+  target_month: string | null;
+};
+
+export type BudgetAllocationView = {
+  id: UUID;
+  category_id: UUID | null;
+  group_name: string;
+  name: string;
+  color: string | null;
+  budgeted_cents: number;
+  activity_cents: number;
+  available_cents: number;
+  prev_available_cents: number;
+  rollover: boolean;
+  goal: BudgetGoal | null;
+};
+
+export type BudgetMonthSummary = {
+  budgetId: UUID;
+  year: number;
+  month: number;
+  funds_for_month_cents: number;
+  overspent_last_month_cents: number;
+  budgeted_in_month_cents: number;
+  budgeted_in_future_cents: number;
+  inflows_cents: number;
+  to_be_budgeted_cents: number;
+};
+
+export type BudgetMonthEnvelope = {
+  summary: BudgetMonthSummary;
+  categories: BudgetAllocationView[];
+  previousBudgetedMap: Record<string, number>;
+  previousActivityMap: Record<string, number>;
+  averageBudgetedMap: Record<string, number>;
+  averageActivityMap: Record<string, number>;
+};
 
 function categoryKey(categoryId: string | null) {
   return categoryId ?? NULL_KEY;
@@ -120,6 +195,17 @@ export async function getBudget(year: number, month: number) {
   const found = await fetchBudget(year, month);
   if (!found) return null;
   return ensureCategoryRows(found);
+}
+
+function budgetCategoryName(row: BudgetCategoryRow) {
+  if (row.category && row.category.name) return row.category.name;
+  if (row.category_id === null) return "Sem categoria";
+  return "Categoria removida";
+}
+
+function budgetCategoryColor(row: BudgetCategoryRow) {
+  if (row.category && row.category.color) return row.category.color;
+  return "var(--cc-primary)";
 }
 
 export async function upsertBudget(input: {
@@ -334,3 +420,177 @@ export async function listRecentBudgets(limit = 6) {
   if (error) throw error;
   return data as Pick<BudgetRow, "id" | "year" | "month" | "to_budget_cents">[];
 }
+
+export function calculateToBeBudgeted(
+  inflowsCents: number,
+  categories: Pick<BudgetAllocationView, "budgeted_cents">[],
+  reservedAdjustmentsCents = 0,
+  carryoverAdjustmentsCents = 0
+) {
+  const totalBudgeted = categories.reduce((acc, item) => acc + (item.budgeted_cents ?? 0), 0);
+  return (
+    inflowsCents - totalBudgeted - reservedAdjustmentsCents + carryoverAdjustmentsCents
+  );
+}
+
+function safeNumber(value: unknown) {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export async function listBudgetGoals() {
+  if (typeof (supabase as any).from !== "function") return [] as BudgetGoal[];
+  const { data, error } = await supabase.from("budget_goals").select("*");
+  if (error) {
+    if ((error as any)?.code === "42P01") {
+      return [];
+    }
+    throw error;
+  }
+  return (data ?? []) as BudgetGoal[];
+}
+
+async function calculateRollingAverages(
+  year: number,
+  month: number,
+  span = 3
+): Promise<{ averageBudgetedMap: Record<string, number>; averageActivityMap: Record<string, number> }>
+{
+  let considered = 0;
+  const totalsBudgeted: Record<string, number> = {};
+  const totalsActivity: Record<string, number> = {};
+  let cursor = previousMonth(year, month);
+  for (let i = 0; i < span; i += 1) {
+    const budget = await fetchBudget(cursor.year, cursor.month);
+    if (!budget) break;
+    considered += 1;
+    for (const item of budget.budget_categories) {
+      const key = categoryKey(item.category_id);
+      totalsBudgeted[key] = (totalsBudgeted[key] ?? 0) + safeNumber(item.budgeted_cents);
+      totalsActivity[key] = (totalsActivity[key] ?? 0) + safeNumber(item.activity_cents);
+    }
+    cursor = previousMonth(cursor.year, cursor.month);
+  }
+  if (considered === 0) {
+    return { averageBudgetedMap: {}, averageActivityMap: {} };
+  }
+  const averageBudgetedMap: Record<string, number> = {};
+  for (const [key, value] of Object.entries(totalsBudgeted)) {
+    averageBudgetedMap[key] = Math.round(value / considered);
+  }
+  const averageActivityMap: Record<string, number> = {};
+  for (const [key, value] of Object.entries(totalsActivity)) {
+    averageActivityMap[key] = Math.round(value / considered);
+  }
+  return { averageBudgetedMap, averageActivityMap };
+}
+
+function mapPreviousBudgeted(previous: BudgetWithCategories | null) {
+  const map: Record<string, number> = {};
+  if (!previous) return map;
+  for (const item of previous.budget_categories) {
+    map[categoryKey(item.category_id)] = safeNumber(item.budgeted_cents);
+  }
+  return map;
+}
+
+export async function loadBudgetMonth(year: number, month: number): Promise<BudgetMonthEnvelope> {
+  let budget = await getBudget(year, month);
+  if (!budget) {
+    await upsertBudget({ year, month, to_budget_cents: 0 });
+    budget = await getBudget(year, month);
+  }
+  if (!budget) {
+    throw new Error("Não foi possível carregar orçamento do mês informado");
+  }
+
+  const goals = await listBudgetGoals();
+  const goalsByCategory = new Map(goals.map((goal) => [goal.category_id, goal]));
+
+  const activityMap = await getActivityMap(year, month);
+  const prevInfo = previousMonth(year, month);
+  const prevBudget = await fetchBudget(prevInfo.year, prevInfo.month);
+  const prevMap = new Map<string, number>();
+  if (prevBudget) {
+    for (const item of prevBudget.budget_categories) {
+      prevMap.set(categoryKey(item.category_id), safeNumber(item.available_cents));
+    }
+  }
+
+  const categories: BudgetAllocationView[] = budget.budget_categories
+    .map((item) => {
+      const key = categoryKey(item.category_id);
+      const prevAvailable = item.rollover ? prevMap.get(key) ?? 0 : 0;
+      const activity = safeNumber(activityMap[key] ?? item.activity_cents);
+      const available = computeAvailable(prevAvailable, safeNumber(item.budgeted_cents), activity);
+      const goal = item.category_id ? goalsByCategory.get(item.category_id) ?? null : null;
+      return {
+        id: item.id,
+        category_id: item.category_id,
+        group_name: resolveGroupName(item),
+        name: budgetCategoryName(item),
+        color: budgetCategoryColor(item),
+        budgeted_cents: safeNumber(item.budgeted_cents),
+        activity_cents: activity,
+        available_cents: available,
+        prev_available_cents: prevAvailable,
+        rollover: item.rollover,
+        goal
+      } satisfies BudgetAllocationView;
+    })
+    .sort((a, b) => {
+      const groupCompare = compareGroup(a.group_name, b.group_name);
+      if (groupCompare !== 0) return groupCompare;
+      return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" });
+    });
+
+  const totals = categories.reduce(
+    (acc, item) => {
+      acc.budgeted += item.budgeted_cents;
+      acc.activity += item.activity_cents;
+      acc.available += item.available_cents;
+      return acc;
+    },
+    { budgeted: 0, activity: 0, available: 0 }
+  );
+
+  const overspentLastMonth = prevBudget
+    ? prevBudget.budget_categories.reduce((acc, item) => {
+        const value = safeNumber(item.available_cents);
+        if (value < 0 && item.rollover) return acc + Math.abs(value);
+        return acc;
+      }, 0)
+    : 0;
+
+  const inflows = safeNumber(budget.to_budget_cents);
+  const toBeBudgeted = calculateToBeBudgeted(inflows, categories);
+
+  const summary: BudgetMonthSummary = {
+    budgetId: budget.id,
+    year,
+    month,
+    funds_for_month_cents: inflows,
+    overspent_last_month_cents: overspentLastMonth,
+    budgeted_in_month_cents: totals.budgeted,
+    budgeted_in_future_cents: 0,
+    inflows_cents: inflows,
+    to_be_budgeted_cents: toBeBudgeted
+  };
+
+  const previousBudgetedMap = mapPreviousBudgeted(prevBudget);
+  const previousActivityMap = await getActivityMap(prevInfo.year, prevInfo.month);
+  const { averageBudgetedMap, averageActivityMap } = await calculateRollingAverages(year, month, 3);
+
+  return {
+    summary,
+    categories,
+    previousBudgetedMap,
+    previousActivityMap,
+    averageBudgetedMap,
+    averageActivityMap
+  };
+}
+
+export const budgetViewInternals = {
+  calculateRollingAverages
+};
