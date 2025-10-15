@@ -44,6 +44,8 @@ create policy "budgets_own" on public.budgets
 create policy "budget_cats_own" on public.budget_categories
   for all using (exists (
     select 1 from public.budgets b where b.id = budget_categories.budget_id and b.user_id = auth.uid()
+  )) with check (exists (
+    select 1 from public.budgets b where b.id = budget_categories.budget_id and b.user_id = auth.uid()
   ));
 
 -- triggers updated_at
