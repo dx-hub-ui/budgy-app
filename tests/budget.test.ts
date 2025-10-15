@@ -1,70 +1,93 @@
 import assert from "node:assert/strict";
 
 import {
-  budgetInternals,
-  computeAvailable,
-  calculateToBeBudgeted,
-  NULL_CATEGORY_KEY,
-  suggestFromAvg3m
-} from "../src/domain/budget.ts";
+  aplicarEstouroEmDinheiro,
+  calcularAAtribuir,
+  calcularDisponivel,
+  calcularProjecaoMeta
+} from "../src/domain/budgeting";
 
-function testComputeAvailable() {
-  const result = computeAvailable(5000, 10000, 7500);
-  assert.equal(result, 7500, "deve somar saldo anterior e orçamento e subtrair gastos");
-
-  const negative = computeAvailable(-2000, 3000, 8000);
-  assert.equal(negative, -7000, "deve suportar valores negativos");
+function testCalcularDisponivel() {
+  assert.equal(calcularDisponivel(10_00, 5_00, 2_00), 13_00);
+  assert.equal(calcularDisponivel(-5_00, 0, 3_00), -8_00);
 }
 
-async function testSuggestFromAvg3m() {
-  const original = budgetInternals.getActivityMap;
-  const calls: Array<{ year: number; month: number }> = [];
-  budgetInternals.getActivityMap = async (year: number, month: number) => {
-    calls.push({ year, month });
-    if (month === 3) {
-      return { [NULL_CATEGORY_KEY]: 9000, catA: 12000 };
-    }
-    if (month === 2) {
-      return { [NULL_CATEGORY_KEY]: 6000, catA: 6000 };
-    }
-    return { [NULL_CATEGORY_KEY]: 3000 };
+function testCalcularAAtribuir() {
+  assert.equal(calcularAAtribuir(20_00, 12_00), 8_00);
+  assert.equal(calcularAAtribuir(15_00, 18_00), -3_00);
+}
+
+function testAplicarEstouro() {
+  assert.equal(aplicarEstouroEmDinheiro(-5_00, 10_00), 5_00);
+  assert.equal(aplicarEstouroEmDinheiro(2_00, 7_00), 7_00);
+}
+
+function testProjecoesMetas() {
+  const allocation = {
+    category_id: "cat",
+    month: "2025-05",
+    assigned_cents: 2_00,
+    activity_cents: 0,
+    available_cents: 5_00,
+    prev_available_cents: 3_00
   };
 
-  try {
-    const result = await suggestFromAvg3m(2024, 4);
-    assert.deepEqual(result, {
-      [NULL_CATEGORY_KEY]: Math.round((9000 + 6000 + 3000) / 3),
-      catA: Math.round((12000 + 6000 + 0) / 3)
-    });
-    assert.equal(calls.length, 3);
-    assert.equal(calls[0].month, 3);
-  } finally {
-    budgetInternals.getActivityMap = original;
-  }
+  const metaSaldo = calcularProjecaoMeta(
+    {
+      id: "goal",
+      org_id: "org",
+      category_id: "cat",
+      type: "TB",
+      amount_cents: 10_00,
+      target_month: null,
+      cadence: "monthly",
+      created_at: new Date().toISOString()
+    },
+    allocation,
+    "2025-05"
+  );
+  assert.equal(metaSaldo?.necessarioNoMes, 5_00);
+
+  const metaMensal = calcularProjecaoMeta(
+    {
+      id: "goal",
+      org_id: "org",
+      category_id: "cat",
+      type: "MFG",
+      amount_cents: 6_00,
+      target_month: null,
+      cadence: "monthly",
+      created_at: new Date().toISOString()
+    },
+    allocation,
+    "2025-05"
+  );
+  assert.equal(metaMensal?.necessarioNoMes, 4_00);
+
+  const metaData = calcularProjecaoMeta(
+    {
+      id: "goal",
+      org_id: "org",
+      category_id: "cat",
+      type: "TBD",
+      amount_cents: 20_00,
+      target_month: "2025-07-01",
+      cadence: "monthly",
+      created_at: new Date().toISOString()
+    },
+    allocation,
+    "2025-05"
+  );
+  assert(metaData && metaData.necessarioNoMes > 0);
 }
 
-function testCalculateToBeBudgeted() {
-  const inflows = 100_00;
-  const categories = [
-    { budgeted_cents: 25_00 },
-    { budgeted_cents: 15_00 },
-    { budgeted_cents: 10_00 }
-  ];
-  const result = calculateToBeBudgeted(inflows, categories);
-  assert.equal(result, inflows - 50_00);
-
-  const withAdjustments = calculateToBeBudgeted(inflows, categories, 10_00, 5_00);
-  assert.equal(withAdjustments, inflows - 50_00 - 10_00 + 5_00);
+try {
+  testCalcularDisponivel();
+  testCalcularAAtribuir();
+  testAplicarEstouro();
+  testProjecoesMetas();
+  console.log("Budget tests passed");
+} catch (error) {
+  console.error("Budget tests failed", error);
+  process.exitCode = 1;
 }
-
-(async () => {
-  try {
-    testComputeAvailable();
-    testCalculateToBeBudgeted();
-    await testSuggestFromAvg3m();
-    console.log("Budget tests passed");
-  } catch (err) {
-    console.error("Budget tests failed", err);
-    process.exitCode = 1;
-  }
-})();
