@@ -206,7 +206,7 @@ header.cc-topbar .cc-topbar-inner {
 
 /* Sidebar clara (versão leve) */
 .cc-sidebar--light {
-  --sidebar-bg: #fafdfa;
+  --sidebar-bg: #0b1220;
   --sidebar-foreground: #0f172a;
   --sidebar-muted: #64748b;
   --sidebar-hover: rgba(2, 6, 23, 0.04);
