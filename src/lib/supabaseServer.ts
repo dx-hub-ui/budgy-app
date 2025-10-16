@@ -33,14 +33,21 @@ export function createServerSupabaseClient() {
     forwardedHeaders["x-cc-org-id"] = orgId;
   }
 
+  const forwardedAuthorization =
+    forwardedHeaders.Authorization ?? forwardedHeaders.authorization;
+
   const globalHeaders: Record<string, string> = {
     ...forwardedHeaders,
     apikey: serviceKey
   };
 
   delete globalHeaders.authorization;
-  delete globalHeaders.Authorization;
-  globalHeaders.Authorization = `Bearer ${serviceKey}`;
+
+  if (forwardedAuthorization) {
+    globalHeaders.Authorization = forwardedAuthorization;
+  } else {
+    globalHeaders.Authorization = `Bearer ${serviceKey}`;
+  }
 
   return createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
