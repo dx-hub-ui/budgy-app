@@ -4,7 +4,7 @@ import { ensureSeedCategories, getContext, handleError, loadBudgetSnapshot } fro
 
 function currentMonth() {
   const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 export async function GET(request: NextRequest) {
