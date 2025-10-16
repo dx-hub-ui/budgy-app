@@ -61,7 +61,7 @@ set search_path = public
 as $function$
 begin
   if to_regclass('public.budget_categories') is null then
-    execute $$
+    execute $_ddl$
       create table public.budget_categories(
         id uuid primary key default gen_random_uuid(),
         org_id uuid not null default current_org(),
@@ -73,11 +73,11 @@ begin
         deleted_at timestamptz,
         created_at timestamptz not null default now()
       );
-    $$;
+    $_ddl$;
   end if;
 
   if to_regclass('public.budget_goal') is null then
-    execute $$
+    execute $_ddl$
       create table public.budget_goal(
         id uuid primary key default gen_random_uuid(),
         org_id uuid not null default current_org(),
@@ -88,11 +88,11 @@ begin
         cadence text check (cadence in ('weekly','monthly','yearly','custom')),
         created_at timestamptz not null default now()
       );
-    $$;
+    $_ddl$;
   end if;
 
   if to_regclass('public.budget_allocation') is null then
-    execute $$
+    execute $_ddl$
       create table public.budget_allocation(
         org_id uuid not null default current_org(),
         category_id uuid not null references public.budget_categories(id) on delete cascade,
@@ -102,11 +102,11 @@ begin
         available_cents int not null default 0,
         primary key(org_id, category_id, month)
       );
-    $$;
+    $_ddl$;
   end if;
 
   if to_regclass('public.budget_audit') is null then
-    execute $$
+    execute $_ddl$
       create table public.budget_audit(
         id uuid primary key default gen_random_uuid(),
         org_id uuid not null default current_org(),
@@ -118,7 +118,7 @@ begin
         reason text,
         created_at timestamptz not null default now()
       );
-    $$;
+    $_ddl$;
   end if;
 
   perform public.ensure_budget_category_policies();
@@ -141,11 +141,11 @@ begin
       and tablename = 'budget_categories'
       and policyname = 'budget_category_org'
   ) then
-    execute $$
+    execute $_policy$
       create policy "budget_category_org" on public.budget_categories
         for all using (org_id = current_org())
         with check (org_id = current_org());
-    $$;
+    $_policy$;
   end if;
 
   if not exists (
@@ -154,11 +154,11 @@ begin
       and tablename = 'budget_goal'
       and policyname = 'budget_goal_org'
   ) then
-    execute $$
+    execute $_policy$
       create policy "budget_goal_org" on public.budget_goal
         for all using (org_id = current_org())
         with check (org_id = current_org());
-    $$;
+    $_policy$;
   end if;
 
   if not exists (
@@ -167,11 +167,11 @@ begin
       and tablename = 'budget_allocation'
       and policyname = 'budget_allocation_org'
   ) then
-    execute $$
+    execute $_policy$
       create policy "budget_allocation_org" on public.budget_allocation
         for all using (org_id = current_org())
         with check (org_id = current_org());
-    $$;
+    $_policy$;
   end if;
 
   if not exists (
@@ -180,10 +180,10 @@ begin
       and tablename = 'budget_audit'
       and policyname = 'budget_audit_view'
   ) then
-    execute $$
+    execute $_policy$
       create policy "budget_audit_view" on public.budget_audit
         for select using (org_id = current_org());
-    $$;
+    $_policy$;
   end if;
 
   perform public.ensure_budget_category_rls('budget_categories');
@@ -238,11 +238,11 @@ begin
      where t.tgname = 't_budget_goal_audit'
        and t.tgrelid = 'public.budget_goal'::regclass
   ) then
-    execute $$
+    execute $_trigger$
       create trigger t_budget_goal_audit
         after insert or update or delete on public.budget_goal
         for each row execute function public.log_budget_audit();
-    $$;
+    $_trigger$;
   end if;
 
   if not exists (
@@ -251,11 +251,11 @@ begin
      where t.tgname = 't_budget_allocation_audit'
        and t.tgrelid = 'public.budget_allocation'::regclass
   ) then
-    execute $$
+    execute $_trigger$
       create trigger t_budget_allocation_audit
         after insert or update or delete on public.budget_allocation
         for each row execute function public.log_budget_audit();
-    $$;
+    $_trigger$;
   end if;
 
   if not exists (
@@ -264,11 +264,11 @@ begin
      where t.tgname = 't_budget_category_audit'
        and t.tgrelid = 'public.budget_categories'::regclass
   ) then
-    execute $$
+    execute $_trigger$
       create trigger t_budget_category_audit
         after insert or update or delete on public.budget_categories
         for each row execute function public.log_budget_audit();
-    $$;
+    $_trigger$;
   end if;
 end;
 $function$;
@@ -423,11 +423,11 @@ begin
     execute 'drop trigger t_profiles_seed_budget_categories on public.profiles';
   end if;
 
-  execute $$
+  execute $_profiles_trigger$
     create trigger t_profiles_seed_budget_categories
       after insert on public.profiles
       for each row execute function public.tr_profiles_seed_budget_categories();
-  $$;
+  $_profiles_trigger$;
 end;
 $$;
 
