@@ -28,17 +28,33 @@ function resolveServiceRoleKey(): string {
 export function createServerSupabaseClient(options: { orgId?: string } = {}) {
   const supabaseUrl = resolveSupabaseUrl();
   const serviceKey: string = resolveServiceRoleKey();
-  const incomingHeaders = Object.fromEntries(headers().entries());
-  const orgId = options.orgId ?? resolveOrgId();
+  const forwardedHeaders = Object.fromEntries(headers().entries());
+  const orgId = resolveOrgId();
 
-  if (orgId && orgId.trim().length > 0) {
-    incomingHeaders["x-cc-org-id"] = orgId;
+  if (!forwardedHeaders["x-cc-org-id"] && orgId) {
+    forwardedHeaders["x-cc-org-id"] = orgId;
+  }
+
+  const forwardedAuthorization =
+    forwardedHeaders.Authorization ?? forwardedHeaders.authorization;
+
+  const globalHeaders: Record<string, string> = {
+    ...forwardedHeaders,
+    apikey: serviceKey
+  };
+
+  delete globalHeaders.authorization;
+
+  if (forwardedAuthorization) {
+    globalHeaders.Authorization = forwardedAuthorization;
+  } else {
+    globalHeaders.Authorization = `Bearer ${serviceKey}`;
   }
 
   return createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
     global: {
-      headers: incomingHeaders
+      headers: globalHeaders
     }
   });
 }
