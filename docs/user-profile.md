@@ -14,6 +14,7 @@ A tela **Meu Perfil** está disponível pelo menu do avatar na barra lateral (it
 - Os metadados do usuário no Supabase (display name e avatar) também são sincronizados para manter coesão com integrações futuras.
 - As chamadas para `/api/profile` agora enviam o token da sessão no header `Authorization: Bearer`, garantindo que o Supabase valide o usuário antes de aplicar qualquer atualização e evitando o erro `{"message":"Não autenticado"}` ao salvar.
 - O backend força que todas as requisições ao Supabase incluam os headers `apikey` e `Authorization` com a chave de serviço, evitando respostas `401 no_authorization` quando o token de sessão do usuário precisa ser validado.
+- Quando a chave de serviço não está disponível, o backend utiliza apenas o token da sessão do usuário para preencher nome e e-mail padrão do perfil, evitando falhas `not_admin` ao carregar os dados.
 
 ## Acessibilidade e UX
 - O formulário fornece feedback textual tanto para sucesso quanto para erro.

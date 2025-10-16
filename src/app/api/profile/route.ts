@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { PostgrestError, SupabaseClient, User } from "@supabase/supabase-js";
 
-import { createServerSupabaseClient, resolveUserId } from "@/lib/supabaseServer";
+import {
+  createServerSupabaseClient,
+  resolveAuthenticatedUser,
+  resolveUserId
+} from "@/lib/supabaseServer";
 
 const UpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(120).optional(),
@@ -35,13 +39,29 @@ type ProfileRow = {
   updated_at: string | null;
 };
 
-async function getAuthUser(userId: string, supabase: SupabaseClient): Promise<User | null> {
-  const { data, error } = await supabase.auth.admin.getUserById(userId);
-  if (error) throw error;
-  return data.user ?? null;
+async function resolveProfileMetadata(
+  userId: string,
+  supabase: SupabaseClient,
+  authUser?: User | null
+): Promise<User | null> {
+  if (authUser?.id === userId) {
+    return authUser;
+  }
+
+  try {
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
+    if (error) {
+      console.warn("Falha ao obter metadados do usuário para o perfil", error);
+      return null;
+    }
+    return data.user ?? null;
+  } catch (error) {
+    console.warn("Erro inesperado ao obter metadados do usuário para o perfil", error);
+    return null;
+  }
 }
 
-async function ensureProfile(userId: string, client?: SupabaseClient) {
+async function ensureProfile(userId: string, client?: SupabaseClient, authUser?: User | null) {
   const supabase = client ?? createServerSupabaseClient();
   const { data, error } = await supabase
     .from("profiles")
@@ -57,11 +77,12 @@ async function ensureProfile(userId: string, client?: SupabaseClient) {
     return data;
   }
 
-  const user = await getAuthUser(userId, supabase);
-  const email = user?.email ?? null;
+  const metadataUser = await resolveProfileMetadata(userId, supabase, authUser);
+
+  const email = metadataUser?.email ?? null;
   const metadataDisplay =
-    (user?.user_metadata?.display_name as string | undefined)?.trim() ??
-    (user?.user_metadata?.full_name as string | undefined)?.trim() ??
+    (metadataUser?.user_metadata?.display_name as string | undefined)?.trim() ??
+    (metadataUser?.user_metadata?.full_name as string | undefined)?.trim() ??
     null;
   const displayName = metadataDisplay || email;
 
@@ -95,7 +116,8 @@ export async function GET() {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
     }
 
-    const profile = await ensureProfile(userId, supabase);
+    const authUser = await resolveAuthenticatedUser(supabase);
+    const profile = await ensureProfile(userId, supabase, authUser);
     return NextResponse.json({ profile });
   } catch (error) {
     console.error("Erro ao carregar perfil", error);
@@ -110,6 +132,8 @@ export async function PATCH(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
     }
+
+    const authUser = await resolveAuthenticatedUser(supabase);
 
     const json = await request.json();
     const parsed = UpdateSchema.safeParse(json);
@@ -140,10 +164,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (Object.keys(updates).length === 0) {
-      const profile = await ensureProfile(userId, supabase);
+      const profile = await ensureProfile(userId, supabase, authUser);
       return NextResponse.json({ profile });
     }
-    await ensureProfile(userId, supabase);
+    await ensureProfile(userId, supabase, authUser);
 
     const { data: updated, error: updateError } = await supabase
       .from("profiles")
