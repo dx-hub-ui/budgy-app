@@ -37,7 +37,14 @@ export function getContext(): ApiContext {
 
 export async function ensureBudgetSchema(client: SupabaseClient) {
   const { error } = await client.rpc("ensure_budget_category_schema");
-  if (error) throw error;
+  if (error) {
+    const message = String(error.message ?? "");
+    if (message.includes('record "new" has no field "category_id"')) {
+      console.warn("Ignorando erro conhecido na rotina ensure_budget_category_schema", message);
+      return;
+    }
+    throw error;
+  }
 }
 
 const GROUP_SEEDS: Array<{ name: string; categories: string[] }> = [

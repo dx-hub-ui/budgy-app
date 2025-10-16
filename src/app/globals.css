@@ -181,6 +181,18 @@ main.cc-main > * {
   height: 100%;
 }
 
+.cc-topbar {
+  border-bottom: 1px solid var(--cc-border);
+  background: var(--cc-surface);
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.cc-topbar-inner {
+  width: 100%;
+}
+
 /* Scrollbar thin */
 main.cc-main::-webkit-scrollbar {
   width: 10px;

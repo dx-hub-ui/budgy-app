@@ -1,8 +1,8 @@
 # Interface Theming and Auth Guard
 
 ## Tema claro e escuro
-- O aplicativo agora possui temas claro e escuro.
-- O tema claro é aplicado por padrão. Usuários podem alternar entre os temas pelo botão com ícones de sol e lua localizado na Topbar.
+- O aplicativo possui temas claro e escuro.
+- O tema claro é aplicado por padrão. Usuários alternam entre os temas dentro do menu do avatar (item **Mudar Tema**), escolhendo explicitamente as opções **Claro** ou **Escuro**, cada uma acompanhada de ícones de sol e lua.
 - A escolha do tema é persistida localmente no navegador (`localStorage`) e respeita mudanças de preferência do sistema quando não houver uma seleção explícita.
 - A logomarca exibida na Topbar respeita o tema ativo, utilizando as versões claras e escuras disponibilizadas em `/public/brand`.
 
@@ -19,11 +19,14 @@
 - Quando variáveis de ambiente do Supabase não estiverem presentes, o cliente de autenticação entra em modo de simulação para permitir builds locais sem falhas.
 
 ## Menu global do usuário
-- O avatar na Topbar agora abre um menu suspenso com o e-mail da conta e a ação de sair (com ícone).
-- O botão de sair utiliza a API do Supabase e também está disponível dentro do menu, em vez de exposto diretamente na Topbar.
+- O avatar na Topbar agora abre um menu suspenso com a foto (ou iniciais), o nome exibido e o e-mail da conta, além das ações de navegação.
+- O item **Meu Perfil** leva à tela de edição de dados do usuário.
+- A seção **Mudar Tema** contém os botões Claro/Escuro com ícones dedicados; o estado selecionado fica destacado.
+- A ação de sair continua dentro do menu e utiliza a API do Supabase.
 
 ## Layout da Topbar
-- A Topbar foi dividida em três áreas principais: branding com largura fixa igual a `var(--dynamic-sidebar-w)`, um espaço central que agora recebe o título da página (renderizado como `<h1>` e alinhado com a coluna principal) e a área de ações do usuário (alternância de tema, notificações e menu do avatar). Com isso, o conteúdo principal fica livre de cabeçalhos volumosos.
+- A Topbar foi dividida em três áreas principais: branding com largura fixa igual a `var(--dynamic-sidebar-w)`, um espaço central que recebe o título contextual da página (renderizado como `<h1>` e alinhado com a coluna principal) e a área de conta, que agrupa o botão de notificações e o menu do avatar com o nome do usuário.
+- O botão dedicado de alternância de tema foi removido da barra; a preferência agora é trocada dentro do menu do usuário para manter a hierarquia visual do cabeçalho.
 
 ## Painel financeiro
 - A nova rota `/dashboard` reúne o gráfico de saldo, cartões de métricas e uma tabela responsiva de transações recentes seguindo a composição de colunas 2fr/1fr em telas grandes.
