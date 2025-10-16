@@ -39,6 +39,28 @@ type ProfileRow = {
   updated_at: string | null;
 };
 
+async function resolveProfileMetadata(
+  userId: string,
+  supabase: SupabaseClient,
+  authUser?: User | null
+): Promise<User | null> {
+  if (authUser?.id === userId) {
+    return authUser;
+  }
+
+  try {
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
+    if (error) {
+      console.warn("Falha ao obter metadados do usuário para o perfil", error);
+      return null;
+    }
+    return data.user ?? null;
+  } catch (error) {
+    console.warn("Erro inesperado ao obter metadados do usuário para o perfil", error);
+    return null;
+  }
+}
+
 async function ensureProfile(userId: string, client?: SupabaseClient, authUser?: User | null) {
   const supabase = client ?? createServerSupabaseClient();
   const { data, error } = await supabase
@@ -55,10 +77,12 @@ async function ensureProfile(userId: string, client?: SupabaseClient, authUser?:
     return data;
   }
 
-  const email = authUser?.email ?? null;
+  const metadataUser = await resolveProfileMetadata(userId, supabase, authUser);
+
+  const email = metadataUser?.email ?? null;
   const metadataDisplay =
-    (authUser?.user_metadata?.display_name as string | undefined)?.trim() ??
-    (authUser?.user_metadata?.full_name as string | undefined)?.trim() ??
+    (metadataUser?.user_metadata?.display_name as string | undefined)?.trim() ??
+    (metadataUser?.user_metadata?.full_name as string | undefined)?.trim() ??
     null;
   const displayName = metadataDisplay || email;
 
