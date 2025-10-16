@@ -1,5 +1,5 @@
 import { cookies, headers } from "next/headers";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 export const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -77,6 +77,40 @@ function extractBearerToken(value: string | null): string | null {
   return match ? match[1].trim() : null;
 }
 
+async function fetchAuthenticatedUser(
+  client: SupabaseClient,
+  token: string
+): Promise<User | null> {
+  try {
+    const { data, error } = await client.auth.getUser(token);
+    if (error) {
+      console.warn("Falha ao obter usuário autenticado", error);
+      return null;
+    }
+    return data.user ?? null;
+  } catch (error) {
+    console.warn("Erro inesperado ao obter usuário autenticado", error);
+    return null;
+  }
+}
+
+function extractAuthorizationToken(): string | null {
+  const authHeader = headers().get("authorization") ?? headers().get("Authorization");
+  return extractBearerToken(authHeader);
+}
+
+export async function resolveAuthenticatedUser(
+  client?: SupabaseClient
+): Promise<User | null> {
+  const token = extractAuthorizationToken();
+  if (!token) {
+    return null;
+  }
+
+  const supabase = client ?? createServerSupabaseClient();
+  return fetchAuthenticatedUser(supabase, token);
+}
+
 export async function resolveUserId(client?: SupabaseClient): Promise<string | null> {
   const headerUser = headers().get("x-cc-user-id");
   if (headerUser && headerUser.trim().length > 0) {
@@ -87,23 +121,13 @@ export async function resolveUserId(client?: SupabaseClient): Promise<string | n
     return cookieUser.trim();
   }
 
-  const authHeader = headers().get("authorization") ?? headers().get("Authorization");
-  const token = extractBearerToken(authHeader);
+  const token = extractAuthorizationToken();
   if (!token) {
     return null;
   }
 
   const supabase = client ?? createServerSupabaseClient();
 
-  try {
-    const { data, error } = await supabase.auth.getUser(token);
-    if (error) {
-      console.warn("Falha ao validar token de sessão", error);
-      return null;
-    }
-    return data.user?.id ?? null;
-  } catch (error) {
-    console.warn("Erro inesperado ao resolver usuário autenticado", error);
-    return null;
-  }
+  const authUser = await fetchAuthenticatedUser(supabase, token);
+  return authUser?.id ?? null;
 }
