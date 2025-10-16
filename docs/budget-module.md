@@ -7,6 +7,7 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 - A entrada continua como **Orçamento** no menu lateral; o atalho antigo **Categorias** foi removido porque o CRUD agora acontece dentro do próprio orçamento.
 - Cada mês é carregado diretamente em `/budgets/[slug]` (slug `YYYY-MM`). O link "Orçamento" da sidebar já aponta para o mês atual, garantindo entrada imediata no planejador.
 - O mês atual é calculado com base no fuso horário local do usuário (métodos `getFullYear()`/`getMonth()`), evitando regressões para o mês anterior quando o navegador ainda estiver no final do dia 1º em UTC.
+- A label exibida no topo usa a data do dia 1º às 12h UTC ao formatar (`Intl.DateTimeFormat`), o que impede o recuo para o mês anterior ao aplicar o timezone `America/Sao_Paulo`.
 - Trocas de mês usam `router.replace`, evitando recarga da página e mantendo histórico do navegador.
 - A navegação mensal é feita pelas setas laterais na própria página do mês, carregando apenas o mês anterior e o posterior conforme o mock de referência.
 
@@ -38,14 +39,15 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
 ## Fluxo de UI/UX
 
 1. **Inicialização** – `useBudgetPlannerStore.initializeMonth` carrega snapshot, popula Zustand e zera histórico (máx. 50 passos).
-2. **Topbar** – exibe o mês atual com setas de navegação (anteriores/próximos), cards-resumo para "Pronto para atribuir", "Atribuído", "Atividade" e "Disponível", além dos botões `Desfazer`/`Refazer` (atalhos `⌘/Ctrl+Z` e `Shift+⌘/Ctrl+Z`) e acesso rápido aos grupos de categorias.
-3. **Grid de categorias** – accordions por grupo, célula "Atribuído" com máscara BRL e pill de "Disponível" colorida (`cc-pill-positive`, `cc-pill-zero`, `cc-pill-negative`).
-4. **Modal de nome** – abre ao clicar no nome da categoria. Permite renomear, ocultar e excluir (soft delete) com acessibilidade (`aria-modal`, foco inicial no campo).
-5. **Drawer Assistente (3 passos)**:
+2. **Cabeçalho do orçamento** – ocupa toda a largura útil dentro do conteúdo principal (sem topbar global), concentrando as setas de navegação do mês, o acesso rápido aos grupos de categorias e os cards-resumo de "Pronto para atribuir", "Atribuído", "Atividade" e "Disponível", juntamente com os botões `Desfazer`/`Refazer` (atalhos `⌘/Ctrl+Z` e `Shift+⌘/Ctrl+Z`).
+3. **Painel lateral de insights** – à direita, mostra o mês corrente, totais principais e dicas de próximos passos. É oculto em telas menores que `xl` para priorizar o grid.
+4. **Grid de categorias** – accordions por grupo, célula "Atribuído" com máscara BRL e pill de "Disponível" colorida (`cc-pill-positive`, `cc-pill-zero`, `cc-pill-negative`).
+5. **Modal de nome** – abre ao clicar no nome da categoria. Permite renomear, ocultar e excluir (soft delete) com acessibilidade (`aria-modal`, foco inicial no campo).
+6. **Drawer Assistente (3 passos)**:
    - *Passo 1* – tabs Semanal/Mensal/Anual/Personalizado, input de valor, prazo e estratégia para o mês seguinte. Salva via `PUT /goal`.
    - *Passo 2* – usa `calcularProjecaoMeta` para exibir progresso, CTA "Atribuir" (POST apply) e estatísticas "Atribuir este mês / Atribuído / Falta".
    - *Passo 3* – resumo, botão "Editar meta" (volta ao passo 1), "Remover" e "Atribuir".
-6. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store.
+7. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store.
 
 ## Fórmulas e regras financeiras
 

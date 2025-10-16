@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import useHotkeys from "@/hooks/useHotkeys";
 
@@ -33,7 +32,6 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={shellClass}>
-      <Topbar />
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
       <main id="main-content" className="cc-main focus:outline-none" tabIndex={-1}>
         {children}
