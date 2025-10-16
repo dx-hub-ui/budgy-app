@@ -58,75 +58,10 @@ export async function ensureBudgetSchema(client: SupabaseClient) {
   }
 }
 
-const GROUP_SEEDS: Array<{ name: string; categories: string[] }> = [
-  {
-    name: "Contas Fixas",
-    categories: [
-      "Aluguel/Prestação",
-      "Condomínio",
-      "Utilities (Energia/Água/Esgoto)",
-      "TV/Telefone/Internet",
-      "Seguro",
-      "Empréstimo estudantil",
-      "Empréstimo pessoal",
-      "Música",
-      "Streaming"
-    ]
-  },
-  {
-    name: "Necessidades",
-    categories: [
-      "Transporte",
-      "Manutenção do carro",
-      "Cuidados pessoais",
-      "Vestuário",
-      "Impostos e taxas"
-    ]
-  },
-  {
-    name: "Desejos",
-    categories: ["Restaurantes", "Compras", "Lazer/Viagens"]
-  },
-  {
-    name: "Reservas",
-    categories: ["Fundo de emergência", "Férias", "Investimentos"]
-  },
-  {
-    name: "Dívidas",
-    categories: [
-      "Cartão de crédito",
-      "Financiamento do carro",
-      "Financiamento do imóvel",
-      "Consignado"
-    ]
-  },
-  {
-    name: "Receitas",
-    categories: ["Salário", "Freelance/Autônomo", "Reembolsos", "Rendimentos"]
-  }
-];
-
 export async function ensureSeedCategories(client: SupabaseClient, orgId: string) {
   await ensureBudgetSchema(client);
-  const { count, error } = await client
-    .from("budget_categories")
-    .select("id", { count: "exact", head: true })
-    .eq("org_id", orgId);
+  const { error } = await client.rpc("seed_default_budget_categories", { p_org_id: orgId });
   if (error) throw error;
-  if ((count ?? 0) > 0) return;
-
-  let sort = 0;
-  const rows = GROUP_SEEDS.flatMap((group) =>
-    group.categories.map((name) => ({
-      org_id: orgId,
-      group_name: group.name,
-      name,
-      icon: null,
-      sort: sort++
-    }))
-  );
-  const { error: insertError } = await client.from("budget_categories").insert(rows);
-  if (insertError) throw insertError;
 }
 
 export function toMonthDate(month: string) {
