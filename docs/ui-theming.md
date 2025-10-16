@@ -4,7 +4,7 @@
 - O aplicativo possui temas claro e escuro.
 - O tema claro é aplicado por padrão. Usuários alternam entre os temas dentro do menu do avatar (item **Mudar Tema**), escolhendo explicitamente as opções **Claro** ou **Escuro**, cada uma acompanhada de ícones de sol e lua.
 - A escolha do tema é persistida localmente no navegador (`localStorage`) e respeita mudanças de preferência do sistema quando não houver uma seleção explícita.
-- A logomarca exibida na Topbar respeita o tema ativo, utilizando as versões claras e escuras disponibilizadas em `/public/brand`.
+- O logotipo exibido no topo da barra lateral respeita o tema ativo, utilizando as versões claras e escuras disponibilizadas em `/public/brand`.
 
 ## Esquema de cores do painel
 - O painel financeiro replica o visual navy + mint da referência: fundo claro `--cc-bg` (`#f5f7fb`), superfícies elevadas `--cc-bg-elev` (`#ffffff`) e destaque principal em verde `--brand` (`#7cc46e`). Tokens derivados (`--ring`, `--brand-soft-*`, `--chart-grid`) foram ajustados para manter brilho controlado e contraste alto.
@@ -19,14 +19,14 @@
 - Quando variáveis de ambiente do Supabase não estiverem presentes, o cliente de autenticação entra em modo de simulação para permitir builds locais sem falhas.
 
 ## Menu global do usuário
-- O avatar na Topbar agora abre um menu suspenso com a foto (ou iniciais), o nome exibido e o e-mail da conta, além das ações de navegação.
-- O item **Meu Perfil** leva à tela de edição de dados do usuário.
-- A seção **Mudar Tema** contém os botões Claro/Escuro com ícones dedicados; o estado selecionado fica destacado.
-- A ação de sair continua dentro do menu e utiliza a API do Supabase.
+- O avatar posicionado na parte superior da barra lateral abre um menu suspenso compacto com a foto (ou iniciais), o nome exibido e o e-mail da conta.
+- O menu agora é multinível: o primeiro nível apresenta **Meu Perfil**, **Mudar Tema** e **Sair**.
+- O item **Mudar Tema** expande uma lista aninhada com as opções **Claro** (ícone de sol) e **Escuro** (ícone de lua), evidenciando a seleção atual.
+- O item **Sair** permanece no menu e continua delegando para a API do Supabase.
 
-## Layout da Topbar
-- A Topbar foi dividida em três áreas principais: branding com largura fixa igual a `var(--dynamic-sidebar-w)`, um espaço central que recebe o título contextual da página (renderizado como `<h1>` e alinhado com a coluna principal) e a área de conta, que agrupa o botão de notificações e o menu do avatar com o nome do usuário.
-- O botão dedicado de alternância de tema foi removido da barra; a preferência agora é trocada dentro do menu do usuário para manter a hierarquia visual do cabeçalho.
+## Layout principal
+- A Topbar foi removida: o conteúdo principal ocupa agora toda a altura disponível, reduzindo o ruído visual e privilegiando os painéis.
+- O branding e o menu da conta ficaram concentrados na cabeça da barra lateral, mantendo fácil acesso mesmo quando a barra está recolhida.
 
 ## Painel financeiro
 - A nova rota `/dashboard` reúne o gráfico de saldo, cartões de métricas e uma tabela responsiva de transações recentes seguindo a composição de colunas 2fr/1fr em telas grandes.

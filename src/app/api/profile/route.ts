@@ -89,12 +89,12 @@ async function ensureProfile(userId: string, client?: SupabaseClient) {
 
 export async function GET() {
   try {
-    const userId = resolveUserId();
+    const supabase = createServerSupabaseClient();
+    const userId = await resolveUserId(supabase);
     if (!userId) {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
     }
 
-    const supabase = createServerSupabaseClient();
     const profile = await ensureProfile(userId, supabase);
     return NextResponse.json({ profile });
   } catch (error) {
@@ -105,7 +105,8 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const userId = resolveUserId();
+    const supabase = createServerSupabaseClient();
+    const userId = await resolveUserId(supabase);
     if (!userId) {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
     }
@@ -138,7 +139,6 @@ export async function PATCH(request: NextRequest) {
       updates.avatar_url = payload.avatarUrl;
     }
 
-    const supabase = createServerSupabaseClient();
     if (Object.keys(updates).length === 0) {
       const profile = await ensureProfile(userId, supabase);
       return NextResponse.json({ profile });

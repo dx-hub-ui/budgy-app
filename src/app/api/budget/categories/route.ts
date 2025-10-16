@@ -9,7 +9,7 @@ function currentMonth() {
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, orgId } = getContext();
+    const { supabase, orgId } = await getContext();
     const { searchParams } = new URL(request.url);
     const monthParam = searchParams.get("month") ?? searchParams.get("m") ?? currentMonth();
     const monthKey = monthParam.slice(0, 7);
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, orgId } = getContext();
+    const { supabase, orgId } = await getContext();
     await ensureSeedCategories(supabase, orgId);
     const body = await request.json().catch(() => ({}));
     const monthParam = body.month ?? currentMonth();

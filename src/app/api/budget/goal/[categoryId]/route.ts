@@ -18,7 +18,7 @@ export async function PUT(
       return NextResponse.json({ message: "Informe um valor válido" }, { status: 400 });
     }
 
-    const { supabase, orgId } = getContext();
+    const { supabase, orgId } = await getContext();
     await ensureBudgetSchema(supabase);
 
     const payload: Record<string, any> = {
@@ -56,7 +56,7 @@ export async function DELETE(
   { params }: { params: { categoryId: string } }
 ) {
   try {
-    const { supabase, orgId } = getContext();
+    const { supabase, orgId } = await getContext();
     await ensureBudgetSchema(supabase);
     const { error } = await supabase
       .from("budget_goal")

@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/authFetch";
+
 export type UUID = string;
 
 export type BudgetCategory = {
@@ -184,12 +186,12 @@ export function agruparCategorias(categories: BudgetCategory[]): BudgetCategoryG
 }
 
 async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, {
+  const headers = new Headers(init?.headers ?? undefined);
+  headers.set("Content-Type", "application/json");
+
+  const res = await authFetch(input, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {})
-    }
+    headers
   });
   if (!res.ok) {
     const message = await res.text();
@@ -233,7 +235,7 @@ export async function salvarMeta(categoryId: string, payload: Partial<BudgetGoal
 }
 
 export async function removerMeta(categoryId: string) {
-  const res = await fetch(`${API_BASE}/goal/${categoryId}`, {
+  const res = await authFetch(`${API_BASE}/goal/${categoryId}`, {
     method: "DELETE"
   });
   if (!res.ok) {

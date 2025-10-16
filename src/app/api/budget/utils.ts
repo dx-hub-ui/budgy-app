@@ -28,10 +28,10 @@ export type BudgetSnapshotPayload = {
   total_available_cents: number;
 };
 
-export function getContext(): ApiContext {
+export async function getContext(): Promise<ApiContext> {
   const supabase = createServerSupabaseClient();
   const orgId = resolveOrgId();
-  const userId = resolveUserId();
+  const userId = await resolveUserId(supabase);
   return { supabase, orgId, userId };
 }
 

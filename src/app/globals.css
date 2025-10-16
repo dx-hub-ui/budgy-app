@@ -160,7 +160,8 @@ nav.cc-sidebar {
   height: 100vh;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
-  overflow: hidden;
+  overflow: visible;
+  z-index: 10;
   color: var(--sidebar-foreground);
 }
 

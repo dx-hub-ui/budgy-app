@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ message: "Informe o mês" }, { status: 400 });
     }
 
-    const { supabase, orgId } = getContext();
+    const { supabase, orgId } = await getContext();
     await ensureBudgetSchema(supabase);
     const monthDate = toMonthDate(monthParam);
     const prevMonthKey = previousMonth(monthParam);
