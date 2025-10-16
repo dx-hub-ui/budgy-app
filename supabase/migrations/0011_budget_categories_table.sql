@@ -58,7 +58,7 @@ returns void
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $function$
 begin
   if to_regclass('public.budget_categories') is null then
     execute $$
@@ -125,7 +125,7 @@ begin
   perform public.ensure_budget_category_indexes();
   perform public.ensure_budget_category_audit_triggers();
 end;
-$$;
+$function$;
 
 -- Helpers to keep policy/index/trigger creation idempotent.
 create or replace function public.ensure_budget_category_policies()
@@ -133,7 +133,7 @@ returns void
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $function$
 begin
   if not exists (
     select 1 from pg_policies
@@ -191,7 +191,7 @@ begin
   perform public.ensure_budget_category_rls('budget_allocation');
   perform public.ensure_budget_category_rls('budget_audit');
 end;
-$$;
+$function$;
 
 create or replace function public.ensure_budget_category_rls(p_table text)
 returns void
@@ -230,7 +230,7 @@ returns void
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $function$
 begin
   if not exists (
     select 1
@@ -271,7 +271,7 @@ begin
     $$;
   end if;
 end;
-$$;
+$function$;
 
 -- Update the audit trigger helper to look for the new table name.
 create or replace function public.log_budget_audit() returns trigger language plpgsql as $$
