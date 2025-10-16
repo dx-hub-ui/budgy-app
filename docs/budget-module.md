@@ -18,6 +18,7 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 - **`budget_allocation`**: `assigned_cents`, `activity_cents`, `available_cents` por categoria/mês (`month` = 1º dia). O front cria linhas faltantes on-demand.
 - **`budget_audit`**: log de alterações com triggers automáticos. Guarda `before`/`after`, `reason` e `user_id` (`auth.uid()`), facilitando auditoria. A função `log_budget_audit()` agora converte os registros para `jsonb` antes de consultar campos opcionais, evitando falhas quando a tabela alvo (como `budget_category`) não possui `category_id`. A rotina `ensure_budget_category_schema()` também instala essa versão protegida da trigger, eliminando o erro `record "new" has no field "category_id"` em bancos ainda não migrados.
 - **Função `current_org()`**: usa `request.jwt.claim.org_id`, o header `x-cc-org-id` ou o cookie `cc_org_id`. Se nada for informado, cai para `auth.uid()` e, por fim, para a org padrão `00000000-0000-0000-0000-000000000001`, evitando falhas de RLS em ambientes sem cabeçalhos explícitos.
+- **`getContext()` da API**: instancia o client com o cabeçalho detectado e, caso apenas o usuário autenticado esteja disponível (ambiente sem `cc_org_id`), reidrata o client com `auth.uid()` como `org_id`. Assim o seed padrão de categorias (`ensureSeedCategories`) sempre passa pelo `with check (org_id = current_org())`, mesmo ao usar apenas a chave pública do Supabase.
 
 ### API Next.js
 

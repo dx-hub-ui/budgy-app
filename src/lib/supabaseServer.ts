@@ -1,6 +1,8 @@
 import { cookies, headers } from "next/headers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+export const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000001";
+
 function resolveSupabaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
 
@@ -23,7 +25,7 @@ function resolveServiceRoleKey(): string {
   return key as string;
 }
 
-export function createServerSupabaseClient() {
+export function createServerSupabaseClient(options: { orgId?: string } = {}) {
   const supabaseUrl = resolveSupabaseUrl();
   const serviceKey: string = resolveServiceRoleKey();
   const forwardedHeaders = Object.fromEntries(headers().entries());
@@ -66,7 +68,7 @@ export function resolveOrgId(): string {
   if (cookieOrg && cookieOrg.trim().length > 0) {
     return cookieOrg.trim();
   }
-  return "00000000-0000-0000-0000-000000000001";
+  return DEFAULT_ORG_ID;
 }
 
 function extractBearerToken(value: string | null): string | null {

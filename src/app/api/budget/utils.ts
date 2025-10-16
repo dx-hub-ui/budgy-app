@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { createServerSupabaseClient, resolveOrgId, resolveUserId } from "@/lib/supabaseServer";
+import {
+  DEFAULT_ORG_ID,
+  createServerSupabaseClient,
+  resolveOrgId,
+  resolveUserId
+} from "@/lib/supabaseServer";
 
 export type ApiContext = {
   supabase: SupabaseClient;
@@ -29,9 +34,15 @@ export type BudgetSnapshotPayload = {
 };
 
 export async function getContext(): Promise<ApiContext> {
-  const supabase = createServerSupabaseClient();
-  const orgId = resolveOrgId();
+  let supabase = createServerSupabaseClient();
+  let orgId = resolveOrgId();
   const userId = await resolveUserId(supabase);
+
+  if ((orgId === DEFAULT_ORG_ID || orgId.trim().length === 0) && userId) {
+    orgId = userId;
+    supabase = createServerSupabaseClient({ orgId });
+  }
+
   return { supabase, orgId, userId };
 }
 
