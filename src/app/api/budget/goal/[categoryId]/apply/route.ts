@@ -32,7 +32,7 @@ export async function POST(
       return NextResponse.json({ message: "Informe o mês" }, { status: 400 });
     }
 
-    const { supabase, orgId } = getContext();
+    const { supabase, orgId } = await getContext();
     await ensureBudgetSchema(supabase);
     const { data: goal, error: goalError } = await supabase
       .from("budget_goal")

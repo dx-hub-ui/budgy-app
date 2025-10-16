@@ -48,7 +48,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
 
   const headerClass = cn(
     "border-b px-3 py-4",
-    collapsed ? "flex flex-col items-center gap-3" : "flex items-center justify-between gap-2"
+    collapsed ? "flex flex-col items-center gap-3" : "flex flex-col gap-3"
   );
 
   return (

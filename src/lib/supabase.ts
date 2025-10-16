@@ -19,6 +19,7 @@ function createSupabaseFallback(): SupabaseClient {
   return {
     auth: {
       getUser: async () => ({ data: { user: null }, error }),
+      getSession: async () => ({ data: { session: null }, error }),
       onAuthStateChange: () => ({ data: { subscription }, error }),
       signOut: async () => ({ error })
     }

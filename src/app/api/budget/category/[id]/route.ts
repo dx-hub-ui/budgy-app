@@ -7,7 +7,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { supabase, orgId } = getContext();
+    const { supabase, orgId } = await getContext();
     await ensureBudgetSchema(supabase);
     const body = await request.json();
     const updates: Record<string, any> = {};

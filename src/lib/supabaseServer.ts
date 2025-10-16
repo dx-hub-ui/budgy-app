@@ -1,5 +1,5 @@
 import { cookies, headers } from "next/headers";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 function resolveSupabaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
@@ -53,11 +53,39 @@ export function resolveOrgId(): string {
   return "00000000-0000-0000-0000-000000000001";
 }
 
-export function resolveUserId(): string | null {
+function extractBearerToken(value: string | null): string | null {
+  if (!value) return null;
+  const match = value.match(/Bearer\s+(.+)/i);
+  return match ? match[1].trim() : null;
+}
+
+export async function resolveUserId(client?: SupabaseClient): Promise<string | null> {
   const headerUser = headers().get("x-cc-user-id");
   if (headerUser && headerUser.trim().length > 0) {
     return headerUser.trim();
   }
   const cookieUser = cookies().get("cc_user_id")?.value;
-  return cookieUser ?? null;
+  if (cookieUser && cookieUser.trim().length > 0) {
+    return cookieUser.trim();
+  }
+
+  const authHeader = headers().get("authorization") ?? headers().get("Authorization");
+  const token = extractBearerToken(authHeader);
+  if (!token) {
+    return null;
+  }
+
+  const supabase = client ?? createServerSupabaseClient();
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error) {
+      console.warn("Falha ao validar token de sessão", error);
+      return null;
+    }
+    return data.user?.id ?? null;
+  } catch (error) {
+    console.warn("Erro inesperado ao resolver usuário autenticado", error);
+    return null;
+  }
 }

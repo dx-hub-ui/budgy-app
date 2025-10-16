@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { authFetch } from "@/lib/authFetch";
+
 const ProfileSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email().nullable().optional(),
@@ -32,7 +34,7 @@ async function handleJson<T>(response: Response, schema: z.ZodSchema<T>): Promis
 }
 
 export async function fetchProfile(): Promise<UserProfile | null> {
-  const response = await fetch("/api/profile", { cache: "no-store" });
+  const response = await authFetch("/api/profile", { cache: "no-store" });
   if (response.status === 401) {
     return null;
   }
@@ -51,7 +53,7 @@ type UpdateProfilePayload = {
 };
 
 export async function updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
-  const response = await fetch("/api/profile", {
+  const response = await authFetch("/api/profile", {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json"
@@ -72,7 +74,7 @@ export async function uploadAvatar(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch("/api/profile/avatar", {
+  const response = await authFetch("/api/profile/avatar", {
     method: "POST",
     body: formData
   });
