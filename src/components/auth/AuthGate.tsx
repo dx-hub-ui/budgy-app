@@ -158,7 +158,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const displayName = useMemo(() => {
+  const displayName = (() => {
     if (profile?.display_name && profile.display_name.trim().length > 0) {
       return profile.display_name.trim();
     }
@@ -171,15 +171,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       return fullName;
     }
     return user.email ?? "Usuário";
-  }, [profile?.display_name, user]);
+  })();
 
-  const avatarUrl = useMemo(() => {
+  const avatarUrl = (() => {
     if (profile?.avatar_url) {
       return profile.avatar_url;
     }
     const metadataAvatar = user.user_metadata?.avatar_url;
     return typeof metadataAvatar === "string" && metadataAvatar.length > 0 ? metadataAvatar : null;
-  }, [profile?.avatar_url, user]);
+  })();
 
   const value: AuthContextValue = {
     user,

@@ -17,3 +17,4 @@ A tela **Meu Perfil** está disponível pelo menu do avatar (item "Meu Perfil") 
 - O formulário fornece feedback textual tanto para sucesso quanto para erro.
 - Botões e inputs respeitam os estilos globais (`var(--cc-accent)`, `var(--cc-border)`), garantindo contraste adequado em ambos os temas.
 - O avatar mantém borda e formato consistente com o restante da interface, seja utilizando imagem ou iniciais.
+- Enquanto o perfil é carregado, a aplicação exibe um estado de carregamento discreto e, em caso de ausência de dados, recorre ao e-mail do usuário para preencher o nome de exibição.
