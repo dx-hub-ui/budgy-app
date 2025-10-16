@@ -67,7 +67,6 @@ export default function BudgetReportPage() {
       <div className="grid gap-6 md:grid-cols-12">
         <header className="md:col-span-12">
           <div className="cc-stack-24">
-            <h1 className="text-[28px] leading-[36px] font-semibold">Relatório de orçamento</h1>
             <p className="cc-section-sub text-sm">
               Visualize a comparação entre o planejado e o realizado no mês atual.
             </p>

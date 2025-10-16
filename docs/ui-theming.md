@@ -7,10 +7,10 @@
 - A logomarca exibida na Topbar respeita o tema ativo, utilizando as versões claras e escuras disponibilizadas em `/public/brand`.
 
 ## Esquema de cores do painel
-- O painel financeiro agora replica a paleta azul-arroxeada do novo layout, com fundo claro `--cc-bg` (`#e7edff`), cartões translúcidos (`--cc-bg-elev`) e um brand principal atualizado (`--brand` `#3b63ff`). Os valores derivados (`--ring`, `--brand-soft-*`, `--chart-grid`) foram reajustados para harmonizar gradientes suaves e destaques fortes.
-- O tema escuro recebeu equivalentes azulados profundos (`--cc-bg` `#060b1d`, `--cc-bg-elev` `#0b1430`) para preservar contraste e legibilidade, mantendo a proporção entre superfícies, bordas e sombras observada no mockup.
-- A barra lateral usa agora variações dedicadas (`--sidebar-dark`, `--sidebar-foreground`, `--sidebar-hover`, `--sidebar-border`) alinhadas ao novo brand em ambos os temas, garantindo contraste adequado e sensação de profundidade.
-- Os estados positivos dos componentes (ex.: métricas, transações concluídas) continuam a reaproveitar os tokens suaves `--brand-soft-*`, porém com opacidades recalibradas para que badges e gráficos tenham presença visual semelhante nos dois temas.
+- O painel financeiro replica o visual navy + mint da referência: fundo claro `--cc-bg` (`#f5f7fb`), superfícies elevadas `--cc-bg-elev` (`#ffffff`) e destaque principal em verde `--brand` (`#7cc46e`). Tokens derivados (`--ring`, `--brand-soft-*`, `--chart-grid`) foram ajustados para manter brilho controlado e contraste alto.
+- O tema escuro usa contrapartes azul-marinho profundas (`--cc-bg` `#0b1220`, `--cc-bg-elev` `#0f172a`, `--cc-surface` `#111827`) com o mesmo verde de destaque, preservando a hierarquia luminosa do layout.
+- A barra lateral permanece com fundo marinho fixo `#0b1220` em ambos os temas e aplica foregrounds semitransparentes (`--sidebar-foreground`, `--sidebar-muted`) para maximizar o contraste de texto e ícones, além de bordas suaves (`--sidebar-border`).
+- Estados positivos dos componentes (ex.: métricas, transações concluídas) continuam a reaproveitar os tokens suaves `--brand-soft-*`, agora com opacidades revisadas para que badges e gráficos tenham presença visual semelhante nos dois temas.
 
 ## Proteção de acesso
 - Todas as rotas internas dependem de autenticação. Usuários não autenticados são redirecionados para `/login` antes de qualquer conteúdo do app ser renderizado.
@@ -23,7 +23,7 @@
 - O botão de sair utiliza a API do Supabase e também está disponível dentro do menu, em vez de exposto diretamente na Topbar.
 
 ## Layout da Topbar
-- A Topbar foi dividida em três áreas principais: branding com largura fixa igual a `var(--cc-sidebar-w)`, um espaço central livre para conteúdo adicional e a área de ações do usuário (alternância de tema, notificações e menu do avatar).
+- A Topbar foi dividida em três áreas principais: branding com largura fixa igual a `var(--dynamic-sidebar-w)`, um espaço central que agora recebe o título da página (renderizado como `<h1>` e alinhado com a coluna principal) e a área de ações do usuário (alternância de tema, notificações e menu do avatar). Com isso, o conteúdo principal fica livre de cabeçalhos volumosos.
 
 ## Painel financeiro
 - A nova rota `/dashboard` reúne o gráfico de saldo, cartões de métricas e uma tabela responsiva de transações recentes seguindo a composição de colunas 2fr/1fr em telas grandes.

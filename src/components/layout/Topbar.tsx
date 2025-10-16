@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +9,8 @@ import Avatar from "@/components/ui/Avatar";
 import { Bell, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { useAuth } from "@/components/auth/AuthGate";
+import { usePathname } from "next/navigation";
+import { formatMonthLabel } from "@/domain/budgeting";
 
 type UserMenuProps = {
   user: User;
@@ -96,11 +98,52 @@ export default function Topbar() {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut, signingOut } = useAuth();
   const brandLogoSrc = theme === "dark" ? "/brand/budgy_logo_escuro.png" : "/brand/budgy_logo_claro.png";
+  const pathname = usePathname();
+
+  const pageTitle = useMemo(() => {
+    if (!pathname) return "Budgy";
+    if (pathname === "/" || pathname.startsWith("/dashboard")) {
+      return "Visão geral";
+    }
+    if (pathname.startsWith("/budgets/report")) {
+      return "Relatório de orçamento";
+    }
+    if (pathname.startsWith("/budgets/")) {
+      const [, , slug] = pathname.split("/");
+      if (slug && slug !== "report") {
+        const normalized = slug.slice(0, 7);
+        if (/^\d{4}-\d{2}$/.test(normalized)) {
+          try {
+            return `Orçamento de ${formatMonthLabel(normalized)}`;
+          } catch {
+            return "Orçamento mensal";
+          }
+        }
+      }
+      return "Orçamento mensal";
+    }
+    if (pathname.startsWith("/budgets")) {
+      return "Orçamentos";
+    }
+    if (pathname.startsWith("/new")) {
+      return "Nova despesa";
+    }
+    if (pathname.startsWith("/categories")) {
+      return "Categorias";
+    }
+    if (pathname.startsWith("/export")) {
+      return "Exportar CSV";
+    }
+    return "Budgy";
+  }, [pathname]);
 
   return (
     <header id="topbar" className="cc-topbar">
-      <div className="cc-topbar-inner flex items-center justify-between px-3 md:px-4">
-        <div className="flex h-full items-center">
+      <div className="cc-topbar-inner mx-auto flex h-full w-full max-w-[calc(var(--cc-content-maxw)+var(--dynamic-sidebar-w))] items-center gap-4 px-3 md:px-6">
+        <div
+          className="flex h-full flex-none items-center"
+          style={{ flexBasis: "var(--dynamic-sidebar-w)", minWidth: "140px" }}
+        >
           <Link
             href="/"
             className="flex items-center"
@@ -117,7 +160,13 @@ export default function Topbar() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex h-full flex-1 items-center">
+          <h1 className="truncate text-base font-semibold leading-tight text-[var(--cc-text)] sm:text-lg">
+            {pageTitle}
+          </h1>
+        </div>
+
+        <div className="flex flex-none items-center gap-2">
           <IconButton
             type="button"
             aria-label="Alternar tema"

@@ -361,9 +361,6 @@ export default function DashboardPage() {
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--cc-text-muted)]">
               Painel
             </p>
-            <h1 className="text-[28px] leading-[36px] font-semibold text-[var(--cc-text)]">
-              Visão geral
-            </h1>
           </div>
         </header>
 
