@@ -6,21 +6,36 @@ import { LayoutDashboard, PiggyBank, Receipt, FileDown, ChevronLeft, ChevronRigh
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { mesAtual } from "@/domain/budgeting";
+
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
 type Props = { collapsed: boolean; onToggle: () => void };
 
-const items = [
-  { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
-  { href: "/budgets", label: "Orçamento", icon: PiggyBank },
-  { href: "/new", label: "Nova despesa", icon: Receipt },
-  { href: "/export", label: "Exportar dados", icon: FileDown }
-];
+type SidebarItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  isActive?: (pathname: string) => boolean;
+};
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
   const pathname = usePathname();
+  const currentMonth = mesAtual();
+
+  const items: SidebarItem[] = [
+    { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
+    {
+      href: `/budgets/${currentMonth}`,
+      label: "Orçamento",
+      icon: PiggyBank,
+      isActive: (path) => path.startsWith("/budgets")
+    },
+    { href: "/new", label: "Nova despesa", icon: Receipt },
+    { href: "/export", label: "Exportar dados", icon: FileDown }
+  ];
 
   return (
     <nav id="sidebar" className="cc-sidebar cc-sidebar--light" aria-label="Menu principal">
@@ -29,7 +44,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
           <ul className="py-2">
             {items.map((it) => {
               const Icon = it.icon;
-              const isActive = pathname?.startsWith(it.href);
+              const isActive = it.isActive ? it.isActive(pathname ?? "") : pathname?.startsWith(it.href);
               return (
                 <li key={it.href}>
                   <Link

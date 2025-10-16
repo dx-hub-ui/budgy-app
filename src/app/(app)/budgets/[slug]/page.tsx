@@ -1,29 +1,25 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { BudgetGrid } from "@/components/orcamento/BudgetGrid";
 import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
 import { CategoryDrawer } from "@/components/orcamento/CategoryDrawer";
 import { CategoryNameModal } from "@/components/orcamento/CategoryNameModal";
-import { formatMonthLabel, mesAtual } from "@/domain/budgeting";
+import { mesAtual } from "@/domain/budgeting";
 import {
   budgetPlannerSelectors,
   useBudgetPlannerStore
 } from "@/stores/budgetPlannerStore";
 
-function buildMonthOptions(current: string) {
-  const [year, month] = current.split("-").map(Number);
-  const currentDate = new Date(Date.UTC(year, month - 1, 1));
-  const options: { value: string; label: string }[] = [];
-  for (let offset = -6; offset <= 6; offset += 1) {
-    const date = new Date(currentDate);
-    date.setUTCMonth(date.getUTCMonth() + offset);
-    const value = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-    options.push({ value, label: formatMonthLabel(value) });
-  }
-  return options;
+function shiftMonth(month: string, delta: number) {
+  const [year, monthPart] = month.split("-").map(Number);
+  const date = new Date(Date.UTC(year, (monthPart ?? 1) - 1, 1));
+  date.setUTCMonth(date.getUTCMonth() + delta);
+  const shiftedYear = date.getUTCFullYear();
+  const shiftedMonth = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${shiftedYear}-${shiftedMonth}`;
 }
 
 export default function BudgetMonthPage() {
@@ -52,15 +48,15 @@ export default function BudgetMonthPage() {
   const ui = budgetPlannerSelectors.useUI();
   const categories = budgetPlannerSelectors.useCategories();
   const monthSelected = budgetPlannerSelectors.useMonth();
-  const readyToAssign = budgetPlannerSelectors.useReadyToAssign(monthSelected);
+  const currentMonth = monthSelected ?? mesAtual();
+  const readyToAssign = budgetPlannerSelectors.useReadyToAssign(currentMonth);
+  const totals = budgetPlannerSelectors.useTotals(currentMonth);
   const toast = budgetPlannerSelectors.useToast();
   const loading = budgetPlannerSelectors.useLoading();
   const error = useBudgetPlannerStore((state) => state.error);
   const allocations = useBudgetPlannerStore((state) => state.allocations.byCategoryIdMonth);
   const goals = useBudgetPlannerStore((state) => state.goals.byCategoryId);
   const history = useBudgetPlannerStore((state) => state.history);
-
-  const monthOptions = useMemo(() => buildMonthOptions(monthSelected || mesAtual()), [monthSelected]);
 
   useEffect(() => {
     const slugMonth = Array.isArray(params?.slug) ? params?.slug[0] : params?.slug;
@@ -77,7 +73,7 @@ export default function BudgetMonthPage() {
 
   useEffect(() => {
     if (!monthSelected) return;
-    router.replace(`/budgets/${monthSelected}?m=${monthSelected}`, { scroll: false });
+    router.replace(`/budgets/${monthSelected}`, { scroll: false });
   }, [monthSelected, router]);
 
   useEffect(() => {
@@ -112,11 +108,18 @@ export default function BudgetMonthPage() {
   return (
     <div className="min-h-screen bg-[var(--cc-bg)] text-[var(--cc-text)]">
       <BudgetTopbar
-        month={monthSelected ?? mesAtual()}
-        options={monthOptions}
+        month={currentMonth}
         readyToAssignCents={readyToAssign}
-        onChangeMonth={(value) => {
-          void selecionarMes(value);
+        assignedCents={totals.assigned}
+        activityCents={totals.activity}
+        availableCents={totals.available}
+        onGoPrevious={() => {
+          if (!currentMonth) return;
+          void selecionarMes(shiftMonth(currentMonth, -1));
+        }}
+        onGoNext={() => {
+          if (!currentMonth) return;
+          void selecionarMes(shiftMonth(currentMonth, 1));
         }}
         onOpenGroups={alternarOcultas}
         onUndo={desfazer}
@@ -130,7 +133,7 @@ export default function BudgetMonthPage() {
           <div className="flex h-64 items-center justify-center text-sm text-[var(--cc-text-muted)]">Carregando orçamento…</div>
         ) : (
           <BudgetGrid
-            month={monthSelected ?? mesAtual()}
+            month={currentMonth}
             onEdit={(categoryId, value) => {
               void editarAtribuido(categoryId, value);
             }}

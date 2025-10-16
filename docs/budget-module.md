@@ -5,9 +5,9 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 ## Navegação
 
 - A entrada continua como **Orçamento** no menu lateral; o atalho antigo **Categorias** foi removido porque o CRUD agora acontece dentro do próprio orçamento.
-- Cada mês é carregado em `/budgets/[slug]?m=YYYY-MM`; o parâmetro `m` é a referência de sincronização entre SSR e CSR.
+- Cada mês é carregado diretamente em `/budgets/[slug]` (slug `YYYY-MM`). O link "Orçamento" da sidebar já aponta para o mês atual, garantindo entrada imediata no planejador.
 - Trocas de mês usam `router.replace`, evitando recarga da página e mantendo histórico do navegador.
-- A listagem `/budgets` exibe apenas o mês corrente acompanhado dos adjacentes (anterior e seguinte). Setas laterais atualizam o mês focal sem sair da página e os cards vizinhos são recalculados on-demand, mantendo o layout enxuto conforme o mock de referência.
+- A navegação mensal é feita pelas setas laterais na própria página do mês, carregando apenas o mês anterior e o posterior conforme o mock de referência.
 
 ## Estrutura de dados (Supabase)
 
@@ -37,7 +37,7 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
 ## Fluxo de UI/UX
 
 1. **Inicialização** – `useBudgetPlannerStore.initializeMonth` carrega snapshot, popula Zustand e zera histórico (máx. 50 passos).
-2. **Topbar** – seletor de mês, pill "Pronto para atribuir" e botões `Desfazer`/`Refazer` (atalhos `⌘/Ctrl+Z` e `Shift+⌘/Ctrl+Z`).
+2. **Topbar** – exibe o mês atual com setas de navegação (anteriores/próximos), cards-resumo para "Pronto para atribuir", "Atribuído", "Atividade" e "Disponível", além dos botões `Desfazer`/`Refazer` (atalhos `⌘/Ctrl+Z` e `Shift+⌘/Ctrl+Z`) e acesso rápido aos grupos de categorias.
 3. **Grid de categorias** – accordions por grupo, célula "Atribuído" com máscara BRL e pill de "Disponível" colorida (`cc-pill-positive`, `cc-pill-zero`, `cc-pill-negative`).
 4. **Modal de nome** – abre ao clicar no nome da categoria. Permite renomear, ocultar e excluir (soft delete) com acessibilidade (`aria-modal`, foco inicial no campo).
 5. **Drawer Assistente (3 passos)**:
