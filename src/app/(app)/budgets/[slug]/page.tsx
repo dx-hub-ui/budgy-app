@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { BudgetGrid } from "@/components/orcamento/BudgetGrid";
 import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
+import { BudgetInsightsPanel } from "@/components/orcamento/BudgetInsightsPanel";
 import { CategoryDrawer } from "@/components/orcamento/CategoryDrawer";
 import { CategoryNameModal } from "@/components/orcamento/CategoryNameModal";
 import { mesAtual } from "@/domain/budgeting";
@@ -106,42 +107,69 @@ export default function BudgetMonthPage() {
   const drawerAllocation = drawerCategory ? allocations[drawerCategory.id]?.[monthSelected] : undefined;
 
   return (
-    <div className="min-h-screen bg-[var(--cc-bg)] text-[var(--cc-text)]">
-      <BudgetTopbar
-        month={currentMonth}
-        readyToAssignCents={readyToAssign}
-        assignedCents={totals.assigned}
-        activityCents={totals.activity}
-        availableCents={totals.available}
-        onGoPrevious={() => {
-          if (!currentMonth) return;
-          void selecionarMes(shiftMonth(currentMonth, -1));
-        }}
-        onGoNext={() => {
-          if (!currentMonth) return;
-          void selecionarMes(shiftMonth(currentMonth, 1));
-        }}
-        onOpenGroups={alternarOcultas}
-        onUndo={desfazer}
-        onRedo={refazer}
-        canUndo={history.past.length > 0}
-        canRedo={history.future.length > 0}
-      />
-      <main className="mx-auto flex max-w-[var(--cc-content-maxw)] flex-col gap-6 px-6 py-6">
-        {error && <div className="rounded-lg border border-[var(--state-danger)] bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
-        {loading ? (
-          <div className="flex h-64 items-center justify-center text-sm text-[var(--cc-text-muted)]">Carregando orçamento…</div>
-        ) : (
-          <BudgetGrid
+    <div className="flex h-full flex-col bg-[var(--cc-bg)] text-[var(--cc-text)]">
+      <div className="flex flex-1 flex-col overflow-hidden px-6 py-6">
+        <div className="flex h-full flex-col gap-6">
+          <BudgetTopbar
             month={currentMonth}
-            onEdit={(categoryId, value) => {
-              void editarAtribuido(categoryId, value);
+            readyToAssignCents={readyToAssign}
+            assignedCents={totals.assigned}
+            activityCents={totals.activity}
+            availableCents={totals.available}
+            onGoPrevious={() => {
+              if (!currentMonth) return;
+              void selecionarMes(shiftMonth(currentMonth, -1));
             }}
-            onOpenName={abrirModalNome}
-            onOpenDrawer={abrirDrawer}
+            onGoNext={() => {
+              if (!currentMonth) return;
+              void selecionarMes(shiftMonth(currentMonth, 1));
+            }}
+            onOpenGroups={alternarOcultas}
+            onUndo={desfazer}
+            onRedo={refazer}
+            canUndo={history.past.length > 0}
+            canRedo={history.future.length > 0}
           />
-        )}
-      </main>
+
+          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-hidden xl:flex-row">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden">
+              {error && (
+                <div className="rounded-2xl border border-[var(--state-danger)] bg-rose-50 px-4 py-3 text-sm text-rose-600 shadow-sm">
+                  {error}
+                </div>
+              )}
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                {loading ? (
+                  <div className="flex flex-1 items-center justify-center rounded-3xl border border-[var(--cc-border)] bg-[var(--cc-surface)] text-sm text-[var(--cc-text-muted)] shadow-[var(--shadow-1)]">
+                    Carregando orçamento…
+                  </div>
+                ) : (
+                  <div className="h-full overflow-auto pr-1">
+                    <BudgetGrid
+                      month={currentMonth}
+                      onEdit={(categoryId, value) => {
+                        void editarAtribuido(categoryId, value);
+                      }}
+                      onOpenName={abrirModalNome}
+                      onOpenDrawer={abrirDrawer}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {currentMonth && (
+              <BudgetInsightsPanel
+                month={currentMonth}
+                readyToAssignCents={readyToAssign}
+                assignedCents={totals.assigned}
+                activityCents={totals.activity}
+                availableCents={totals.available}
+              />
+            )}
+          </div>
+        </div>
+      </div>
 
       {modalCategory && (
         <CategoryNameModal

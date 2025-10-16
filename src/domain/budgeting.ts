@@ -64,7 +64,9 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
 
 export function formatMonthLabel(month: string) {
   const [year, monthPart] = month.split("-");
-  const date = new Date(Date.UTC(Number(year), Number(monthPart) - 1, 1));
+  // Use noon UTC to avoid timezone offsets pushing the label to the
+  // previous month when formatting in America/Sao_Paulo.
+  const date = new Date(Date.UTC(Number(year), Number(monthPart) - 1, 1, 12));
   return MONTH_FORMATTER.format(date);
 }
 

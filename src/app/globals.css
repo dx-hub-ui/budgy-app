@@ -4,7 +4,6 @@
 
 :root {
   color-scheme: light;
-  --cc-topbar-h: 56px;
   --cc-sidebar-w: 232px;
   --cc-sidebar-w-collapsed: 72px;
   --cc-content-maxw: 1180px;
@@ -140,8 +139,8 @@ body {
 /* Shell layout helpers */
 .cc-shell {
   display: grid;
-  grid-template-rows: var(--cc-topbar-h) 1fr;
   grid-template-columns: var(--dynamic-sidebar-w) 1fr;
+  grid-template-rows: 1fr;
   height: 100vh;
 }
 
@@ -153,23 +152,12 @@ body {
   --dynamic-sidebar-w: var(--cc-sidebar-w-collapsed);
 }
 
-header.cc-topbar {
-  grid-column: 1 / span 2;
-  position: sticky; /* sticky within shell row */
-  top: 0;
-  z-index: 50;
-  height: var(--cc-topbar-h);
-  background: var(--cc-surface);
-  border-bottom: 1px solid var(--cc-border);
-  box-shadow: var(--shadow-1);
-}
-
 nav.cc-sidebar {
-  grid-row: 2 / 3;
+  grid-row: 1 / 2;
   grid-column: 1 / 2;
   position: sticky;
   top: 0;
-  height: calc(100vh - var(--cc-topbar-h));
+  height: 100vh;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   overflow: hidden;
@@ -181,13 +169,16 @@ nav.cc-sidebar a {
 }
 
 main.cc-main {
-  grid-row: 2 / 3;
+  grid-row: 1 / 2;
   grid-column: 2 / 3;
-  overflow: auto;
-  height: calc(100vh - var(--cc-topbar-h));
+  overflow: hidden;
+  height: 100vh;
   -webkit-overflow-scrolling: touch;
-  background: var(--cc-bg-elev);
-  padding: 24px;
+  background: var(--cc-bg);
+}
+
+main.cc-main > * {
+  height: 100%;
 }
 
 /* Scrollbar thin */
@@ -197,11 +188,6 @@ main.cc-main::-webkit-scrollbar {
 
 main.cc-main::-webkit-scrollbar-thumb {
   background: #dfe7e2;
-}
-
-/* Topbar more compact */
-header.cc-topbar .cc-topbar-inner {
-  height: 100%;
 }
 
 /* Sidebar clara (versão leve) */
