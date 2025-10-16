@@ -109,7 +109,7 @@ const GROUP_SEEDS: Array<{ name: string; categories: string[] }> = [
 export async function ensureSeedCategories(client: SupabaseClient, orgId: string) {
   await ensureBudgetSchema(client);
   const { count, error } = await client
-    .from("budget_category")
+    .from("budget_categories")
     .select("id", { count: "exact", head: true })
     .eq("org_id", orgId);
   if (error) throw error;
@@ -125,7 +125,7 @@ export async function ensureSeedCategories(client: SupabaseClient, orgId: string
       sort: sort++
     }))
   );
-  const { error: insertError } = await client.from("budget_category").insert(rows);
+  const { error: insertError } = await client.from("budget_categories").insert(rows);
   if (insertError) throw insertError;
 }
 
@@ -179,7 +179,7 @@ export async function loadBudgetSnapshot(
 
   const [{ data: categories, error: catError }, { data: goals, error: goalError }] = await Promise.all([
     client
-      .from("budget_category")
+      .from("budget_categories")
       .select("*")
       .eq("org_id", orgId)
       .order("sort", { ascending: true }),

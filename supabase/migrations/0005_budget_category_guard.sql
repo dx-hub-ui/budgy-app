@@ -80,6 +80,87 @@ begin
     $$;
   end if;
 
+  -- compat view + bridge to pluralized table name used by API clients
+  execute $$
+    create or replace view public.budget_categories as
+      select
+        id,
+        org_id,
+        group_name,
+        name,
+        icon,
+        sort,
+        is_hidden,
+        deleted_at,
+        created_at
+      from public.budget_category;
+  $$;
+
+  execute $$
+    create or replace function public.budget_categories_bridge()
+    returns trigger
+    language plpgsql
+    security definer
+    set search_path = public
+    as $$
+    begin
+      if tg_op = 'INSERT' then
+        insert into public.budget_category as bc(
+          id,
+          org_id,
+          group_name,
+          name,
+          icon,
+          sort,
+          is_hidden,
+          deleted_at,
+          created_at
+        )
+        values (
+          new.id,
+          coalesce(new.org_id, current_org()),
+          new.group_name,
+          new.name,
+          new.icon,
+          coalesce(new.sort, 0),
+          coalesce(new.is_hidden, false),
+          new.deleted_at,
+          coalesce(new.created_at, now())
+        )
+        returning * into new;
+        return new;
+      elsif tg_op = 'UPDATE' then
+        update public.budget_category as bc
+        set
+          org_id = coalesce(new.org_id, old.org_id),
+          group_name = coalesce(new.group_name, old.group_name),
+          name = coalesce(new.name, old.name),
+          icon = coalesce(new.icon, old.icon),
+          sort = coalesce(new.sort, old.sort),
+          is_hidden = coalesce(new.is_hidden, old.is_hidden),
+          deleted_at = coalesce(new.deleted_at, old.deleted_at)
+        where bc.id = old.id
+        returning * into new;
+        return new;
+      elsif tg_op = 'DELETE' then
+        delete from public.budget_category as bc
+        where bc.id = old.id
+        returning * into old;
+        return old;
+      end if;
+
+      return null;
+    end;
+    $$;
+  $$;
+
+  execute 'drop trigger if exists budget_categories_bridge on public.budget_categories';
+  execute $$
+    create trigger budget_categories_bridge
+      instead of insert or update or delete on public.budget_categories
+      for each row execute function public.budget_categories_bridge();
+  $$;
+
   -- enable RLS
   if not exists (
     select 1 from pg_class

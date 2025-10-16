@@ -35,7 +35,7 @@ export async function PATCH(
     }
 
     const { data, error } = await supabase
-      .from("budget_category")
+      .from("budget_categories")
       .update(updates)
       .eq("org_id", orgId)
       .eq("id", params.id)
