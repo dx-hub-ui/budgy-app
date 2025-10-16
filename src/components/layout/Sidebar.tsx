@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -11,17 +9,12 @@ import {
   Receipt,
   FileDown,
   ChevronLeft,
-  ChevronRight,
-  Moon,
-  Sun,
-  LogOut
+  ChevronRight
 } from "lucide-react";
 
-import { useTheme } from "@/components/theme/ThemeProvider";
-import { useAuth } from "@/components/auth/AuthGate";
 import IconButton from "@/components/ui/IconButton";
 import Tooltip from "@/components/ui/Tooltip";
-import Avatar from "@/components/ui/Avatar";
+import { SidebarUserMenu } from "./UserMenu";
 import { mesAtual } from "@/domain/budgeting";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -37,96 +30,9 @@ type SidebarItem = {
   isActive?: (pathname: string) => boolean;
 };
 
-type UserMenuProps = {
-  user: User;
-  signingOut: boolean;
-  onSignOut: () => Promise<void>;
-};
-
-function UserMenu({ user, signingOut, onSignOut }: UserMenuProps) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const email = user.email ?? "usuário";
-  const initial = email.charAt(0).toUpperCase() || "?";
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleClick = (event: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
-
-  const handleToggle = () => {
-    setOpen((value) => !value);
-  };
-
-  const handleSignOut = async () => {
-    setOpen(false);
-    await onSignOut();
-  };
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <button
-        type="button"
-        className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]"
-        onClick={handleToggle}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="Abrir menu do usuário"
-      >
-        <Avatar label={initial} />
-      </button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-lg border bg-[var(--cc-surface)] text-[var(--cc-text)] shadow-lg"
-          style={{ borderColor: "var(--cc-border)" }}
-        >
-          <div
-            className="border-b px-3 py-2 text-sm"
-            style={{ borderColor: "var(--cc-border)" }}
-          >
-            <p className="font-semibold">{email}</p>
-          </div>
-          <button
-            type="button"
-            role="menuitem"
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--cc-bg)] disabled:opacity-60"
-            onClick={handleSignOut}
-            disabled={signingOut}
-          >
-            <LogOut size={16} />
-            {signingOut ? "Saindo..." : "Sair"}
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export default function Sidebar({ collapsed, onToggle }: Props) {
   const pathname = usePathname();
   const currentMonth = mesAtual();
-  const { theme, toggleTheme } = useTheme();
-  const { user, signOut, signingOut } = useAuth();
 
   const items: SidebarItem[] = [
     { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
@@ -144,7 +50,6 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
     "border-b px-3 py-4",
     collapsed ? "flex flex-col items-center gap-3" : "flex items-center justify-between gap-2"
   );
-  const controlClass = cn("flex items-center gap-2", collapsed && "flex-col");
 
   return (
     <nav id="sidebar" className="cc-sidebar cc-sidebar--light" aria-label="Menu principal">
@@ -160,18 +65,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
           >
             <Image src="/brand/favicon.png" alt="Budgy" width={24} height={24} className="h-6 w-6" priority />
           </Link>
-          <div className={controlClass}>
-            <IconButton
-              type="button"
-              className="text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-hover)] focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]"
-              aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
-              onClick={toggleTheme}
-              title={theme === "dark" ? "Tema claro" : "Tema escuro"}
-            >
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            </IconButton>
-            <UserMenu user={user} signingOut={signingOut} onSignOut={signOut} />
-          </div>
+          <SidebarUserMenu collapsed={collapsed} />
         </div>
 
         <ul className="flex-1 overflow-y-auto py-2">

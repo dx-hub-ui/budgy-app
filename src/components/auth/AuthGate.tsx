@@ -1,12 +1,19 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { fetchProfile, type UserProfile } from "@/domain/profile";
 
 type AuthContextValue = {
   user: User;
+  profile: UserProfile | null;
+  displayName: string;
+  avatarUrl: string | null;
+  loadingProfile: boolean;
+  refreshProfile: () => Promise<UserProfile | null>;
+  setProfile: (profile: UserProfile | null) => void;
   signOut: () => Promise<void>;
   signingOut: boolean;
 };
@@ -17,6 +24,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [signingOut, setSigningOut] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -24,6 +33,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     const handleUnauthenticated = () => {
       if (!active) return;
       setUser(null);
+      setProfile(null);
       router.replace("/login");
     };
 
@@ -54,17 +64,17 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     try {
       const { data: subscriptionData } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!active) {
-          return;
-        }
+      if (!active) {
+        return;
+      }
 
-        const nextUser = session?.user ?? null;
-        if (!nextUser) {
-          handleUnauthenticated();
-        } else {
-          setUser(nextUser);
-        }
-      });
+      const nextUser = session?.user ?? null;
+      if (!nextUser) {
+        handleUnauthenticated();
+      } else {
+        setUser(nextUser);
+      }
+    });
 
       unsubscribe = () => {
         subscriptionData.subscription.unsubscribe();
@@ -88,6 +98,58 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      setLoadingProfile(true);
+      const loaded = await fetchProfile();
+      setProfile(loaded);
+      return loaded;
+    } catch (error) {
+      console.error("Erro ao carregar perfil do usuário", error);
+      setProfile(null);
+      return null;
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user === undefined) {
+      return;
+    }
+
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    let active = true;
+    const load = async () => {
+      try {
+        setLoadingProfile(true);
+        const data = await fetchProfile();
+        if (active) {
+          setProfile(data);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar perfil do usuário", error);
+        if (active) {
+          setProfile(null);
+        }
+      } finally {
+        if (active) {
+          setLoadingProfile(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
   if (user === undefined) {
     return <div className="grid min-h-screen place-items-center text-sm opacity-70">Carregando…</div>;
   }
@@ -96,8 +158,37 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  const displayName = useMemo(() => {
+    if (profile?.display_name && profile.display_name.trim().length > 0) {
+      return profile.display_name.trim();
+    }
+    const metadataDisplay = (user.user_metadata?.display_name as string | undefined)?.trim();
+    if (metadataDisplay && metadataDisplay.length > 0) {
+      return metadataDisplay;
+    }
+    const fullName = (user.user_metadata?.full_name as string | undefined)?.trim();
+    if (fullName && fullName.length > 0) {
+      return fullName;
+    }
+    return user.email ?? "Usuário";
+  }, [profile?.display_name, user]);
+
+  const avatarUrl = useMemo(() => {
+    if (profile?.avatar_url) {
+      return profile.avatar_url;
+    }
+    const metadataAvatar = user.user_metadata?.avatar_url;
+    return typeof metadataAvatar === "string" && metadataAvatar.length > 0 ? metadataAvatar : null;
+  }, [profile?.avatar_url, user]);
+
   const value: AuthContextValue = {
     user,
+    profile,
+    displayName,
+    avatarUrl,
+    loadingProfile,
+    refreshProfile,
+    setProfile,
     signOut,
     signingOut
   };
