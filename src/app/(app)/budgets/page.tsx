@@ -2,43 +2,50 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   nowYM,
   getBudgetSummary,
   formatMonthLabel,
   budgetStatusFromTotals,
-  centsToBRL,
-  listRecentBudgets
+  centsToBRL
 } from "@/domain/budget";
 
 type SummaryState = {
   year: number;
   month: number;
   totals: { budgeted: number; activity: number; available: number } | null;
+  hasBudget: boolean;
 };
+
+function shiftMonth(year: number, month: number, delta: number) {
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  date.setUTCMonth(date.getUTCMonth() + delta);
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1 };
+}
 
 export default function BudgetsPage() {
   const [items, setItems] = useState<SummaryState[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pivot, setPivot] = useState(() => nowYM());
 
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
         setError(null);
-        const budgets = await listRecentBudgets(12);
+        const months = [-1, 0, 1].map((delta) => shiftMonth(pivot.year, pivot.month, delta));
         const summaries = await Promise.all(
-          budgets.map(({ year, month }) => getBudgetSummary(year, month))
+          months.map(({ year, month }) => getBudgetSummary(year, month))
         );
         setItems(
-          budgets
-            .map((budget, index) => ({
-              year: budget.year,
-              month: budget.month,
-              totals: summaries[index]?.totals ?? null
-            }))
-            .filter((item) => item.totals !== null)
+          months.map((monthInfo, index) => ({
+            year: monthInfo.year,
+            month: monthInfo.month,
+            totals: summaries[index]?.totals ?? null,
+            hasBudget: summaries[index] !== null
+          }))
         );
       } catch (err: any) {
         setError(err.message ?? "Falha ao carregar orçamentos");
@@ -48,12 +55,17 @@ export default function BudgetsPage() {
     }
 
     void load();
-  }, []);
+  }, [pivot]);
 
-  const currentSlug = useMemo(() => {
-    const { year, month } = nowYM();
-    return `${year}-${String(month).padStart(2, "0")}`;
-  }, []);
+  const pivotSlug = useMemo(() => {
+    return `${pivot.year}-${String(pivot.month).padStart(2, "0")}`;
+  }, [pivot]);
+
+  const pivotLabel = useMemo(() => formatMonthLabel(pivot.year, pivot.month), [pivot]);
+
+  function handleMove(delta: number) {
+    setPivot((current) => shiftMonth(current.year, current.month, delta));
+  }
 
   return (
     <div className="mx-auto w-full max-w-[var(--cc-content-maxw)] px-4 sm:px-6 lg:px-8">
@@ -69,12 +81,33 @@ export default function BudgetsPage() {
               </p>
             </div>
           </div>
-          <Link
-            href={`/budgets/${currentSlug}`}
-            className="inline-flex items-center justify-center rounded-full bg-[var(--cc-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--cc-primary-stronger)]"
-          >
-            Novo orçamento
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex items-center justify-between gap-3 rounded-full border border-[var(--cc-border-stronger)] bg-white/70 px-4 py-2 shadow-sm backdrop-blur">
+              <button
+                type="button"
+                onClick={() => handleMove(-1)}
+                className="rounded-full p-1 text-[var(--cc-text-muted)] transition hover:bg-[var(--cc-surface-soft)] hover:text-[var(--cc-text)]"
+                aria-label="Mês anterior"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <span className="text-sm font-semibold text-[var(--cc-text)]">{pivotLabel}</span>
+              <button
+                type="button"
+                onClick={() => handleMove(1)}
+                className="rounded-full p-1 text-[var(--cc-text-muted)] transition hover:bg-[var(--cc-surface-soft)] hover:text-[var(--cc-text)]"
+                aria-label="Próximo mês"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <Link
+              href={`/budgets/${pivotSlug}`}
+              className="inline-flex items-center justify-center rounded-full bg-[var(--cc-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--cc-primary-stronger)]"
+            >
+              Novo orçamento
+            </Link>
+          </div>
         </header>
 
         {error && (
@@ -87,29 +120,22 @@ export default function BudgetsPage() {
           <div className="flex items-center justify-center rounded-2xl border border-dashed border-[var(--cc-border)] py-16 text-sm text-[var(--cc-text-muted)]">
             Carregando orçamentos…
           </div>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[var(--cc-border)] bg-[var(--cc-surface)] px-6 py-16 text-center">
-            <h2 className="text-lg font-semibold text-[var(--cc-text)]">Você ainda não criou nenhum orçamento</h2>
-            <p className="max-w-md text-sm text-[var(--cc-text-muted)]">
-              Inicie planejando o mês atual e distribua seus recursos de acordo com suas prioridades, assim como no YNAB.
-            </p>
-            <Link
-              href={`/budgets/${currentSlug}`}
-              className="inline-flex items-center justify-center rounded-full bg-[var(--cc-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--cc-primary-stronger)]"
-            >
-              Criar primeiro orçamento
-            </Link>
-          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {items.map(({ year, month, totals }) => {
+          <div className="grid gap-4 md:grid-cols-3">
+            {items.map(({ year, month, totals, hasBudget }) => {
               const slug = `${year}-${String(month).padStart(2, "0")}`;
-              const status = totals ? budgetStatusFromTotals(totals) : null;
+              const status = totals && hasBudget ? budgetStatusFromTotals(totals) : null;
+              const isPivot = year === pivot.year && month === pivot.month;
+              const totalsWithFallback = totals ?? { budgeted: 0, activity: 0, available: 0 };
               return (
                 <Link
                   key={slug}
                   href={`/budgets/${slug}`}
-                  className="group flex flex-col gap-6 rounded-2xl border border-transparent bg-[var(--cc-surface)] p-6 shadow-sm transition hover:-translate-y-1 hover:border-[var(--cc-primary)] hover:shadow-lg"
+                  className={`group flex h-full flex-col gap-6 rounded-2xl border bg-[var(--cc-surface)] p-6 shadow-sm transition ${
+                    isPivot
+                      ? "border-[var(--cc-primary)] shadow-lg"
+                      : "border-transparent hover:-translate-y-1 hover:border-[var(--cc-primary)] hover:shadow-md"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -117,7 +143,7 @@ export default function BudgetsPage() {
                         {formatMonthLabel(year, month)}
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-[var(--cc-text)]">
-                        {totals ? centsToBRL(totals.available) : "—"}
+                        {centsToBRL(totalsWithFallback.available)}
                       </p>
                       <p className="text-xs text-[var(--cc-text-muted)]">Disponível</p>
                     </div>
@@ -139,18 +165,18 @@ export default function BudgetsPage() {
                     <div className="rounded-xl bg-[var(--cc-surface-soft)] p-4">
                       <dt className="text-xs uppercase tracking-wide">Orçado</dt>
                       <dd className="mt-1 text-lg font-semibold text-[var(--cc-text)]">
-                        {totals ? centsToBRL(totals.budgeted) : "—"}
+                        {centsToBRL(totalsWithFallback.budgeted)}
                       </dd>
                     </div>
                     <div className="rounded-xl bg-[var(--cc-surface-soft)] p-4">
                       <dt className="text-xs uppercase tracking-wide">Gasto</dt>
                       <dd className="mt-1 text-lg font-semibold text-[var(--cc-text)]">
-                        {totals ? centsToBRL(totals.activity) : "—"}
+                        {centsToBRL(totalsWithFallback.activity)}
                       </dd>
                     </div>
                   </dl>
                   <p className="text-xs font-medium text-[var(--cc-primary)] opacity-0 transition group-hover:opacity-100">
-                    Ver detalhes do orçamento →
+                    {hasBudget ? "Ver detalhes do orçamento →" : "Começar orçamento agora →"}
                   </p>
                 </Link>
               );

@@ -7,13 +7,14 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 - A entrada continua como **Orçamento** no menu lateral; o atalho antigo **Categorias** foi removido porque o CRUD agora acontece dentro do próprio orçamento.
 - Cada mês é carregado em `/budgets/[slug]?m=YYYY-MM`; o parâmetro `m` é a referência de sincronização entre SSR e CSR.
 - Trocas de mês usam `router.replace`, evitando recarga da página e mantendo histórico do navegador.
+- A listagem `/budgets` exibe apenas o mês corrente acompanhado dos adjacentes (anterior e seguinte). Setas laterais atualizam o mês focal sem sair da página e os cards vizinhos são recalculados on-demand, mantendo o layout enxuto conforme o mock de referência.
 
 ## Estrutura de dados (Supabase)
 
 - **`budget_category`**: mantém `group_name`, `name`, `icon`, `sort`, flags `is_hidden` e `deleted_at`. A migration `0004_budget_v2.sql` semeia automaticamente seis grupos em PT-BR (Contas Fixas, Necessidades, Desejos, Reservas, Dívidas e Receitas). A função `ensure_budget_category_schema()` garante a criação dessas tabelas em instâncias onde o rollout Navy + Mint ainda não foi aplicado (é chamada pela API antes de qualquer operação).
 - **`budget_goal`**: metas por categoria (`type` em `TB`/`TBD`/`MFG`/`CUSTOM`, `amount_cents`, `target_month`, `cadence`).
 - **`budget_allocation`**: `assigned_cents`, `activity_cents`, `available_cents` por categoria/mês (`month` = 1º dia). O front cria linhas faltantes on-demand.
-- **`budget_audit`**: log de alterações com triggers automáticos. Guarda `before`/`after`, `reason` e `user_id` (`auth.uid()`), facilitando auditoria.
+- **`budget_audit`**: log de alterações com triggers automáticos. Guarda `before`/`after`, `reason` e `user_id` (`auth.uid()`), facilitando auditoria. A função `log_budget_audit()` agora converte os registros para `jsonb` antes de consultar campos opcionais, evitando falhas quando a tabela alvo (como `budget_category`) não possui `category_id`.
 - **Função `current_org()`**: usa `request.jwt.claim.org_id`, o header `x-cc-org-id` ou o cookie `cc_org_id`. Se nada for informado, cai para `auth.uid()` e, por fim, para a org padrão `00000000-0000-0000-0000-000000000001`, evitando falhas de RLS em ambientes sem cabeçalhos explícitos.
 
 ### API Next.js
