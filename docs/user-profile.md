@@ -20,7 +20,7 @@ Cada perfil guarda ainda o `org_id` atribuído automaticamente na criação do u
 - Quando a chave de serviço não está disponível, o backend utiliza apenas o token da sessão do usuário para preencher nome e e-mail padrão do perfil, evitando falhas `not_admin` ao carregar os dados.
 - As políticas de RLS `profiles insert self` e `profiles update self` garantem que cada usuário autenticado possa criar ou atualizar o próprio registro em `public.profiles` sem depender de privilégios administrativos, evitando erros `new row violates row-level security policy` durante o primeiro acesso.
 
-Quando um usuário é criado no `auth.users`, a trigger `t_auth_users_profile` executa `sync_profile_from_auth()` para inserir/atualizar o registro correspondente em `public.profiles`, gerar o `org_id` e acionar `seed_default_budget_categories()`. Assim o workspace recém-criado já recebe todas as categorias padrão definidas em `public.default_categories`.
+Quando um usuário é criado no `auth.users`, a trigger `t_auth_users_profile` executa `sync_profile_from_auth()` para inserir/atualizar o registro correspondente em `public.profiles`, gerar o `org_id` e acionar `seed_default_budget_categories()` informando o próprio usuário como ator (`p_actor`). Assim o workspace recém-criado já recebe todas as categorias padrão definidas em `public.default_categories` e os logs de auditoria registram corretamente quem disparou a seed.
 
 ## Acessibilidade e UX
 - O formulário fornece feedback textual tanto para sucesso quanto para erro.
