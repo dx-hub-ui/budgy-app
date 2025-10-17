@@ -1,3 +1,4 @@
+// Existing file: src/app/api/budget/utils.ts
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -115,6 +116,7 @@ export async function loadBudgetSnapshot(
   userId: string | null
 ): Promise<BudgetSnapshotPayload> {
   await ensureSeedCategories(client, orgId, userId);
+
   const monthKey = month.slice(0, 7);
   const monthDate = toMonthDate(monthKey);
   const previousKey = previousMonth(monthKey);
@@ -122,16 +124,31 @@ export async function loadBudgetSnapshot(
   const nextKey = nextMonth(monthKey);
   const nextDate = toMonthDate(nextKey);
 
-  const [{ data: categories, error: catError }, { data: goals, error: goalError }] = await Promise.all([
+  // Categories: exclude soft-deleted, stable ordering, reseed-and-retry once if empty
+  const fetchCategories = () =>
     client
       .from("budget_categories")
-      .select("*")
+      .select("id,org_id,group_name,name,icon,sort,is_hidden,deleted_at,created_at")
       .eq("org_id", orgId)
-      .order("sort", { ascending: true }),
-    client.from("budget_goal").select("*").eq("org_id", orgId)
-  ]);
+      .is("deleted_at", null)
+      .order("group_name", { ascending: true })
+      .order("sort", { ascending: true })
+      .order("created_at", { ascending: true });
 
+  let { data: categories, error: catError } = await fetchCategories();
   if (catError) throw catError;
+
+  if (!categories || categories.length === 0) {
+    await ensureSeedCategories(client, orgId, userId);
+    const retry = await fetchCategories();
+    if (retry.error) throw retry.error;
+    categories = retry.data ?? [];
+  }
+
+  const { data: goals, error: goalError } = await client
+    .from("budget_goal")
+    .select("*")
+    .eq("org_id", orgId);
   if (goalError) throw goalError;
 
   const [
@@ -139,11 +156,7 @@ export async function loadBudgetSnapshot(
     { data: prevAllocations, error: prevError },
     { data: nextAllocations, error: nextError }
   ] = await Promise.all([
-    client
-      .from("budget_allocation")
-      .select("*")
-      .eq("org_id", orgId)
-      .eq("month", monthDate),
+    client.from("budget_allocation").select("*").eq("org_id", orgId).eq("month", monthDate),
     client
       .from("budget_allocation")
       .select("category_id, available_cents")
@@ -167,11 +180,7 @@ export async function loadBudgetSnapshot(
 
   const nextAllocationMap = new Map<
     string,
-    {
-      assigned_cents: number;
-      activity_cents: number;
-      available_cents: number;
-    }
+    { assigned_cents: number; activity_cents: number; available_cents: number }
   >();
   (nextAllocations ?? []).forEach((row) => {
     nextAllocationMap.set(row.category_id, {
@@ -287,7 +296,6 @@ export async function loadBudgetSnapshot(
           available_cents: desiredAvailable
         };
       }
-
       return null;
     })
     .filter(
