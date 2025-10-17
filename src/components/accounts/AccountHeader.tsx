@@ -1,0 +1,108 @@
+"use client";
+
+import { useMemo } from "react";
+
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+function formatCurrency(value: number) {
+  if (!Number.isFinite(value)) return "R$ 0,00";
+  return currencyFormatter.format(value / 100);
+}
+
+type Metric = {
+  id: string;
+  label: string;
+  valueCents: number;
+  tone?: "positive" | "negative" | "neutral";
+  helper?: string;
+};
+
+export type AccountMetric = Metric;
+
+type Props = {
+  name: string;
+  subtitle?: string;
+  metrics: Metric[];
+  onReconcile?: () => void;
+  onAddTransaction?: () => void;
+  onAddTransfer?: () => void;
+};
+
+export type AccountHeaderProps = Props;
+
+export default function AccountHeader({
+  name,
+  subtitle,
+  metrics,
+  onReconcile,
+  onAddTransaction,
+  onAddTransfer,
+}: Props) {
+  const cards = useMemo(() => metrics, [metrics]);
+
+  return (
+    <header className="space-y-6 rounded-3xl border border-[var(--cc-border)] bg-white/90 p-6 shadow">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-[var(--cc-text)]">{name}</h1>
+            <span className="rounded-full bg-[var(--brand-soft-fill)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--cc-text)]">
+              Conta ativa
+            </span>
+          </div>
+          {subtitle && <p className="text-sm text-[var(--cc-text-muted)]">{subtitle}</p>}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
+            onClick={onAddTransaction}
+          >
+            Adicionar transação
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
+            onClick={onAddTransfer}
+          >
+            Adicionar transferência
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--cc-accent)] px-4 text-sm font-semibold text-slate-900 transition hover:brightness-95"
+            onClick={onReconcile}
+          >
+            Reconciliar
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {cards.map((metric) => {
+          const toneClass = metric.tone === "positive"
+            ? "text-emerald-600"
+            : metric.tone === "negative"
+            ? "text-rose-600"
+            : "text-[var(--cc-text)]";
+          return (
+            <div
+              key={metric.id}
+              className="rounded-2xl border border-[var(--cc-border)] bg-white/70 px-4 py-3"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+                {metric.label}
+              </p>
+              <p className={`text-xl font-semibold ${toneClass}`}>{formatCurrency(metric.valueCents)}</p>
+              {metric.helper && (
+                <p className="text-xs text-[var(--cc-text-muted)]">{metric.helper}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </header>
+  );
+}
