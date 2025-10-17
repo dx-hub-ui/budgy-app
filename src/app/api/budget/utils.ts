@@ -1,3 +1,4 @@
+// src/app/api/budget/utils.ts
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -11,6 +12,8 @@ import {
 const LOG_SCOPE = "budget.categories.utils";
 const log = (info: Record<string, unknown>) =>
   console.log(JSON.stringify({ scope: LOG_SCOPE, ...info }));
+
+let SCHEMA_OK = false;
 
 export type ApiContext = {
   supabase: SupabaseClient;
@@ -56,27 +59,45 @@ export async function getContext(): Promise<ApiContext> {
       throw error;
     }
     orgId = prof.org_id;
-    log({ event: "context_profiles_org_fallback", orgId });
-    supabase = createServerSupabaseClient({ orgId });
   }
+
+  supabase = createServerSupabaseClient({ orgId });
 
   log({ event: "context_ready", orgId, hasUser: Boolean(userId), ms: Date.now() - t0 });
   return { supabase, orgId, userId };
 }
 
 export async function ensureBudgetSchema(client: SupabaseClient) {
+  if (SCHEMA_OK) return;
   const t0 = Date.now();
-  const { error } = await client.rpc("ensure_budget_category_schema");
-  if (error) {
-    const message = String(error.message ?? "");
-    if (message.includes('record "new" has no field "category_id"')) {
-      log({ event: "ensure_schema_known_warning", message, ms: Date.now() - t0 });
-      return;
+
+  const tryOnce = async () => {
+    const { error } = await client.rpc("ensure_budget_category_schema");
+    if (error) {
+      const message = String(error.message ?? "");
+      if (message.includes('record "new" has no field "category_id"')) {
+        log({ event: "ensure_schema_known_warning", message, ms: Date.now() - t0 });
+        return true;
+      }
+      if (message.includes("fetch failed")) {
+        log({ event: "ensure_schema_fetch_failed_soft", message, ms: Date.now() - t0 });
+        return false;
+      }
+      log({ event: "ensure_schema_error_soft", message, ms: Date.now() - t0 });
+      return false;
     }
-    log({ event: "ensure_schema_error", message, ms: Date.now() - t0 });
-    throw error;
+    return true;
+  };
+
+  let ok = await tryOnce();
+  if (!ok) {
+    await new Promise((r) => setTimeout(r, 100));
+    ok = await tryOnce();
   }
-  log({ event: "ensure_schema_ok", ms: Date.now() - t0 });
+  if (ok) {
+    SCHEMA_OK = true;
+    log({ event: "ensure_schema_ok", ms: Date.now() - t0 });
+  }
 }
 
 export async function ensureSeedCategories(
@@ -84,17 +105,51 @@ export async function ensureSeedCategories(
   orgId: string,
   userId: string | null
 ) {
-  const t0 = Date.now();
-  await ensureBudgetSchema(client);
+  const { count, error: preErr } = await client
+    .from("budget_categories")
+    .select("id", { head: true, count: "exact" })
+    .eq("org_id", orgId)
+    .is("deleted_at", null);
+
+  if (preErr) {
+    log({ event: "seed_precheck_error", orgId, message: String(preErr.message) });
+    return;
+  }
+  if ((count ?? 0) > 0) return;
+
   const { error } = await client.rpc("seed_default_budget_categories", {
     p_org_id: orgId,
     p_actor: userId
   });
-  if (error) {
-    log({ event: "seed_error", orgId, message: String(error.message), ms: Date.now() - t0 });
-    throw error;
+  if (!error) {
+    log({ event: "seed_rpc_ok", orgId });
+    return;
   }
-  log({ event: "seed_ok", orgId, ms: Date.now() - t0 });
+  log({ event: "seed_rpc_error_soft", orgId, message: String(error.message) });
+
+  const { data: defaults, error: defErr } = await client
+    .from("default_categories")
+    .select("group_name,name,icon,sort")
+    .order("sort", { ascending: true });
+
+  if (!defErr && defaults?.length) {
+    const rows = defaults.map((d) => ({
+      org_id: orgId,
+      group_name: d.group_name,
+      name: d.name,
+      icon: d.icon ?? null,
+      sort: d.sort ?? 0,
+      is_hidden: false
+    }));
+    const { error: insErr } = await client.from("budget_categories").insert(rows);
+    if (insErr) {
+      log({ event: "seed_insert_from_defaults_error", orgId, message: String(insErr.message) });
+    } else {
+      log({ event: "seed_insert_from_defaults_ok", orgId, rows: rows.length });
+    }
+  } else {
+    log({ event: "seed_defaults_empty_or_error", orgId, message: defErr ? String(defErr.message) : null });
+  }
 }
 
 export function toMonthDate(month: string) {
@@ -150,19 +205,19 @@ export async function loadBudgetSnapshot(
 
   log({ event: "snapshot_start", orgId, monthKey });
 
+  await ensureBudgetSchema(client);
   await ensureSeedCategories(client, orgId, userId);
 
   const fetchCategories = () =>
     client
       .from("budget_categories")
       .select("id,org_id,group_name,name,icon,sort,is_hidden,deleted_at,created_at")
-      .eq("org_id", orgId)
       .is("deleted_at", null)
       .order("group_name", { ascending: true })
       .order("sort", { ascending: true })
       .order("created_at", { ascending: true });
 
-  let { data: categories, error: catError, count: _catCount } = await fetchCategories();
+  let { data: categories, error: catError } = await fetchCategories();
   if (catError) {
     log({ event: "categories_error", message: String(catError.message) });
     throw catError;
@@ -180,10 +235,7 @@ export async function loadBudgetSnapshot(
     log({ event: "categories_after_seed", count: categories.length });
   }
 
-  const { data: goals, error: goalError } = await client
-    .from("budget_goal")
-    .select("*")
-    .eq("org_id", orgId);
+  const { data: goals, error: goalError } = await client.from("budget_goal").select("*");
   if (goalError) {
     log({ event: "goals_error", message: String(goalError.message) });
     throw goalError;
@@ -194,16 +246,11 @@ export async function loadBudgetSnapshot(
     { data: prevAllocations, error: prevError },
     { data: nextAllocations, error: nextError }
   ] = await Promise.all([
-    client.from("budget_allocation").select("*").eq("org_id", orgId).eq("month", monthDate),
-    client
-      .from("budget_allocation")
-      .select("category_id, available_cents")
-      .eq("org_id", orgId)
-      .eq("month", previousDate),
+    client.from("budget_allocation").select("*").eq("month", monthDate),
+    client.from("budget_allocation").select("category_id, available_cents").eq("month", previousDate),
     client
       .from("budget_allocation")
       .select("category_id, assigned_cents, activity_cents, available_cents")
-      .eq("org_id", orgId)
       .eq("month", nextDate)
   ]);
 
@@ -364,14 +411,18 @@ export async function loadBudgetSnapshot(
       }
       return null;
     })
-    .filter((row): row is {
-      org_id: string;
-      category_id: string;
-      month: string;
-      assigned_cents: number;
-      activity_cents: number;
-      available_cents: number;
-    } => row !== null);
+    .filter(
+      (
+        row
+      ): row is {
+        org_id: string;
+        category_id: string;
+        month: string;
+        assigned_cents: number;
+        activity_cents: number;
+        available_cents: number;
+      } => row !== null
+    );
 
   if (nextUpsertRows.length > 0) {
     backgroundPromises.push(
