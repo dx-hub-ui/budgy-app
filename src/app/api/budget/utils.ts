@@ -119,6 +119,8 @@ export async function loadBudgetSnapshot(
   const monthDate = toMonthDate(monthKey);
   const previousKey = previousMonth(monthKey);
   const previousDate = toMonthDate(previousKey);
+  const nextKey = nextMonth(monthKey);
+  const nextDate = toMonthDate(nextKey);
 
   const [{ data: categories, error: catError }, { data: goals, error: goalError }] = await Promise.all([
     client
@@ -132,26 +134,40 @@ export async function loadBudgetSnapshot(
   if (catError) throw catError;
   if (goalError) throw goalError;
 
-  const [{ data: currentAllocations, error: allocError }, { data: prevAllocations, error: prevError }] =
-    await Promise.all([
-      client
-        .from("budget_allocation")
-        .select("*")
-        .eq("org_id", orgId)
-        .eq("month", monthDate),
-      client
-        .from("budget_allocation")
-        .select("category_id, available_cents")
-        .eq("org_id", orgId)
-        .eq("month", previousDate)
-    ]);
+  const [
+    { data: currentAllocations, error: allocError },
+    { data: prevAllocations, error: prevError },
+    { data: nextAllocations, error: nextError }
+  ] = await Promise.all([
+    client
+      .from("budget_allocation")
+      .select("*")
+      .eq("org_id", orgId)
+      .eq("month", monthDate),
+    client
+      .from("budget_allocation")
+      .select("category_id, available_cents")
+      .eq("org_id", orgId)
+      .eq("month", previousDate),
+    client
+      .from("budget_allocation")
+      .select("category_id")
+      .eq("org_id", orgId)
+      .eq("month", nextDate)
+  ]);
 
   if (allocError) throw allocError;
   if (prevError) throw prevError;
+  if (nextError) throw nextError;
 
   const prevAvailableMap = new Map<string, number>();
   (prevAllocations ?? []).forEach((row) => {
     prevAvailableMap.set(row.category_id, row.available_cents ?? 0);
+  });
+
+  const nextExisting = new Set<string>();
+  (nextAllocations ?? []).forEach((row) => {
+    nextExisting.add(row.category_id);
   });
 
   const allocationsByCategory = new Map<string, any>();
@@ -168,6 +184,7 @@ export async function loadBudgetSnapshot(
     activity_cents: number;
     available_cents: number;
   }> = [];
+  const availableByCategory = new Map<string, number>();
   let totalAssigned = 0;
   let totalActivity = 0;
   let totalAvailable = 0;
@@ -187,6 +204,8 @@ export async function loadBudgetSnapshot(
       available_cents: available,
       prev_available_cents: prevAvailable
     });
+
+    availableByCategory.set(category.id, available);
 
     totalAssigned += assigned;
     totalActivity += activity;
@@ -209,6 +228,62 @@ export async function loadBudgetSnapshot(
       .from("budget_allocation")
       .upsert(missingRows, { onConflict: "org_id,category_id,month" });
     if (insertMissingError) throw insertMissingError;
+  }
+
+  const backgroundPromises: Promise<void>[] = [];
+
+  const prevMissingRows = (categories ?? [])
+    .filter((category) => !prevAvailableMap.has(category.id))
+    .map((category) => ({
+      org_id: orgId,
+      category_id: category.id,
+      month: previousDate,
+      assigned_cents: 0,
+      activity_cents: 0,
+      available_cents: 0
+    }));
+
+  if (prevMissingRows.length > 0) {
+    backgroundPromises.push(
+      client
+        .from("budget_allocation")
+        .upsert(prevMissingRows, { onConflict: "org_id,category_id,month" })
+        .then(({ error }) => {
+          if (error) throw error;
+        })
+        .catch((error) => {
+          console.error("Erro ao preparar mês anterior do orçamento", error);
+        })
+    );
+  }
+
+  const nextMissingRows = (categories ?? [])
+    .filter((category) => !nextExisting.has(category.id))
+    .map((category) => ({
+      org_id: orgId,
+      category_id: category.id,
+      month: nextDate,
+      assigned_cents: 0,
+      activity_cents: 0,
+      available_cents: availableByCategory.get(category.id) ?? 0
+    }));
+
+  if (nextMissingRows.length > 0) {
+    backgroundPromises.push(
+      client
+        .from("budget_allocation")
+        .upsert(nextMissingRows, { onConflict: "org_id,category_id,month" })
+        .then(({ error }) => {
+          if (error) throw error;
+        })
+        .catch((error) => {
+          console.error("Erro ao preparar próximo mês do orçamento", error);
+        })
+    );
+  }
+
+  if (backgroundPromises.length > 0) {
+    await Promise.allSettled(backgroundPromises);
   }
 
   const inflows = totalAssigned;
