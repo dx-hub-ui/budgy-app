@@ -80,8 +80,110 @@ alter table public.budget_audit
   add constraint budget_audit_category_id_fkey
     foreign key (category_id) references public.budget_categories(id) on delete set null;
 
+-- Ensure audit entries can resolve the acting user even during service seeds.
+create or replace function public.log_budget_audit() returns trigger language plpgsql as $$
+declare
+  new_payload jsonb;
+  old_payload jsonb;
+  org uuid;
+  category uuid;
+  month_value date;
+  actor uuid;
+  jwt_sub text;
+begin
+  if tg_op = 'DELETE' then
+    new_payload := null;
+    old_payload := to_jsonb(old);
+  elsif tg_op = 'INSERT' then
+    new_payload := to_jsonb(new);
+    old_payload := null;
+  else
+    new_payload := to_jsonb(new);
+    old_payload := to_jsonb(old);
+  end if;
+
+  if new_payload is not null and new_payload ? 'org_id' then
+    org := (new_payload->>'org_id')::uuid;
+  elsif old_payload is not null and old_payload ? 'org_id' then
+    org := (old_payload->>'org_id')::uuid;
+  else
+    org := current_org();
+  end if;
+
+  if new_payload is not null and new_payload ? 'category_id' then
+    category := (new_payload->>'category_id')::uuid;
+  elsif old_payload is not null and old_payload ? 'category_id' then
+    category := (old_payload->>'category_id')::uuid;
+  elsif tg_table_name = 'budget_categories' then
+    category := coalesce(
+      nullif((coalesce(new_payload, '{}'::jsonb) ->> 'id'), '')::uuid,
+      nullif((coalesce(old_payload, '{}'::jsonb) ->> 'id'), '')::uuid
+    );
+  else
+    category := null;
+  end if;
+
+  if new_payload is not null and new_payload ? 'month' then
+    month_value := (new_payload->>'month')::date;
+  elsif old_payload is not null and old_payload ? 'month' then
+    month_value := (old_payload->>'month')::date;
+  end if;
+
+  if month_value is null then
+    month_value := date_trunc('month', now())::date;
+  end if;
+
+  jwt_sub := current_setting('request.jwt.claim.sub', true);
+
+  if auth.uid() is not null then
+    actor := auth.uid();
+  elsif jwt_sub is not null and jwt_sub <> '' then
+    begin
+      actor := jwt_sub::uuid;
+    exception
+      when invalid_text_representation then
+        actor := null;
+    end;
+  end if;
+
+  if actor is null then
+    if new_payload is not null and new_payload ? 'user_id' then
+      begin
+        actor := (new_payload->>'user_id')::uuid;
+      exception
+        when others then
+          actor := null;
+      end;
+    elsif old_payload is not null and old_payload ? 'user_id' then
+      begin
+        actor := (old_payload->>'user_id')::uuid;
+      exception
+        when others then
+          actor := null;
+      end;
+    end if;
+  end if;
+
+  insert into public.budget_audit(org_id, category_id, month, user_id, before, after, reason)
+  values (
+    org,
+    category,
+    month_value,
+    actor,
+    old_payload,
+    new_payload,
+    tg_table_name || ' ' || tg_op
+  );
+
+  return coalesce(new, old);
+end;
+$$;
+
 -- Seed helper now reads from the reference table instead of an inline list.
-create or replace function public.seed_default_budget_categories(p_org_id uuid)
+create or replace function public.seed_default_budget_categories(
+  p_org_id uuid,
+  p_actor uuid default null
+)
 returns void
 language plpgsql
 security definer
@@ -90,10 +192,24 @@ as $$
 declare
   v_org uuid;
   existing_count integer;
+  prev_sub text;
+  prev_role text;
+  v_actor uuid;
 begin
   v_org := coalesce(p_org_id, current_org());
   if v_org is null then
     return;
+  end if;
+
+  v_actor := coalesce(p_actor, auth.uid());
+  prev_sub := current_setting('request.jwt.claim.sub', true);
+  prev_role := current_setting('request.jwt.claim.role', true);
+
+  if v_actor is not null then
+    perform set_config('request.jwt.claim.sub', v_actor::text, true);
+    if prev_role is null or prev_role = '' then
+      perform set_config('request.jwt.claim.role', 'authenticated', true);
+    end if;
   end if;
 
   perform public.ensure_budget_category_schema();
@@ -104,6 +220,10 @@ begin
    where org_id = v_org;
 
   if existing_count > 0 then
+    if v_actor is not null then
+      perform set_config('request.jwt.claim.sub', coalesce(prev_sub, ''), true);
+      perform set_config('request.jwt.claim.role', coalesce(prev_role, ''), true);
+    end if;
     return;
   end if;
 
@@ -111,6 +231,11 @@ begin
   select v_org, group_name, name, icon, sort
     from public.default_categories
    order by sort, group_name, name;
+
+  if v_actor is not null then
+    perform set_config('request.jwt.claim.sub', coalesce(prev_sub, ''), true);
+    perform set_config('request.jwt.claim.role', coalesce(prev_role, ''), true);
+  end if;
 end;
 $$;
 
@@ -159,7 +284,7 @@ begin
         org_id = public.profiles.org_id
   returning org_id into v_org;
 
-  perform public.seed_default_budget_categories(v_org);
+  perform public.seed_default_budget_categories(v_org, p_user_id);
   return v_org;
 end;
 $$;
