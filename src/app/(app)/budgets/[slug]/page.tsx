@@ -1,7 +1,8 @@
+// src/app/(app)/budgets/[slug]/page.tsx
 "use client";
 
-import { useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 import { BudgetGrid } from "@/components/orcamento/BudgetGrid";
 import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
@@ -26,7 +27,6 @@ function shiftMonth(month: string, delta: number) {
 export default function BudgetMonthPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const initializeMonth = useBudgetPlannerStore((state) => state.initializeMonth);
   const selecionarMes = useBudgetPlannerStore((state) => state.selecionarMes);
@@ -60,22 +60,31 @@ export default function BudgetMonthPage() {
   const goals = useBudgetPlannerStore((state) => state.goals.byCategoryId);
   const history = useBudgetPlannerStore((state) => state.history);
 
-  useEffect(() => {
+  const routeMonth = useMemo(() => {
     const slugMonth = Array.isArray(params?.slug) ? params?.slug[0] : params?.slug;
-    const queryMonth = searchParams?.get("m");
-    const target = (queryMonth ?? slugMonth ?? mesAtual()).slice(0, 7);
+    let queryMonth: string | null = null;
+    if (typeof window !== "undefined") {
+      queryMonth = new URLSearchParams(window.location.search).get("m");
+    }
+    return (queryMonth ?? slugMonth ?? mesAtual()).slice(0, 7);
+  }, [Array.isArray(params?.slug) ? params?.slug[0] : params?.slug]);
+
+  useEffect(() => {
     if (!monthSelected) {
-      void initializeMonth(target);
+      void initializeMonth(routeMonth);
       return;
     }
-    if (monthSelected !== target) {
-      void selecionarMes(target);
+    if (monthSelected !== routeMonth) {
+      void selecionarMes(routeMonth);
     }
-  }, [initializeMonth, monthSelected, params?.slug, searchParams, selecionarMes]);
+  }, [monthSelected, routeMonth, initializeMonth, selecionarMes]);
 
   useEffect(() => {
     if (!monthSelected) return;
-    router.replace(`/budgets/${monthSelected}`, { scroll: false });
+    const desiredPath = `/budgets/${monthSelected}`;
+    if (typeof window !== "undefined" && window.location.pathname !== desiredPath) {
+      router.replace(desiredPath, { scroll: false });
+    }
   }, [monthSelected, router]);
 
   useEffect(() => {
@@ -105,7 +114,7 @@ export default function BudgetMonthPage() {
   const drawerCategory = categories.find((cat) => cat.id === ui.drawerCategoryId) ?? null;
   const modalCategory = categories.find((cat) => cat.id === ui.nameModalId) ?? null;
   const drawerGoal = drawerCategory ? goals[drawerCategory.id] : undefined;
-  const drawerAllocation = drawerCategory ? allocations[drawerCategory.id]?.[monthSelected] : undefined;
+  const drawerAllocation = drawerCategory ? allocations[drawerCategory.id]?.[monthSelected ?? ""] : undefined;
 
   const handleAddCategory = (groupName: string) => {
     const input = window.prompt(`Nova categoria em ${groupName}`, "");
