@@ -55,6 +55,7 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
 2. **Cabeçalho do orçamento** – ocupa toda a largura útil dentro do conteúdo principal (sem topbar global), concentrando as setas de navegação do mês, o acesso rápido aos grupos de categorias e o card-resumo verde de "Pronto para atribuir" ao lado do seletor mensal, juntamente com os botões `Desfazer`/`Refazer` (atalhos `⌘/Ctrl+Z` e `Shift+⌘/Ctrl+Z`).
 3. **Painel lateral de insights** – à direita, mostra o mês corrente, o card de "Pronto para atribuir" e os totais de "Atribuído", "Atividade" e "Disponível", além de dicas de próximos passos. É oculto em telas menores que `xl` para priorizar o grid.
 4. **Grid de categorias** – accordions por grupo, célula "Atribuído" mostra o valor formatado em BRL e, ao clicar, revela um campo inline para edição. A pill de "Disponível" permanece colorida (`cc-pill-positive`, `cc-pill-zero`, `cc-pill-negative`). Clicar em qualquer linha seleciona a categoria e abre seus detalhes no painel lateral.
+   - A seleção grava o `id` da categoria na query string (`?cat=`) e atualiza imediatamente o painel de detalhes sem recarregar a página, preservando o compartilhamento de links e o estado atual do mês.
 5. **Modal de nome** – abre ao clicar no nome da categoria. Permite renomear, ocultar e excluir (soft delete) com acessibilidade (`aria-modal`, foco inicial no campo).
 6. **Drawer Assistente (3 passos)**:
    - *Passo 1* – tabs Semanal/Mensal/Anual/Personalizado, input de valor, prazo e estratégia para o mês seguinte. Salva via `PUT /goal`.

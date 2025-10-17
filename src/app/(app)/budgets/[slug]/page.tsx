@@ -610,6 +610,7 @@ export default function BudgetMonthPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams?.toString() ?? "";
 
   const initializeMonth = useBudgetPlannerStore((s) => s.initializeMonth);
   const selecionarMes = useBudgetPlannerStore((s) => s.selecionarMes);
@@ -641,6 +642,11 @@ export default function BudgetMonthPage() {
 
   const [collapsed, setCollapsed] = useState<CollapsedMap>({});
   const [addCategory, setAddCategory] = useState<AddCategoryState>({ open: false, groupId: null });
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    if (!searchParamsString) return null;
+    const params = new URLSearchParams(searchParamsString);
+    return params.get("cat");
+  });
 
   const didInitRef = useRef(false);
   const syncingUrlRef = useRef(false);
@@ -704,17 +710,22 @@ export default function BudgetMonthPage() {
     });
   }, [groups]);
 
-  const selectedId = searchParams?.get("cat") ?? null;
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsString);
+    const paramId = params.get("cat");
+    setSelectedId(paramId);
+  }, [searchParamsString]);
 
   const select = useCallback(
     (id: string | null) => {
-      const paramsObj = new URLSearchParams(searchParams?.toString() ?? "");
+      setSelectedId(id);
+      const paramsObj = new URLSearchParams(searchParamsString);
       if (!id) paramsObj.delete("cat");
       else paramsObj.set("cat", id);
       const query = paramsObj.toString();
       router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParamsString]
   );
 
   const closeSelection = useCallback(() => {
