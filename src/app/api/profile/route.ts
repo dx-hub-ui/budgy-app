@@ -43,26 +43,40 @@ type ProfileRow = {
   updated_at: string | null;
 };
 
+const secureCookie = process.env.NODE_ENV === "production";
+const profileCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: secureCookie,
+  path: "/"
+};
+
 function respondWithProfile(profile: ProfileRow) {
   const response = NextResponse.json({ profile });
   const maxAge = 60 * 60 * 24 * 365;
-  const secure = process.env.NODE_ENV === "production";
   response.cookies.set("cc_user_id", profile.id, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure,
-    path: "/",
+    ...profileCookieOptions,
     maxAge
   });
   if (profile.org_id) {
     response.cookies.set("cc_org_id", profile.org_id, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure,
-      path: "/",
+      ...profileCookieOptions,
       maxAge
     });
   }
+  return response;
+}
+
+function clearProfileCookies(status: number, message: string) {
+  const response = NextResponse.json({ message }, { status });
+  response.cookies.set("cc_user_id", "", {
+    ...profileCookieOptions,
+    maxAge: 0
+  });
+  response.cookies.set("cc_org_id", "", {
+    ...profileCookieOptions,
+    maxAge: 0
+  });
   return response;
 }
 
@@ -149,7 +163,7 @@ export async function GET() {
     const supabase = createServerSupabaseClient();
     const userId = await resolveUserId(supabase);
     if (!userId) {
-      return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
+      return clearProfileCookies(401, "Não autenticado");
     }
 
     const authUser = await resolveAuthenticatedUser(supabase);
@@ -157,7 +171,7 @@ export async function GET() {
     return respondWithProfile(profile);
   } catch (error) {
     console.error("Erro ao carregar perfil", error);
-    return NextResponse.json({ message: "Não foi possível carregar o perfil" }, { status: 500 });
+    return clearProfileCookies(500, "Não foi possível carregar o perfil");
   }
 }
 

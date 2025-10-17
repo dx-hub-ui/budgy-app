@@ -116,10 +116,6 @@ export async function resolveUserId(client?: SupabaseClient): Promise<string | n
   if (headerUser && headerUser.trim().length > 0) {
     return headerUser.trim();
   }
-  const cookieUser = cookies().get("cc_user_id")?.value;
-  if (cookieUser && cookieUser.trim().length > 0) {
-    return cookieUser.trim();
-  }
 
   const token = extractAuthorizationToken();
   if (!token) {
