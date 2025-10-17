@@ -206,6 +206,13 @@ export async function carregarSnapshotOrcamento(month: string) {
   return fetchJson<BudgetSnapshot>(`${API_BASE}/categories?month=${month}`);
 }
 
+export async function criarCategoria(payload: { group_name: string; name: string; icon?: string | null }) {
+  return fetchJson<BudgetCategory>(`${API_BASE}/category`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function salvarNomeCategoria(id: string, nome: string) {
   return fetchJson<BudgetCategory>(`${API_BASE}/category/${id}`, {
     method: "PATCH",

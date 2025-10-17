@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
+import { Plus } from "lucide-react";
 
 import { fmtBRL, formatarInputMonetario, normalizarValorMonetario } from "@/domain/budgeting";
 import { budgetPlannerSelectors, useBudgetPlannerStore } from "@/stores/budgetPlannerStore";
@@ -14,6 +15,7 @@ type BudgetGridProps = {
   onEdit: (categoryId: string, value: number) => void;
   onOpenName: (categoryId: string) => void;
   onOpenDrawer: (categoryId: string) => void;
+  onAddCategory: (groupName: string) => void;
 };
 
 type CategoryRowProps = {
@@ -93,7 +95,7 @@ function CategoryRow({
   );
 }
 
-export function BudgetGrid({ month, onEdit, onOpenName, onOpenDrawer }: BudgetGridProps) {
+export function BudgetGrid({ month, onEdit, onOpenName, onOpenDrawer, onAddCategory }: BudgetGridProps) {
   const groups = budgetPlannerSelectors.useGroups();
   const allocations = useBudgetPlannerStore((state) => state.allocations.byCategoryIdMonth);
 
@@ -110,38 +112,57 @@ export function BudgetGrid({ month, onEdit, onOpenName, onOpenDrawer }: BudgetGr
         <span className="text-right">Disponível</span>
       </div>
       <div>
-        {groups.map((group) => (
-          <details key={group.name} open className="group">
-            <summary className="cursor-pointer select-none border-b border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-              {group.name}
-            </summary>
-            <div role="rowgroup">
-              {group.categories.map((category) => {
-                const allocation = allocations[category.id]?.[month];
-                const assigned = allocation?.assigned_cents ?? 0;
-                const activity = allocation?.activity_cents ?? 0;
-                const available = allocation?.available_cents ?? 0;
-                return (
-                  <div
-                    key={category.id}
-                    role="row"
-                    onClick={() => onOpenDrawer(category.id)}
-                    className="cursor-pointer"
+        {groups.length === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-[var(--cc-text-muted)]">
+            Nenhuma categoria cadastrada.
+          </div>
+        ) : (
+          groups.map((group) => (
+            <details key={group.name} open className="group">
+              <summary className="cursor-pointer select-none border-b border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-3 text-sm font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{group.name}</span>
+                  <button
+                    type="button"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--cc-border)] bg-[var(--cc-bg)] text-[var(--cc-text-muted)] transition hover:border-[var(--ring)] hover:text-[var(--ring)]"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onAddCategory(group.name);
+                    }}
+                    aria-label={`Adicionar categoria em ${group.name}`}
                   >
-                    <CategoryRow
-                      name={category.name}
-                      activityCents={activity}
-                      availableCents={available}
-                      assignedCents={assigned}
-                      onEdit={handleEdit(category.id)}
-                      onOpenName={() => onOpenName(category.id)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </details>
-        ))}
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </summary>
+              <div role="rowgroup">
+                {group.categories.map((category) => {
+                  const allocation = allocations[category.id]?.[month];
+                  const assigned = allocation?.assigned_cents ?? 0;
+                  const activity = allocation?.activity_cents ?? 0;
+                  const available = allocation?.available_cents ?? 0;
+                  return (
+                    <div
+                      key={category.id}
+                      role="row"
+                      onClick={() => onOpenDrawer(category.id)}
+                      className="cursor-pointer"
+                    >
+                      <CategoryRow
+                        name={category.name}
+                        activityCents={activity}
+                        availableCents={available}
+                        assignedCents={assigned}
+                        onEdit={handleEdit(category.id)}
+                        onOpenName={() => onOpenName(category.id)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          ))
+        )}
       </div>
     </div>
   );

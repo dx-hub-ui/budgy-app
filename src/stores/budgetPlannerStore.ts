@@ -10,6 +10,7 @@ import {
   calcularProjecaoMeta,
   editarAtribuicao,
   excluirCategoria as apiExcluirCategoria,
+  criarCategoria as apiCriarCategoria,
   mesAtual,
   normalizarValorMonetario,
   ocultarCategoria as apiOcultarCategoria,
@@ -92,6 +93,7 @@ type BudgetPlannerState = {
   definirToast: (toast: ToastState) => void;
   desfazer: () => void;
   refazer: () => void;
+  criarCategoria: (groupName: string, nome: string) => Promise<void>;
 };
 
 const MAX_HISTORY = 50;
@@ -217,6 +219,41 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
     history: { past: [], future: [] },
     toast: null,
     error: null,
+    async criarCategoria(groupName: string, nome: string) {
+      const trimmed = nome.trim();
+      if (!trimmed) {
+        throw new Error("Informe um nome válido");
+      }
+      try {
+        const created = await apiCriarCategoria({ group_name: groupName, name: trimmed });
+        setImmer((draft) => {
+          draft.categories.list = [...draft.categories.list, created].sort(
+            (a, b) => a.sort - b.sort || a.name.localeCompare(b.name),
+          );
+          const month = draft.month.selected.slice(0, 7);
+          if (!draft.allocations.byCategoryIdMonth[created.id]) {
+            draft.allocations.byCategoryIdMonth[created.id] = {};
+          }
+          draft.allocations.byCategoryIdMonth[created.id][month] = {
+            category_id: created.id,
+            month,
+            assigned_cents: 0,
+            activity_cents: 0,
+            available_cents: 0,
+            prev_available_cents: 0,
+          };
+          draft.toast = { type: "success", message: "Categoria adicionada" };
+        });
+      } catch (error: any) {
+        setImmer((draft) => {
+          draft.toast = {
+            type: "error",
+            message: error?.message ?? "Erro ao criar categoria",
+          };
+        });
+        throw error;
+      }
+    },
     async initializeMonth(month: string) {
       setImmer((draft) => {
         draft.categories.loading = true;
