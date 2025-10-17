@@ -1,4 +1,3 @@
-// src/app/api/budget/utils.ts
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -8,6 +7,10 @@ import {
   resolveOrgId,
   resolveUserId
 } from "@/lib/supabaseServer";
+
+const LOG_SCOPE = "budget.categories.utils";
+const log = (info: Record<string, unknown>) =>
+  console.log(JSON.stringify({ scope: LOG_SCOPE, ...info }));
 
 export type ApiContext = {
   supabase: SupabaseClient;
@@ -35,42 +38,45 @@ export type BudgetSnapshotPayload = {
 };
 
 export async function getContext(): Promise<ApiContext> {
-  // 1) client “neutro” para descobrir user e org
+  const t0 = Date.now();
   let supabase = createServerSupabaseClient();
   const userId = await resolveUserId(supabase);
-
-  // 2) tenta header/host
   let orgId = resolveOrgId();
 
-  // 3) fallback correto: ler profiles.org_id do usuário
+  log({ event: "context_resolved_ids", rawOrgId: orgId, hasUser: Boolean(userId) });
+
   if ((!orgId || orgId === DEFAULT_ORG_ID) && userId) {
     const { data: prof, error } = await supabase
       .from("profiles")
       .select("org_id")
       .eq("id", userId)
       .single();
-
-    if (error) throw error;
+    if (error) {
+      log({ event: "context_profiles_error", message: String(error.message) });
+      throw error;
+    }
     orgId = prof.org_id;
+    log({ event: "context_profiles_org_fallback", orgId });
+    supabase = createServerSupabaseClient({ orgId });
   }
 
-  // 4) recria o client “scoped” com o orgId para RLS (current_org())
-  // sua factory já deve propagar o x-org-id para o Postgres
-  supabase = createServerSupabaseClient({ orgId });
-
+  log({ event: "context_ready", orgId, hasUser: Boolean(userId), ms: Date.now() - t0 });
   return { supabase, orgId, userId };
 }
 
 export async function ensureBudgetSchema(client: SupabaseClient) {
+  const t0 = Date.now();
   const { error } = await client.rpc("ensure_budget_category_schema");
   if (error) {
     const message = String(error.message ?? "");
     if (message.includes('record "new" has no field "category_id"')) {
-      console.warn("Ignorando erro conhecido na rotina ensure_budget_category_schema", message);
+      log({ event: "ensure_schema_known_warning", message, ms: Date.now() - t0 });
       return;
     }
+    log({ event: "ensure_schema_error", message, ms: Date.now() - t0 });
     throw error;
   }
+  log({ event: "ensure_schema_ok", ms: Date.now() - t0 });
 }
 
 export async function ensureSeedCategories(
@@ -78,12 +84,17 @@ export async function ensureSeedCategories(
   orgId: string,
   userId: string | null
 ) {
+  const t0 = Date.now();
   await ensureBudgetSchema(client);
   const { error } = await client.rpc("seed_default_budget_categories", {
     p_org_id: orgId,
     p_actor: userId
   });
-  if (error) throw error;
+  if (error) {
+    log({ event: "seed_error", orgId, message: String(error.message), ms: Date.now() - t0 });
+    throw error;
+  }
+  log({ event: "seed_ok", orgId, ms: Date.now() - t0 });
 }
 
 export function toMonthDate(month: string) {
@@ -129,8 +140,7 @@ export async function loadBudgetSnapshot(
   month: string,
   userId: string | null
 ): Promise<BudgetSnapshotPayload> {
-  await ensureSeedCategories(client, orgId, userId);
-
+  const t0 = Date.now();
   const monthKey = month.slice(0, 7);
   const monthDate = toMonthDate(monthKey);
   const previousKey = previousMonth(monthKey);
@@ -138,7 +148,10 @@ export async function loadBudgetSnapshot(
   const nextKey = nextMonth(monthKey);
   const nextDate = toMonthDate(nextKey);
 
-  // categorias visíveis
+  log({ event: "snapshot_start", orgId, monthKey });
+
+  await ensureSeedCategories(client, orgId, userId);
+
   const fetchCategories = () =>
     client
       .from("budget_categories")
@@ -149,21 +162,32 @@ export async function loadBudgetSnapshot(
       .order("sort", { ascending: true })
       .order("created_at", { ascending: true });
 
-  let { data: categories, error: catError } = await fetchCategories();
-  if (catError) throw catError;
+  let { data: categories, error: catError, count: _catCount } = await fetchCategories();
+  if (catError) {
+    log({ event: "categories_error", message: String(catError.message) });
+    throw catError;
+  }
+  log({ event: "categories_loaded", count: categories?.length ?? 0 });
 
   if (!categories || categories.length === 0) {
     await ensureSeedCategories(client, orgId, userId);
     const retry = await fetchCategories();
-    if (retry.error) throw retry.error;
+    if (retry.error) {
+      log({ event: "categories_retry_error", message: String(retry.error.message) });
+      throw retry.error;
+    }
     categories = retry.data ?? [];
+    log({ event: "categories_after_seed", count: categories.length });
   }
 
   const { data: goals, error: goalError } = await client
     .from("budget_goal")
     .select("*")
     .eq("org_id", orgId);
-  if (goalError) throw goalError;
+  if (goalError) {
+    log({ event: "goals_error", message: String(goalError.message) });
+    throw goalError;
+  }
 
   const [
     { data: currentAllocations, error: allocError },
@@ -183,9 +207,25 @@ export async function loadBudgetSnapshot(
       .eq("month", nextDate)
   ]);
 
-  if (allocError) throw allocError;
-  if (prevError) throw prevError;
-  if (nextError) throw nextError;
+  if (allocError) {
+    log({ event: "alloc_error", message: String(allocError.message) });
+    throw allocError;
+  }
+  if (prevError) {
+    log({ event: "prev_alloc_error", message: String(prevError.message) });
+    throw prevError;
+  }
+  if (nextError) {
+    log({ event: "next_alloc_error", message: String(nextError.message) });
+    throw nextError;
+  }
+
+  log({
+    event: "alloc_loaded",
+    current: currentAllocations?.length ?? 0,
+    prev: prevAllocations?.length ?? 0,
+    next: nextAllocations?.length ?? 0
+  });
 
   const prevAvailableMap = new Map<string, number>();
   (prevAllocations ?? []).forEach((row) => {
@@ -257,11 +297,22 @@ export async function loadBudgetSnapshot(
     }
   });
 
+  log({
+    event: "alloc_build",
+    categories: categories.length,
+    toUpsertNow: missingRows.length,
+    totals: { assigned: totalAssigned, activity: totalActivity, available: totalAvailable }
+  });
+
   if (missingRows.length > 0) {
     const { error: insertMissingError } = await client
       .from("budget_allocation")
       .upsert(missingRows, { onConflict: "org_id,category_id,month" });
-    if (insertMissingError) throw insertMissingError;
+    if (insertMissingError) {
+      log({ event: "alloc_upsert_current_error", message: String(insertMissingError.message) });
+      throw insertMissingError;
+    }
+    log({ event: "alloc_upsert_current_ok", rows: missingRows.length });
   }
 
   const backgroundPromises: Promise<void>[] = [];
@@ -285,8 +336,9 @@ export async function loadBudgetSnapshot(
             .from("budget_allocation")
             .upsert(prevMissingRows, { onConflict: "org_id,category_id,month" });
           if (error) throw error;
-        } catch (error) {
-          console.error("Erro ao preparar mês anterior do orçamento", error);
+          log({ event: "alloc_upsert_prev_ok", rows: prevMissingRows.length });
+        } catch (error: any) {
+          log({ event: "alloc_upsert_prev_error", message: String(error?.message ?? error) });
         }
       })()
     );
@@ -312,18 +364,14 @@ export async function loadBudgetSnapshot(
       }
       return null;
     })
-    .filter(
-      (
-        row
-      ): row is {
-        org_id: string;
-        category_id: string;
-        month: string;
-        assigned_cents: number;
-        activity_cents: number;
-        available_cents: number;
-      } => row !== null
-    );
+    .filter((row): row is {
+      org_id: string;
+      category_id: string;
+      month: string;
+      assigned_cents: number;
+      activity_cents: number;
+      available_cents: number;
+    } => row !== null);
 
   if (nextUpsertRows.length > 0) {
     backgroundPromises.push(
@@ -333,8 +381,9 @@ export async function loadBudgetSnapshot(
             .from("budget_allocation")
             .upsert(nextUpsertRows, { onConflict: "org_id,category_id,month" });
           if (error) throw error;
-        } catch (error) {
-          console.error("Erro ao preparar próximo mês do orçamento", error);
+          log({ event: "alloc_upsert_next_ok", rows: nextUpsertRows.length });
+        } catch (error: any) {
+          log({ event: "alloc_upsert_next_error", message: String(error?.message ?? error) });
         }
       })()
     );
@@ -347,7 +396,7 @@ export async function loadBudgetSnapshot(
   const inflows = totalAssigned;
   const ready = calcularAAtribuir(inflows, totalAssigned);
 
-  return {
+  const snapshot = {
     month: monthKey,
     categories: categories ?? [],
     goals: goals ?? [],
@@ -358,4 +407,16 @@ export async function loadBudgetSnapshot(
     total_activity_cents: totalActivity,
     total_available_cents: totalAvailable
   };
+
+  log({
+    event: "snapshot_done",
+    orgId,
+    monthKey,
+    categories: snapshot.categories.length,
+    goals: snapshot.goals.length,
+    allocations: snapshot.allocations.length,
+    ms: Date.now() - t0
+  });
+
+  return snapshot;
 }
