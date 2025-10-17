@@ -158,6 +158,10 @@ nav.cc-sidebar {
   position: sticky;
   top: 0;
   height: 100vh;
+  width: var(--dynamic-sidebar-w);
+  min-width: var(--dynamic-sidebar-w);
+  max-width: var(--dynamic-sidebar-w);
+  transition: width 200ms ease;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   overflow: visible;
