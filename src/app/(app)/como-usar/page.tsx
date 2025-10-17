@@ -1,3 +1,4 @@
+import { mesAtual } from "@/domain/budgeting";
 import Link from "next/link";
 
 const rules = [
@@ -171,7 +172,9 @@ export default function HowToUsePage() {
           <div className="cc-stack-24">
             <h2 className="text-xl font-semibold text-[var(--cc-text)]">1. Fundamento</h2>
             <p className="text-sm leading-relaxed text-[var(--cc-text)]">
-              Você não controla gastos: você dá propósito a cada real. Todo valor que entra deve encontrar uma categoria imediatamente. No Budgy, isso significa distribuir o saldo disponível na tela de <Link className="font-medium text-[var(--cc-accent)]" href="/budgets">Orçamento</Link> até que o indicador \"A distribuir\" chegue a zero.
+              Você não controla gastos: você dá propósito a cada real. Todo valor que entra deve encontrar uma categoria imediatamente. No Budgy, isso significa distribuir o saldo disponível na tela de <Link className="font-medium text-[var(--cc-accent)]" href={`/budgets/${mesAtual()}`}>
+                Orçamento
+              </Link> até que o indicador \"A distribuir\" chegue a zero.
             </p>
             <p className="text-sm leading-relaxed text-[var(--cc-text)]">
               O saldo global representa apenas decisões ainda não executadas. Ao registrar uma despesa, você está cumprindo o plano desenhado previamente.
