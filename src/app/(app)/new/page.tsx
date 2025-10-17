@@ -2,38 +2,49 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createExpense, listCategories } from "@/domain/repo";
+import { createExpense, listAccounts, listCategories } from "@/domain/repo";
 import { ExpenseSchema } from "@/domain/models";
 import { ymd } from "@/domain/format";
 
 export default function NewExpensePage() {
   const router = useRouter();
   const [cats, setCats] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     amount_cents: 0,
     date: ymd(new Date()),
     category_id: null as string | null,
+    account_id: null as string | null,
     method: "pix",
     description: "",
+    memo: "",
   });
 
   useEffect(() => {
     let active = true;
     setLoadingCats(true);
-    listCategories()
-      .then((data) => {
+    setLoadingAccounts(true);
+    Promise.all([listCategories(), listAccounts()])
+      .then(([catsData, accountsData]) => {
         if (!active) return;
-        setCats(data);
+        setCats(catsData);
+        setAccounts(accountsData);
+        setForm((prev) => ({
+          ...prev,
+          account_id: prev.account_id ?? accountsData[0]?.id ?? null,
+        }));
       })
       .catch((err) => {
         if (!active) return;
-        setError(err.message ?? "Falha ao carregar categorias");
+        setError(err.message ?? "Falha ao carregar dados auxiliares");
       })
       .finally(() => {
         if (!active) return;
         setLoadingCats(false);
+        setLoadingAccounts(false);
       });
 
     return () => {
@@ -43,7 +54,7 @@ export default function NewExpensePage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = ExpenseSchema.safeParse(form);
+    const parsed = ExpenseSchema.safeParse({ ...form, direction: "outflow" });
     if (!parsed.success) {
       alert("Dados inválidos");
       return;
@@ -112,6 +123,26 @@ export default function NewExpensePage() {
               </select>
             </label>
             <label className="cc-stack-24 text-sm">
+              <span className="font-medium text-[var(--cc-text)]">Conta</span>
+              <select
+                className="h-11 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                value={form.account_id ?? ""}
+                onChange={(e) => setForm({ ...form, account_id: e.target.value || null })}
+                disabled={loadingAccounts && accounts.length === 0}
+                required
+              >
+                <option value="" disabled>
+                  Selecione uma conta
+                </option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="cc-stack-24 text-sm">
               <span className="font-medium text-[var(--cc-text)]">Método</span>
               <select
                 className="h-11 w-full rounded-md border px-3 text-sm"
@@ -133,6 +164,17 @@ export default function NewExpensePage() {
                 value={form.description || ""}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 maxLength={140}
+              />
+            </label>
+            <label className="cc-stack-24 text-sm">
+              <span className="font-medium text-[var(--cc-text)]">Memo</span>
+              <input
+                className="h-11 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "var(--cc-border)" }}
+                value={form.memo || ""}
+                onChange={(e) => setForm({ ...form, memo: e.target.value })}
+                maxLength={280}
+                placeholder="Observações adicionais (opcional)"
               />
             </label>
             {error && (

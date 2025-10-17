@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
-import type { CategoryInput, ExpenseInput } from "./models";
+import type { AccountInput, CategoryInput, ExpenseInput } from "./models";
 
 export async function getSessionUser() {
   const { data } = await supabase.auth.getUser();
@@ -10,6 +10,29 @@ export async function getSessionUser() {
 
 export async function listCategories() {
   const { data, error } = await supabase.from("categories").select("*").order("name");
+  if (error) throw error;
+  return data;
+}
+
+export async function listAccounts() {
+  const { data, error } = await supabase.from("accounts").select("*").order("group_label").order("sort");
+  if (error) throw error;
+  return data;
+}
+
+export async function createAccount(input: AccountInput) {
+  const payload: AccountInput = { ...input };
+  if (payload.sort === undefined) {
+    delete (payload as any).sort;
+  }
+  if (payload.is_closed === undefined) {
+    delete (payload as any).is_closed;
+  }
+  if (payload.default_method === undefined) {
+    delete (payload as any).default_method;
+  }
+
+  const { data, error } = await supabase.from("accounts").insert(payload).select().single();
   if (error) throw error;
   return data;
 }
@@ -50,6 +73,25 @@ export async function listExpensesByMonth(f: MonthFilter) {
 
 export async function createExpense(input: ExpenseInput) {
   const { data, error } = await supabase.from("expenses").insert(input).select().single();
+  if (error) throw error;
+  return data;
+}
+
+type ExpenseRow = Awaited<ReturnType<typeof listExpensesByMonth>>[number];
+
+export async function listExpenses(options?: { methods?: ExpenseRow["method"][] }) {
+  let query = supabase
+    .from("expenses")
+    .select("*")
+    .is("deleted_at", null)
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (options?.methods && options.methods.length > 0) {
+    query = query.in("method", options.methods as string[]);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }
