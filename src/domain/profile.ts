@@ -4,8 +4,10 @@ import { authFetch } from "@/lib/authFetch";
 
 const ProfileSchema = z.object({
   id: z.string().uuid(),
+  org_id: z.string().uuid().optional(),
   email: z.string().email().nullable().optional(),
   display_name: z.string().max(120).nullable().optional(),
+  phone: z.string().max(32).nullable().optional(),
   timezone: z.string().max(80).nullable().optional(),
   avatar_url: z.string().url().max(1024).nullable().optional(),
   updated_at: z.string().datetime({ offset: true }).nullable().optional()
@@ -50,6 +52,7 @@ type UpdateProfilePayload = {
   displayName?: string;
   timezone?: string | null;
   avatarUrl?: string | null;
+  phone?: string | null;
 };
 
 export async function updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import type { PostgrestError, SupabaseClient, User } from "@supabase/supabase-js";
 
@@ -11,7 +12,8 @@ import {
 const UpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(120).optional(),
   timezone: z.string().trim().max(80).nullable().optional(),
-  avatarUrl: z.string().url().max(1024).nullable().optional()
+  avatarUrl: z.string().url().max(1024).nullable().optional(),
+  phone: z.string().trim().max(32).nullable().optional()
 });
 
 const supportedTimezones = (() => {
@@ -32,12 +34,37 @@ function isValidTimezone(value: string) {
 
 type ProfileRow = {
   id: string;
+  org_id: string;
   email: string | null;
   display_name: string | null;
+  phone: string | null;
   timezone: string | null;
   avatar_url: string | null;
   updated_at: string | null;
 };
+
+function respondWithProfile(profile: ProfileRow) {
+  const response = NextResponse.json({ profile });
+  const maxAge = 60 * 60 * 24 * 365;
+  const secure = process.env.NODE_ENV === "production";
+  response.cookies.set("cc_user_id", profile.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure,
+    path: "/",
+    maxAge
+  });
+  if (profile.org_id) {
+    response.cookies.set("cc_org_id", profile.org_id, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure,
+      path: "/",
+      maxAge
+    });
+  }
+  return response;
+}
 
 async function resolveProfileMetadata(
   userId: string,
@@ -84,11 +111,20 @@ async function ensureProfile(userId: string, client?: SupabaseClient, authUser?:
     (metadataUser?.user_metadata?.display_name as string | undefined)?.trim() ??
     (metadataUser?.user_metadata?.full_name as string | undefined)?.trim() ??
     null;
-  const displayName = metadataDisplay || email;
+  const metadataPhone = (() => {
+    const direct = typeof metadataUser?.phone === "string" ? metadataUser.phone.trim() : "";
+    if (direct.length > 0) {
+      return direct;
+    }
+    const meta = metadataUser?.user_metadata?.phone;
+    return typeof meta === "string" && meta.trim().length > 0 ? meta.trim() : null;
+  })();
+  const displayName = metadataDisplay || email || "Usuário";
+  const phone = metadataPhone ?? null;
 
   const { data: inserted, error: insertError } = await supabase
     .from("profiles")
-    .insert({ id: userId, email, display_name: displayName })
+    .insert({ id: userId, email, display_name: displayName, phone, org_id: randomUUID() })
     .select("*")
     .single<ProfileRow>();
 
@@ -118,7 +154,7 @@ export async function GET() {
 
     const authUser = await resolveAuthenticatedUser(supabase);
     const profile = await ensureProfile(userId, supabase, authUser);
-    return NextResponse.json({ profile });
+    return respondWithProfile(profile);
   } catch (error) {
     console.error("Erro ao carregar perfil", error);
     return NextResponse.json({ message: "Não foi possível carregar o perfil" }, { status: 500 });
@@ -163,9 +199,24 @@ export async function PATCH(request: NextRequest) {
       updates.avatar_url = payload.avatarUrl;
     }
 
+    if (payload.phone !== undefined) {
+      if (payload.phone === null) {
+        updates.phone = null;
+      } else {
+        const trimmed = payload.phone.trim();
+        if (trimmed.length === 0) {
+          updates.phone = null;
+        } else if (!/^[0-9()+\-\.\s]+$/.test(trimmed)) {
+          return NextResponse.json({ message: "Telefone inválido" }, { status: 400 });
+        } else {
+          updates.phone = trimmed;
+        }
+      }
+    }
+
     if (Object.keys(updates).length === 0) {
       const profile = await ensureProfile(userId, supabase, authUser);
-      return NextResponse.json({ profile });
+      return respondWithProfile(profile);
     }
     await ensureProfile(userId, supabase, authUser);
 
@@ -181,19 +232,30 @@ export async function PATCH(request: NextRequest) {
     }
 
     try {
-      if (payload.displayName !== undefined || payload.avatarUrl !== undefined) {
+      const metadataUpdates: Record<string, string | null> = {};
+      if (payload.displayName !== undefined) {
+        metadataUpdates.display_name = updated?.display_name ?? null;
+      }
+      if (payload.avatarUrl !== undefined) {
+        metadataUpdates.avatar_url = updated?.avatar_url ?? null;
+      }
+      if (payload.phone !== undefined) {
+        metadataUpdates.phone = updated?.phone ?? null;
+      }
+      if (Object.keys(metadataUpdates).length > 0) {
         await supabase.auth.admin.updateUserById(userId, {
-          user_metadata: {
-            ...(payload.displayName !== undefined ? { display_name: updated?.display_name ?? null } : {}),
-            ...(payload.avatarUrl !== undefined ? { avatar_url: updated?.avatar_url ?? null } : {})
-          }
+          user_metadata: metadataUpdates
         });
       }
     } catch (error) {
       console.warn("Falha ao sincronizar metadados do usuário", error);
     }
 
-    return NextResponse.json({ profile: updated });
+    if (!updated) {
+      throw new Error("Perfil não encontrado após atualização");
+    }
+
+    return respondWithProfile(updated);
   } catch (error) {
     console.error("Erro ao atualizar perfil", error);
     return NextResponse.json({ message: "Não foi possível salvar o perfil" }, { status: 500 });
