@@ -39,3 +39,10 @@
 - Os cards de estatísticas empregam botões de overflow acessíveis com foco visível (`ring-[var(--ring)]`) e usam o brand como destaque de ícones.
 - A lógica do painel agora vive em um hook client-side dedicado que tenta carregar dados reais do Supabase; em caso de indisponibilidade, o painel recorre automaticamente aos mocks sem quebrar o layout.
 - Quando não há transações no período selecionado, apresentamos um estado vazio textual acessível em vez de exibir a tabela vazia.
+
+## Orçamento mensal compacto
+- O layout da página de orçamento utiliza a grade `.budget-grid`, dividindo o espaço entre a tabela de categorias (coluna flexível) e o painel inspector fixo de 380 px.
+- As alturas das linhas são controladas pelos tokens `--row-h` e `--row-h-group` definidos em `globals.css`, garantindo densidade compacta em telas médias e grandes.
+- Linhas de categoria aplicam o atributo `data-selected="true"` para destacar a seleção atual (`.row[data-selected]`).
+- Barras de progresso dentro das células usam a classe `.progress` com modificadores (`.progress--funded`, `.progress--under`, `.progress--over`, `.progress--neg`) para indicar o estado da meta.
+- O painel lateral reutiliza os estilos `.card`, `.btn-link` e `.btn-primary` para manter consistência com o restante da interface.
