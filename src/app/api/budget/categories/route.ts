@@ -10,10 +10,6 @@ const currentYM = () => {
 export async function GET(request: NextRequest) {
   try {
     const { supabase, orgId, userId } = await getContext();
-
-    // loadBudgetSnapshot already seeds, but keep idempotent call safe for first-hit orgs
-    await ensureSeedCategories(supabase, orgId, userId);
-
     const { searchParams } = new URL(request.url);
     const month = ym(searchParams.get("month") ?? searchParams.get("m") ?? currentYM());
 
@@ -27,9 +23,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { supabase, orgId, userId } = await getContext();
-
-    await ensureSeedCategories(supabase, orgId, userId);
-
     const body = await request.json().catch(() => ({} as any));
     const month = ym(body.month ?? body.m ?? currentYM());
 
