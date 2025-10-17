@@ -1,4 +1,4 @@
-// Existing file: src/app/api/budget/utils.ts
+// src/app/api/budget/utils.ts
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -35,14 +35,28 @@ export type BudgetSnapshotPayload = {
 };
 
 export async function getContext(): Promise<ApiContext> {
+  // 1) client “neutro” para descobrir user e org
   let supabase = createServerSupabaseClient();
-  let orgId = resolveOrgId();
   const userId = await resolveUserId(supabase);
 
-  if ((orgId === DEFAULT_ORG_ID || orgId.trim().length === 0) && userId) {
-    orgId = userId;
-    supabase = createServerSupabaseClient({ orgId });
+  // 2) tenta header/host
+  let orgId = resolveOrgId();
+
+  // 3) fallback correto: ler profiles.org_id do usuário
+  if ((!orgId || orgId === DEFAULT_ORG_ID) && userId) {
+    const { data: prof, error } = await supabase
+      .from("profiles")
+      .select("org_id")
+      .eq("id", userId)
+      .single();
+
+    if (error) throw error;
+    orgId = prof.org_id;
   }
+
+  // 4) recria o client “scoped” com o orgId para RLS (current_org())
+  // sua factory já deve propagar o x-org-id para o Postgres
+  supabase = createServerSupabaseClient({ orgId });
 
   return { supabase, orgId, userId };
 }
@@ -124,7 +138,7 @@ export async function loadBudgetSnapshot(
   const nextKey = nextMonth(monthKey);
   const nextDate = toMonthDate(nextKey);
 
-  // Categories: exclude soft-deleted, stable ordering, reseed-and-retry once if empty
+  // categorias visíveis
   const fetchCategories = () =>
     client
       .from("budget_categories")
