@@ -1,7 +1,7 @@
 // src/app/(app)/budgets/[slug]/page.tsx
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { BudgetGrid } from "@/components/orcamento/BudgetGrid";
@@ -28,24 +28,24 @@ export default function BudgetMonthPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
 
-  const initializeMonth = useBudgetPlannerStore((state) => state.initializeMonth);
-  const selecionarMes = useBudgetPlannerStore((state) => state.selecionarMes);
-  const abrirModalNome = useBudgetPlannerStore((state) => state.abrirModalNome);
-  const abrirDrawer = useBudgetPlannerStore((state) => state.abrirDrawer);
-  const fecharOverlays = useBudgetPlannerStore((state) => state.fecharOverlays);
-  const irParaPasso = useBudgetPlannerStore((state) => state.irParaPasso);
-  const alternarOcultas = useBudgetPlannerStore((state) => state.alternarOcultas);
-  const salvarNome = useBudgetPlannerStore((state) => state.salvarNome);
-  const ocultarCategoria = useBudgetPlannerStore((state) => state.ocultarCategoria);
-  const excluirCategoria = useBudgetPlannerStore((state) => state.excluirCategoria);
-  const salvarMeta = useBudgetPlannerStore((state) => state.salvarMeta);
-  const aplicarMeta = useBudgetPlannerStore((state) => state.aplicarMeta);
-  const removerMeta = useBudgetPlannerStore((state) => state.removerMeta);
-  const editarAtribuido = useBudgetPlannerStore((state) => state.editarAtribuido);
-  const desfazer = useBudgetPlannerStore((state) => state.desfazer);
-  const refazer = useBudgetPlannerStore((state) => state.refazer);
-  const definirToast = useBudgetPlannerStore((state) => state.definirToast);
-  const criarCategoria = useBudgetPlannerStore((state) => state.criarCategoria);
+  const initializeMonth = useBudgetPlannerStore((s) => s.initializeMonth);
+  const selecionarMes = useBudgetPlannerStore((s) => s.selecionarMes);
+  const abrirModalNome = useBudgetPlannerStore((s) => s.abrirModalNome);
+  const abrirDrawer = useBudgetPlannerStore((s) => s.abrirDrawer);
+  const fecharOverlays = useBudgetPlannerStore((s) => s.fecharOverlays);
+  const irParaPasso = useBudgetPlannerStore((s) => s.irParaPasso);
+  const alternarOcultas = useBudgetPlannerStore((s) => s.alternarOcultas);
+  const salvarNome = useBudgetPlannerStore((s) => s.salvarNome);
+  const ocultarCategoria = useBudgetPlannerStore((s) => s.ocultarCategoria);
+  const excluirCategoria = useBudgetPlannerStore((s) => s.excluirCategoria);
+  const salvarMeta = useBudgetPlannerStore((s) => s.salvarMeta);
+  const aplicarMeta = useBudgetPlannerStore((s) => s.aplicarMeta);
+  const removerMeta = useBudgetPlannerStore((s) => s.removerMeta);
+  const editarAtribuido = useBudgetPlannerStore((s) => s.editarAtribuido);
+  const desfazer = useBudgetPlannerStore((s) => s.desfazer);
+  const refazer = useBudgetPlannerStore((s) => s.refazer);
+  const definirToast = useBudgetPlannerStore((s) => s.definirToast);
+  const criarCategoria = useBudgetPlannerStore((s) => s.criarCategoria);
 
   const ui = budgetPlannerSelectors.useUI();
   const categories = budgetPlannerSelectors.useCategories();
@@ -55,57 +55,77 @@ export default function BudgetMonthPage() {
   const totals = budgetPlannerSelectors.useTotals(currentMonth);
   const toast = budgetPlannerSelectors.useToast();
   const loading = budgetPlannerSelectors.useLoading();
-  const error = useBudgetPlannerStore((state) => state.error);
-  const allocations = useBudgetPlannerStore((state) => state.allocations.byCategoryIdMonth);
-  const goals = useBudgetPlannerStore((state) => state.goals.byCategoryId);
-  const history = useBudgetPlannerStore((state) => state.history);
+  const error = useBudgetPlannerStore((s) => s.error);
+  const allocations = useBudgetPlannerStore((s) => s.allocations.byCategoryIdMonth);
+  const goals = useBudgetPlannerStore((s) => s.goals.byCategoryId);
+  const history = useBudgetPlannerStore((s) => s.history);
 
-  const routeMonth = useMemo(() => {
+  // Refs para controlar inicialização e sincronização sem loops
+  const didInitRef = useRef(false);
+  const syncingUrlRef = useRef(false);
+  const initialMonthRef = useRef<string | null>(null);
+
+  // Captura o mês inicial UMA VEZ no mount: query ?m ou slug ou atual
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+
     const slugMonth = Array.isArray(params?.slug) ? params?.slug[0] : params?.slug;
     let queryMonth: string | null = null;
     if (typeof window !== "undefined") {
       queryMonth = new URLSearchParams(window.location.search).get("m");
     }
-    return (queryMonth ?? slugMonth ?? mesAtual()).slice(0, 7);
-  }, [Array.isArray(params?.slug) ? params?.slug[0] : params?.slug]);
+    const initial = (queryMonth ?? slugMonth ?? mesAtual()).slice(0, 7);
+    initialMonthRef.current = initial;
 
-  useEffect(() => {
-    if (!monthSelected) {
-      void initializeMonth(routeMonth);
-      return;
-    }
-    if (monthSelected !== routeMonth) {
-      void selecionarMes(routeMonth);
-    }
-  }, [monthSelected, routeMonth, initializeMonth, selecionarMes]);
+    // Inicializa store para este mês
+    void initializeMonth(initial);
 
+    // Limpa query `?m=` na URL apenas se existir e só uma vez
+    if (typeof window !== "undefined" && queryMonth) {
+      const desiredPath = `/budgets/${initial}`;
+      if (window.location.pathname !== desiredPath) {
+        syncingUrlRef.current = true;
+        router.replace(desiredPath, { scroll: false });
+        // solta o flag no próximo tick
+        queueMicrotask(() => {
+          syncingUrlRef.current = false;
+        });
+      }
+    }
+  }, [initializeMonth, params?.slug, router]);
+
+  // Reage a mudanças reais de mês na store e sincroniza URL sem loop
   useEffect(() => {
     if (!monthSelected) return;
+    if (syncingUrlRef.current) return;
+
     const desiredPath = `/budgets/${monthSelected}`;
     if (typeof window !== "undefined" && window.location.pathname !== desiredPath) {
+      syncingUrlRef.current = true;
       router.replace(desiredPath, { scroll: false });
+      queueMicrotask(() => {
+        syncingUrlRef.current = false;
+      });
     }
   }, [monthSelected, router]);
 
+  // Toast auto-hide
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => definirToast(null), 4000);
     return () => clearTimeout(timer);
   }, [toast, definirToast]);
 
+  // Keybindings
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
-        if (event.shiftKey) {
-          refazer();
-        } else {
-          desfazer();
-        }
+        if (event.shiftKey) refazer();
+        else desfazer();
       }
-      if (event.key === "Escape") {
-        fecharOverlays();
-      }
+      if (event.key === "Escape") fecharOverlays();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -114,7 +134,8 @@ export default function BudgetMonthPage() {
   const drawerCategory = categories.find((cat) => cat.id === ui.drawerCategoryId) ?? null;
   const modalCategory = categories.find((cat) => cat.id === ui.nameModalId) ?? null;
   const drawerGoal = drawerCategory ? goals[drawerCategory.id] : undefined;
-  const drawerAllocation = drawerCategory ? allocations[drawerCategory.id]?.[monthSelected ?? ""] : undefined;
+  const drawerAllocation =
+    drawerCategory && monthSelected ? allocations[drawerCategory.id]?.[monthSelected] : undefined;
 
   const handleAddCategory = (groupName: string) => {
     const input = window.prompt(`Nova categoria em ${groupName}`, "");
