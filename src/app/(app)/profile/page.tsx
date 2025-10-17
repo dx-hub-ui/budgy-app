@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const { user, profile, displayName, avatarUrl, refreshProfile, setProfile } = useAuth();
   const [displayNameValue, setDisplayNameValue] = useState<string>(displayName ?? "");
   const [timezoneValue, setTimezoneValue] = useState<string>(profile?.timezone ?? "");
+  const [phoneValue, setPhoneValue] = useState<string>(profile?.phone ?? "");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url ?? avatarUrl ?? null);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -34,6 +35,7 @@ export default function ProfilePage() {
   useEffect(() => {
     setDisplayNameValue(profile?.display_name ?? displayName ?? "");
     setTimezoneValue(profile?.timezone ?? "");
+    setPhoneValue(profile?.phone ?? "");
     setAvatarPreview(profile?.avatar_url ?? avatarUrl ?? null);
   }, [profile, displayName, avatarUrl]);
 
@@ -83,6 +85,7 @@ export default function ProfilePage() {
         displayName: payloadDisplay,
         timezone: timezoneValue ? timezoneValue : null,
         avatarUrl: avatarPreview,
+        phone: phoneValue.trim().length > 0 ? phoneValue.trim() : null
       });
       setProfile(updated);
       await refreshProfile();
@@ -185,6 +188,19 @@ export default function ProfilePage() {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="phone" className="text-sm font-medium">
+                    Telefone
+                  </label>
+                  <Input
+                    id="phone"
+                    value={phoneValue}
+                    onChange={(event) => setPhoneValue(event.target.value)}
+                    maxLength={32}
+                    placeholder="Informe um telefone para contato (opcional)"
+                  />
                 </div>
 
                 <div className="space-y-2">

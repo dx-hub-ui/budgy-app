@@ -11,6 +11,7 @@ type AuthContextValue = {
   profile: UserProfile | null;
   displayName: string;
   avatarUrl: string | null;
+  orgId: string | null;
   loadingProfile: boolean;
   refreshProfile: () => Promise<UserProfile | null>;
   setProfile: (profile: UserProfile | null) => void;
@@ -181,11 +182,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return typeof metadataAvatar === "string" && metadataAvatar.length > 0 ? metadataAvatar : null;
   })();
 
+  const orgId = profile?.org_id ?? null;
+
   const value: AuthContextValue = {
     user,
     profile,
     displayName,
     avatarUrl,
+    orgId,
     loadingProfile,
     refreshProfile,
     setProfile,
