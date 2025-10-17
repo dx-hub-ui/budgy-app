@@ -7,9 +7,6 @@ import { fmtBRL, formatMonthLabel } from "@/domain/budgeting";
 type BudgetTopbarProps = {
   month: string;
   readyToAssignCents: number;
-  assignedCents: number;
-  activityCents: number;
-  availableCents: number;
   onGoPrevious: () => void;
   onGoNext: () => void;
   onOpenGroups: () => void;
@@ -22,9 +19,6 @@ type BudgetTopbarProps = {
 export function BudgetTopbar({
   month,
   readyToAssignCents,
-  assignedCents,
-  activityCents,
-  availableCents,
   onGoPrevious,
   onGoNext,
   onOpenGroups,
@@ -38,8 +32,8 @@ export function BudgetTopbar({
   return (
     <header className="rounded-3xl border border-[var(--cc-border)] bg-[var(--cc-surface)] px-6 py-6 text-[var(--cc-text)] shadow-[var(--shadow-1)]">
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <div className="flex items-center gap-3 rounded-full bg-[var(--cc-bg)] px-4 py-2 shadow-sm">
               <button
                 type="button"
@@ -65,9 +59,14 @@ export function BudgetTopbar({
               </button>
             </div>
 
+            <div className="min-w-[12rem] rounded-2xl bg-emerald-500 px-5 py-4 text-center text-emerald-50 shadow-sm">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em]">Pronto para atribuir</p>
+              <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{fmtBRL(readyToAssignCents)}</p>
+              <p className="text-xs text-emerald-100">Saldo a distribuir neste mês</p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={onUndo}
@@ -86,31 +85,6 @@ export function BudgetTopbar({
             >
               Refazer
             </button>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-bg)] px-4 py-4 shadow-sm">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[var(--cc-text-muted)]">
-              Pronto para atribuir
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--cc-text)]">{fmtBRL(readyToAssignCents)}</p>
-            <p className="text-xs text-[var(--cc-text-muted)]">Saldo a distribuir neste mês</p>
-          </div>
-          <div className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-bg)] px-4 py-4 shadow-sm">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[var(--cc-text-muted)]">Atribuído</p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--cc-text)]">{fmtBRL(assignedCents)}</p>
-            <p className="text-xs text-[var(--cc-text-muted)]">Total destinado às categorias</p>
-          </div>
-          <div className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-bg)] px-4 py-4 shadow-sm">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[var(--cc-text-muted)]">Atividade</p>
-            <p className="mt-2 text-2xl font-semibold text-sky-600">{fmtBRL(activityCents)}</p>
-            <p className="text-xs text-[var(--cc-text-muted)]">Movimentações do mês</p>
-          </div>
-          <div className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-bg)] px-4 py-4 shadow-sm">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[var(--cc-text-muted)]">Disponível</p>
-            <p className="mt-2 text-2xl font-semibold text-emerald-600">{fmtBRL(availableCents)}</p>
-            <p className="text-xs text-[var(--cc-text-muted)]">Quanto resta após a atividade</p>
           </div>
         </div>
 
