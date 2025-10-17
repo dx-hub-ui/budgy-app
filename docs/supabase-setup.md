@@ -100,6 +100,29 @@ Sprint 3 wires the dashboard metrics and CSV export to live Supabase data. After
 
 If any of these steps fail, re-run `pnpm dev` to observe console output and ensure the Supabase environment variables are set.
 
+## 8. Sprint 4 contas e conciliações
+
+O módulo de contas cria uma tabela dedicada (`public.accounts`) com políticas de RLS, mapeia cada lançamento financeiro a uma
+conta (`account_id`) e registra o sentido de cada movimento (`direction`, com valores `outflow` ou `inflow`). A migration
+`0016_accounts_table.sql` cuida da criação da tabela, adiciona a coluna `memo` às despesas existentes e garante o relacionamento.
+
+Após executar `pnpm seed`, o usuário demo passa a contar com quatro contas padrão (Conta Corrente, Carteira, Carteira Pix e
+Cartão de Crédito). Cada lançamento carregado pelo seed recebe automaticamente o `account_id` correspondente e continua usando o
+método de pagamento original. Isso permite testar a tela `/contas`, que agrupa contas por tipo, apresenta saldos calculados em
+tempo real e permite inserir novas transações diretamente na grade.
+
+Para validar o fluxo completo:
+
+1. Acesse `/contas`. A barra lateral deve listar os grupos e o saldo consolidado do plano.
+2. Clique em **Adicionar conta** para abrir o formulário `/contas/nova` e cadastre uma conta manual. Após salvar você será
+   redirecionado para o registro da conta recém-criada.
+3. Use a linha de inserção rápida no topo da tabela para registrar uma saída (preenchendo apenas a coluna **Saída**) ou uma
+   entrada. O registro aparece imediatamente com a categoria, memo e valores formatados.
+4. Ative os botões **Adicionar transferência** ou **Reconciliar** para exibir orientações sobre os próximos passos.
+
+Os comandos de build (`pnpm build`) e o teste unitário (`pnpm test`) continuam obrigatórios após qualquer alteração estruturante
+no banco. Se algo falhar, rode novamente as migrations com `supabase db reset` antes de testar.
+
 ## Troubleshooting authentication issues
 
 - When developing offline or before Supabase credentials are configured correctly, the app may briefly show the `Carregando…` sta
