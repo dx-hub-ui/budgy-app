@@ -65,13 +65,6 @@ export function BudgetTopbar({
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={onOpenGroups}
-              className="rounded-full border border-[var(--cc-border)] bg-[var(--cc-bg)] px-4 py-2 text-sm font-medium text-[var(--cc-text)] shadow-sm transition hover:border-[var(--ring)] hover:text-[var(--ring)]"
-            >
-              Grupos de categorias
-            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -119,6 +112,16 @@ export function BudgetTopbar({
             <p className="mt-2 text-2xl font-semibold text-emerald-600">{fmtBRL(availableCents)}</p>
             <p className="text-xs text-[var(--cc-text-muted)]">Quanto resta após a atividade</p>
           </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onOpenGroups}
+            className="rounded-full border border-[var(--cc-border)] bg-[var(--cc-bg)] px-4 py-2 text-sm font-medium text-[var(--cc-text)] shadow-sm transition hover:border-[var(--ring)] hover:text-[var(--ring)]"
+          >
+            Grupos de categorias
+          </button>
         </div>
       </div>
     </header>

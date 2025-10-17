@@ -45,6 +45,7 @@ export default function BudgetMonthPage() {
   const desfazer = useBudgetPlannerStore((state) => state.desfazer);
   const refazer = useBudgetPlannerStore((state) => state.refazer);
   const definirToast = useBudgetPlannerStore((state) => state.definirToast);
+  const criarCategoria = useBudgetPlannerStore((state) => state.criarCategoria);
 
   const ui = budgetPlannerSelectors.useUI();
   const categories = budgetPlannerSelectors.useCategories();
@@ -106,6 +107,14 @@ export default function BudgetMonthPage() {
   const drawerGoal = drawerCategory ? goals[drawerCategory.id] : undefined;
   const drawerAllocation = drawerCategory ? allocations[drawerCategory.id]?.[monthSelected] : undefined;
 
+  const handleAddCategory = (groupName: string) => {
+    const input = window.prompt(`Nova categoria em ${groupName}`, "");
+    if (!input) return;
+    void criarCategoria(groupName, input).catch((error) => {
+      console.error("Erro ao criar categoria", error);
+    });
+  };
+
   return (
     <div className="flex h-full flex-col bg-[var(--cc-bg)] text-[var(--cc-text)]">
       <div className="flex flex-1 flex-col overflow-hidden px-6 py-6">
@@ -152,6 +161,7 @@ export default function BudgetMonthPage() {
                       }}
                       onOpenName={abrirModalNome}
                       onOpenDrawer={abrirDrawer}
+                      onAddCategory={handleAddCategory}
                     />
                   </div>
                 )}

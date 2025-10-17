@@ -20,6 +20,16 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 - **Função `current_org()`**: usa `request.jwt.claim.org_id`, o header `x-cc-org-id` ou o cookie `cc_org_id`. Se nada for informado, cai para `auth.uid()` e, por fim, para a org padrão `00000000-0000-0000-0000-000000000001`, evitando falhas de RLS em ambientes sem cabeçalhos explícitos.
 - **`getContext()` da API**: instancia o client com o cabeçalho detectado e, caso apenas o usuário autenticado esteja disponível (ambiente sem `cc_org_id`), reidrata o client com `auth.uid()` como `org_id`. Assim o seed padrão de categorias (`ensureSeedCategories` → RPC `seed_default_budget_categories`) sempre passa pelo `with check (org_id = current_org())`, mesmo ao usar apenas a chave pública do Supabase.
 - **Migração `0012_budget_org_columns.sql`**: garante que instalações antigas que ainda usam o esquema protótipo (sem `org_id`) ganhem a coluna em todas as tabelas (`budget_categories`, `budget_goal`, `budget_allocation`, `budget_audit`). Sem isso, filtros `eq("org_id", …)` das APIs retornam o erro `column "org_id" does not exist` ao abrir o orçamento.
+- **Função `log_budget_audit()`**: desde a migração `0014_budget_audit_month_guard.sql`, sempre atribui um mês padrão (`date_trunc('month', now())`) quando um gatilho não informar o campo explicitamente (ex.: inserts em `budget_categories`). Isso evita violações de `NOT NULL` no histórico quando seeds ou novos cadastros forem executados.
+
+### Escopo de organizações (`org_id`)
+
+O aplicativo segue o modelo de um orçamento compartilhado (estilo YNAB), mas permite que cada workspace/usuário mantenha seus dados completamente isolados. O identificador `org_id` cumpre esse papel multi-tenant:
+
+- Todas as tabelas do orçamento usam `org_id` como partição lógica e têm políticas RLS que garantem que um usuário só enxergue os registros da sua organização.
+- A API (`getContext()` em `utils.ts`) detecta o `org_id` a partir do cabeçalho `x-cc-org-id`, do cookie `cc_org_id` ou, na ausência deles, cai para `auth.uid()`. Isso permite que ambientes single-user (sem escolher organização manualmente) continuem funcionais sem quebrar as políticas.
+- As seeds padrão de categorias chamam `seed_default_budget_categories(p_org_id)` sempre com o `org_id` resolvido. Assim, os grupos e categorias públicos são criados uma única vez por organização e podem ser estendidos pelo usuário sem interferir em outros workspaces.
+- Operações de auditoria, metas e alocações reutilizam o mesmo `org_id`, garantindo rastreabilidade entre organizações ao mesmo tempo em que mantêm o isolamento financeiro.
 
 ### API Next.js
 
