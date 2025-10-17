@@ -8,6 +8,7 @@ import {
   PiggyBank,
   Receipt,
   FileDown,
+  BookOpenCheck,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -43,7 +44,8 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
       isActive: (path) => path.startsWith("/budgets")
     },
     { href: "/new", label: "Nova despesa", icon: Receipt },
-    { href: "/export", label: "Exportar dados", icon: FileDown }
+    { href: "/export", label: "Exportar dados", icon: FileDown },
+    { href: "/como-usar", label: "Como usar", icon: BookOpenCheck }
   ];
 
   const headerClass = cn(
