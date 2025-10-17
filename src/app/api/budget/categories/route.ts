@@ -9,11 +9,11 @@ function currentMonth() {
 
 export async function GET(request: NextRequest) {
   try {
-    const { supabase, orgId } = await getContext();
+    const { supabase, orgId, userId } = await getContext();
     const { searchParams } = new URL(request.url);
     const monthParam = searchParams.get("month") ?? searchParams.get("m") ?? currentMonth();
     const monthKey = monthParam.slice(0, 7);
-    const snapshot = await loadBudgetSnapshot(supabase, orgId, monthKey);
+    const snapshot = await loadBudgetSnapshot(supabase, orgId, monthKey, userId);
     return NextResponse.json(snapshot);
   } catch (error) {
     return handleError(error);
@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, orgId } = await getContext();
-    await ensureSeedCategories(supabase, orgId);
+    const { supabase, orgId, userId } = await getContext();
+    await ensureSeedCategories(supabase, orgId, userId);
     const body = await request.json().catch(() => ({}));
     const monthParam = body.month ?? currentMonth();
-    const snapshot = await loadBudgetSnapshot(supabase, orgId, monthParam);
+    const snapshot = await loadBudgetSnapshot(supabase, orgId, monthParam, userId);
     return NextResponse.json(snapshot, { status: 201 });
   } catch (error) {
     return handleError(error);

@@ -58,9 +58,16 @@ export async function ensureBudgetSchema(client: SupabaseClient) {
   }
 }
 
-export async function ensureSeedCategories(client: SupabaseClient, orgId: string) {
+export async function ensureSeedCategories(
+  client: SupabaseClient,
+  orgId: string,
+  userId: string | null
+) {
   await ensureBudgetSchema(client);
-  const { error } = await client.rpc("seed_default_budget_categories", { p_org_id: orgId });
+  const { error } = await client.rpc("seed_default_budget_categories", {
+    p_org_id: orgId,
+    p_actor: userId
+  });
   if (error) throw error;
 }
 
@@ -104,9 +111,10 @@ export function handleError(error: any) {
 export async function loadBudgetSnapshot(
   client: SupabaseClient,
   orgId: string,
-  month: string
+  month: string,
+  userId: string | null
 ): Promise<BudgetSnapshotPayload> {
-  await ensureSeedCategories(client, orgId);
+  await ensureSeedCategories(client, orgId, userId);
   const monthKey = month.slice(0, 7);
   const monthDate = toMonthDate(monthKey);
   const previousKey = previousMonth(monthKey);
