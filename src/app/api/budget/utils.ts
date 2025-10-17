@@ -245,15 +245,16 @@ export async function loadBudgetSnapshot(
 
   if (prevMissingRows.length > 0) {
     backgroundPromises.push(
-      client
-        .from("budget_allocation")
-        .upsert(prevMissingRows, { onConflict: "org_id,category_id,month" })
-        .then(({ error }) => {
+      (async () => {
+        try {
+          const { error } = await client
+            .from("budget_allocation")
+            .upsert(prevMissingRows, { onConflict: "org_id,category_id,month" });
           if (error) throw error;
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Erro ao preparar mês anterior do orçamento", error);
-        })
+        }
+      })()
     );
   }
 
@@ -270,15 +271,16 @@ export async function loadBudgetSnapshot(
 
   if (nextMissingRows.length > 0) {
     backgroundPromises.push(
-      client
-        .from("budget_allocation")
-        .upsert(nextMissingRows, { onConflict: "org_id,category_id,month" })
-        .then(({ error }) => {
+      (async () => {
+        try {
+          const { error } = await client
+            .from("budget_allocation")
+            .upsert(nextMissingRows, { onConflict: "org_id,category_id,month" });
           if (error) throw error;
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Erro ao preparar próximo mês do orçamento", error);
-        })
+        }
+      })()
     );
   }
 
