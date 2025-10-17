@@ -16,22 +16,69 @@ create index if not exists accounts_user_sort_idx on public.accounts(user_id, so
 
 alter table public.accounts enable row level security;
 
-create policy if not exists "accounts_select_own" on public.accounts
-  for select using (user_id = auth.uid());
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'accounts'
+      and policyname = 'accounts_select_own'
+  ) then
+    execute $$create policy "accounts_select_own" on public.accounts
+      for select using (user_id = auth.uid())$$;
+  end if;
 
-create policy if not exists "accounts_insert_own" on public.accounts
-  for insert with check (user_id = auth.uid());
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'accounts'
+      and policyname = 'accounts_insert_own'
+  ) then
+    execute $$create policy "accounts_insert_own" on public.accounts
+      for insert with check (user_id = auth.uid())$$;
+  end if;
 
-create policy if not exists "accounts_update_own" on public.accounts
-  for update using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'accounts'
+      and policyname = 'accounts_update_own'
+  ) then
+    execute $$create policy "accounts_update_own" on public.accounts
+      for update using (user_id = auth.uid())
+      with check (user_id = auth.uid())$$;
+  end if;
 
-create policy if not exists "accounts_delete_own" on public.accounts
-  for delete using (user_id = auth.uid());
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'accounts'
+      and policyname = 'accounts_delete_own'
+  ) then
+    execute $$create policy "accounts_delete_own" on public.accounts
+      for delete using (user_id = auth.uid())$$;
+  end if;
+end;
+$$;
 
-create trigger if not exists t_accounts_touch
-  before update on public.accounts
-  for each row execute function public.touch_updated_at();
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_trigger
+    where tgname = 't_accounts_touch'
+      and tgrelid = 'public.accounts'::regclass
+  ) then
+    execute $$create trigger t_accounts_touch
+      before update on public.accounts
+      for each row execute function public.touch_updated_at()$$;
+  end if;
+end;
+$$;
 
 alter table public.expenses
   add column if not exists account_id uuid references public.accounts(id) on delete set null;
