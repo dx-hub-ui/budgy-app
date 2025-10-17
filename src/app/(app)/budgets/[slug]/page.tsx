@@ -7,7 +7,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent
 } from "react";
 import {
   useParams,
@@ -99,6 +100,8 @@ type CategoryRowProps = {
   goal: BudgetGoal | undefined;
   selected: boolean;
   onSelect: () => void;
+  onClear: () => void;
+  onRename: () => void;
 };
 
 function availablePill(value: number) {
@@ -174,17 +177,15 @@ function GroupRow({ group, collapsed, onToggle, onAddCategory }: GroupRowProps) 
           type="button"
           className="flex items-center gap-1 text-left text-sm font-semibold"
           onClick={onToggle}
+          aria-expanded={!collapsed}
+          aria-label={`Alternar grupo ${group.name}`}
         >
           {collapsed ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
           <span className="truncate">{group.name}</span>
         </button>
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            className="btn-link"
-            onClick={onAddCategory}
-          >
-            ＋ Add Category
+          <button type="button" className="btn-link" onClick={onAddCategory}>
+            ＋ Adicionar categoria
           </button>
         </div>
       </div>
@@ -195,19 +196,20 @@ function GroupRow({ group, collapsed, onToggle, onAddCategory }: GroupRowProps) 
   );
 }
 
-function CategoryRow({ category, allocation, goal, selected, onSelect }: CategoryRowProps) {
+function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, onRename }: CategoryRowProps) {
   const emoji = category.icon ?? "🏷️";
   const assigned = allocation?.assigned_cents ?? 0;
   const activity = allocation?.activity_cents ?? 0;
   const available = allocation?.available_cents ?? 0;
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onSelect();
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      onClear();
     }
   };
 
@@ -222,11 +224,20 @@ function CategoryRow({ category, allocation, goal, selected, onSelect }: Categor
       onKeyDown={handleKeyDown}
     >
       <div className="name-cell">
-        <input type="checkbox" aria-label="select row" className="h-4 w-4" tabIndex={-1} />
+        <input type="checkbox" aria-label="selecionar linha" className="h-4 w-4" tabIndex={-1} />
         <span className="shrink-0" aria-hidden>
           {emoji}
         </span>
-        <span className="truncate">{category.name}</span>
+        <button
+          type="button"
+          className="flex-1 truncate text-left text-sm font-medium text-[var(--cc-text)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRename();
+          }}
+        >
+          {category.name}
+        </button>
         {renderProgress({ allocation, goal })}
       </div>
       <div className="text-right pr-2">{fmtBRL(assigned)}</div>
@@ -259,7 +270,7 @@ function SummaryInspector({ month, readyToAssign, totals }: { month: string; rea
   return (
     <div>
       <div className="card">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-[var(--cc-text-muted)]">Plano do mês</p>
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-[var(--cc-text-muted)]">Resumo do mês</p>
         <h2 className="mt-2 text-xl font-semibold leading-tight text-[var(--cc-text)]">{monthLabel}</h2>
         <p className="mt-3 text-xs text-[var(--cc-text-muted)]">
           Distribua o orçamento disponível para alcançar suas metas financeiras.
@@ -372,7 +383,7 @@ function CategoryInspector({ data, month, onClose, onAssign, onMove, onReset, on
               onAssign(cents);
             }}
           >
-            Assign
+            Atribuir
           </button>
           <button
             type="button"
@@ -388,13 +399,13 @@ function CategoryInspector({ data, month, onClose, onAssign, onMove, onReset, on
               onMove(cents);
             }}
           >
-            Move
+            Mover
           </button>
           <button type="button" className="btn-link" onClick={onReset}>
-            Reset
+            Zerar
           </button>
           <button type="button" className="btn-link" onClick={onArchive}>
-            Archive
+            Arquivar
           </button>
         </div>
       </section>
@@ -415,7 +426,7 @@ function InspectorPanel({
   onRename
 }: InspectorPanelProps) {
   return (
-    <aside className="inspector" aria-label="Inspector panel">
+    <aside className="inspector" aria-label="Painel do orçamento">
       {selected ? (
         <CategoryInspector
           data={selected}
@@ -717,27 +728,23 @@ export default function BudgetMonthPage() {
         <section className="budget-grid">
           <div className="left-wide">
             <div className="mb-2 flex items-center gap-2">
-              <button
-                className="btn-link"
-                type="button"
-                onClick={alternarOcultas}
-              >
-                Category Group
+              <button className="btn-link" type="button" onClick={alternarOcultas}>
+                Grupos de categorias
               </button>
               <button
                 className="btn-primary"
                 type="button"
                 onClick={() => setAddCategory({ open: true, groupId: groups[0]?.name ?? null })}
               >
-                ＋ Add Category
+                ＋ Adicionar categoria
               </button>
             </div>
 
             <div className="tbl-head row tabular">
-              <div className="cell">CATEGORY</div>
-              <div className="cell justify-end">ASSIGNED</div>
-              <div className="cell justify-end">ACTIVITY</div>
-              <div className="cell justify-end">AVAILABLE</div>
+              <div className="cell">CATEGORIA</div>
+              <div className="cell justify-end">ATRIBUÍDO</div>
+              <div className="cell justify-end">ATIVIDADE</div>
+              <div className="cell justify-end">DISPONÍVEL</div>
             </div>
 
             {loading ? (
@@ -768,6 +775,8 @@ export default function BudgetMonthPage() {
                           goal={item.goal}
                           selected={selectedId === item.category.id}
                           onSelect={() => select(item.category.id)}
+                          onClear={closeSelection}
+                          onRename={() => abrirModalNome(item.category.id)}
                         />
                       ))}
                 </Fragment>
