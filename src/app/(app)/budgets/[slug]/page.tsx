@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent
 } from "react";
 import {
@@ -21,6 +22,7 @@ import { ChevronDown, ChevronRight, MoreVertical, X } from "lucide-react";
 import {
   calcularProjecaoMeta,
   fmtBRL,
+  formatarInputMonetario,
   mesAtual,
   normalizarValorMonetario
 } from "@/domain/budgeting";
@@ -102,6 +104,7 @@ type CategoryRowProps = {
   onSelect: () => void;
   onClear: () => void;
   onRename: () => void;
+  onAssign: (value: number) => void | Promise<void>;
 };
 
 function availablePill(value: number) {
@@ -196,11 +199,15 @@ function GroupRow({ group, collapsed, onToggle, onAddCategory }: GroupRowProps) 
   );
 }
 
-function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, onRename }: CategoryRowProps) {
+function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, onRename, onAssign }: CategoryRowProps) {
   const emoji = category.icon ?? "🏷️";
   const assigned = allocation?.assigned_cents ?? 0;
   const activity = allocation?.activity_cents ?? 0;
   const available = allocation?.available_cents ?? 0;
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(formatarInputMonetario(assigned));
+  const [rawValue, setRawValue] = useState(assigned);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -211,6 +218,54 @@ function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, 
       event.preventDefault();
       onClear();
     }
+  };
+
+  useEffect(() => {
+    if (!isEditing) {
+      setInputValue(formatarInputMonetario(assigned));
+      setRawValue(assigned);
+    }
+  }, [assigned, isEditing]);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const cents = normalizarValorMonetario(event.target.value);
+    setRawValue(cents);
+    setInputValue(formatarInputMonetario(cents));
+  };
+
+  const commitValue = () => {
+    if (rawValue !== assigned) {
+      void onAssign(rawValue);
+    }
+    setIsEditing(false);
+  };
+
+  const handleInputBlur = () => {
+    commitValue();
+  };
+
+  const handleInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitValue();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setInputValue(formatarInputMonetario(assigned));
+      setRawValue(assigned);
+      setIsEditing(false);
+    }
+  };
+
+  const openEditor = () => {
+    setIsEditing(true);
+    onSelect();
   };
 
   return (
@@ -240,7 +295,35 @@ function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, 
         </button>
         {renderProgress({ allocation, goal })}
       </div>
-      <div className="text-right pr-2">{fmtBRL(assigned)}</div>
+      <div className="flex justify-end pr-2">
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            value={inputValue}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              handleInputKeyDown(event);
+            }}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full min-w-[7rem] rounded-lg border border-[var(--ring)] bg-white px-2 py-1 text-right text-sm font-semibold text-[var(--cc-text)] shadow-sm focus:outline-none"
+            inputMode="numeric"
+            aria-label={`Editar atribuição de ${category.name}`}
+          />
+        ) : (
+          <button
+            type="button"
+            className="min-w-[7rem] rounded-lg border border-transparent px-2 py-1 text-right text-sm font-semibold text-[var(--cc-text)] transition hover:border-[var(--cc-border)] hover:bg-[var(--tbl-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+            onClick={(event) => {
+              event.stopPropagation();
+              openEditor();
+            }}
+          >
+            {fmtBRL(assigned)}
+          </button>
+        )}
+      </div>
       <div className="text-right pr-2">{fmtBRL(activity)}</div>
       <div className="text-right pr-2">{availablePill(available)}</div>
     </div>
@@ -281,7 +364,7 @@ function SummaryInspector({ month, readyToAssign, totals }: { month: string; rea
         value={fmtBRL(readyToAssign)}
         description="Saldo a distribuir neste mês"
       />
-      <SummaryCard title="Total atribuído" value={fmtBRL(totals.assigned)} description="Total destinado às categorias" />
+      <SummaryCard title="Atribuído" value={fmtBRL(totals.assigned)} description="Total destinado às categorias" />
       <SummaryCard title="Atividade" value={fmtBRL(totals.activity)} description="Movimentações do mês" />
       <SummaryCard title="Disponível" value={fmtBRL(totals.available)} description="Quanto resta após a atividade" />
     </div>
@@ -701,9 +784,6 @@ export default function BudgetMonthPage() {
         <BudgetTopbar
           month={currentMonth}
           readyToAssignCents={readyToAssign}
-          assignedCents={totals.assigned}
-          activityCents={totals.activity}
-          availableCents={totals.available}
           onGoPrevious={() => {
             if (!currentMonth) return;
             void selecionarMes(shiftMonth(currentMonth, -1));
@@ -777,6 +857,7 @@ export default function BudgetMonthPage() {
                           onSelect={() => select(item.category.id)}
                           onClear={closeSelection}
                           onRename={() => abrirModalNome(item.category.id)}
+                          onAssign={(value) => handleAssign(item.category.id, value)}
                         />
                       ))}
                 </Fragment>
