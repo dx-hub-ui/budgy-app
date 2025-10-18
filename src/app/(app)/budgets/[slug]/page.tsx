@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent
 } from "react";
 import {
@@ -22,6 +23,7 @@ import { ChevronDown, ChevronRight, MoreVertical, X } from "lucide-react";
 import {
   calcularProjecaoMeta,
   fmtBRL,
+  formatMonthLabel,
   formatarInputMonetario,
   mesAtual,
   normalizarValorMonetario
@@ -55,6 +57,7 @@ type AddCategoryState = {
 type CategoryWithData = {
   category: BudgetCategory;
   allocation: BudgetAllocation | undefined;
+  previousAllocation: BudgetAllocation | undefined;
   goal: BudgetGoal | undefined;
 };
 
@@ -67,6 +70,14 @@ type CategoryInspectorProps = {
   onReset: () => void;
   onArchive: () => void;
   onRename: () => void;
+  onSaveGoal: (payload: {
+    type: BudgetGoal["type"];
+    amount_cents: number;
+    target_month?: string | null;
+    cadence?: BudgetGoal["cadence"];
+  }) => Promise<void> | void;
+  onApplyGoal: () => Promise<void> | void;
+  onRemoveGoal: () => Promise<void> | void;
 };
 
 type InspectorPanelProps = {
@@ -80,6 +91,9 @@ type InspectorPanelProps = {
   onReset: () => void;
   onArchive: () => void;
   onRename: () => void;
+  onSaveGoal: CategoryInspectorProps["onSaveGoal"];
+  onApplyGoal: CategoryInspectorProps["onApplyGoal"];
+  onRemoveGoal: CategoryInspectorProps["onRemoveGoal"];
 };
 
 type AddCategoryModalProps = {
@@ -373,34 +387,180 @@ function SummaryInspector({ month, readyToAssign, totals }: { month: string; rea
   );
 }
 
-function CategoryInspector({ data, month, onClose, onAssign, onMove, onReset, onArchive, onRename }: CategoryInspectorProps) {
+type GoalFormState = {
+  amountInput: string;
+  cadence: "weekly" | "monthly" | "yearly" | "custom";
+  type: BudgetGoal["type"];
+  targetMonth: string | null;
+};
+
+const GOAL_FREQUENCY_OPTIONS: ReadonlyArray<{
+  cadence: GoalFormState["cadence"];
+  label: string;
+  type: BudgetGoal["type"];
+}> = [
+  { cadence: "weekly", label: "Semanal", type: "CUSTOM" },
+  { cadence: "monthly", label: "Mensal", type: "MFG" },
+  { cadence: "yearly", label: "Anual", type: "TBD" },
+  { cadence: "custom", label: "Personalizado", type: "CUSTOM" }
+];
+
+const GOAL_TYPE_LABELS: Record<BudgetGoal["type"], string> = {
+  MFG: "Meta mensal",
+  TB: "Saldo desejado",
+  TBD: "Meta com data",
+  CUSTOM: "Meta personalizada"
+};
+
+function goalDescription(goal: BudgetGoal) {
+  switch (goal.type) {
+    case "MFG":
+      return "Reserve esse valor todo mês.";
+    case "TB":
+      return "Mantenha esse saldo disponível.";
+    case "TBD": {
+      const monthKey = goal.target_month ? goal.target_month.slice(0, 7) : null;
+      return monthKey ? `Atingir até ${formatMonthLabel(monthKey)}.` : "Defina uma data final para essa meta.";
+    }
+    case "CUSTOM":
+    default:
+      return "Adapte o valor conforme sua estratégia.";
+  }
+}
+
+function getInitialGoalForm(goal: BudgetGoal | undefined): GoalFormState {
+  return {
+    amountInput: formatarInputMonetario(goal?.amount_cents ?? 0),
+    cadence: goal?.cadence ?? "monthly",
+    type: goal?.type ?? "MFG",
+    targetMonth: goal?.target_month ? goal.target_month.slice(0, 7) : null
+  };
+}
+
+function CategoryInspector({
+  data,
+  month,
+  onClose,
+  onAssign,
+  onMove,
+  onReset,
+  onArchive,
+  onRename,
+  onSaveGoal,
+  onApplyGoal,
+  onRemoveGoal
+}: CategoryInspectorProps) {
+  const goal = data?.goal;
+  const [isEditingGoal, setIsEditingGoal] = useState(() => !goal);
+  const [form, setForm] = useState<GoalFormState>(() => getInitialGoalForm(goal));
+  const [savingGoal, setSavingGoal] = useState(false);
+  const [applyingGoal, setApplyingGoal] = useState(false);
+  const [removingGoal, setRemovingGoal] = useState(false);
+
+  useEffect(() => {
+    setForm(getInitialGoalForm(goal));
+    setIsEditingGoal(!goal);
+  }, [goal]);
+
   if (!data) return null;
-  const { category, allocation, goal } = data;
+
+  const { category, allocation, previousAllocation } = data;
   const assigned = allocation?.assigned_cents ?? 0;
   const activity = allocation?.activity_cents ?? 0;
   const available = allocation?.available_cents ?? 0;
-  const target = goal?.amount_cents ?? 0;
+  const prevAvailable = allocation?.prev_available_cents ?? previousAllocation?.available_cents ?? 0;
+  const prevAssigned = previousAllocation?.assigned_cents ?? 0;
+  const prevActivity = previousAllocation?.activity_cents ?? 0;
   const emoji = category.icon ?? "🏷️";
   const projection = goal && allocation ? calcularProjecaoMeta(goal, allocation, month) : null;
+  const monthLabel = formatMonthLabel(month);
+  const previousMonthKey = shiftMonth(month, -1);
+  const previousMonthLabel = formatMonthLabel(previousMonthKey);
+
+  const amountCents = normalizarValorMonetario(form.amountInput);
+  const recommendedAssign = projection ? Math.max(projection.falta, projection.necessarioNoMes) : 0;
+
+  const handleAssign = () => {
+    const input = window.prompt("Atribuir valor", fmtBRL(assigned));
+    if (!input) return;
+    const cents = normalizarValorMonetario(input);
+    onAssign(cents);
+  };
+
+  const handleMoveMoney = () => {
+    const input = window.prompt("Mover para pronto para atribuir", fmtBRL(0));
+    if (!input) return;
+    const cents = normalizarValorMonetario(input);
+    if (cents <= 0) return;
+    onMove(cents);
+  };
+
+  const handleSubmitGoal = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = normalizarValorMonetario(form.amountInput);
+    if (value <= 0) {
+      window.alert("Informe um valor maior que zero para a meta.");
+      return;
+    }
+    if (form.type === "TBD" && !form.targetMonth) {
+      window.alert("Defina um mês-alvo para esta meta.");
+      return;
+    }
+    setSavingGoal(true);
+    try {
+      await onSaveGoal({
+        type: form.type,
+        amount_cents: value,
+        target_month: form.type === "TBD" ? (form.targetMonth ? `${form.targetMonth}-01` : null) : null,
+        cadence: form.cadence
+      });
+      setIsEditingGoal(false);
+    } finally {
+      setSavingGoal(false);
+    }
+  };
+
+  const handleApplyGoal = async () => {
+    if (!projection || recommendedAssign <= 0) return;
+    setApplyingGoal(true);
+    try {
+      await onApplyGoal();
+    } finally {
+      setApplyingGoal(false);
+    }
+  };
+
+  const handleRemoveGoal = async () => {
+    if (!goal) return;
+    const confirmed = window.confirm("Remover meta desta categoria?");
+    if (!confirmed) return;
+    setRemovingGoal(true);
+    try {
+      await onRemoveGoal();
+      setIsEditingGoal(true);
+    } finally {
+      setRemovingGoal(false);
+    }
+  };
 
   return (
-    <div>
-      <header className="mb-4 flex items-start justify-between">
+    <div className="inspector__content">
+      <header className="inspector__header">
         <div>
-          <div className="flex items-center gap-2 text-lg font-semibold text-[var(--cc-text)]">
+          <div className="inspector__title">
             <span aria-hidden>{emoji}</span>
             <span>{category.name}</span>
           </div>
-          <p className="text-xs text-[var(--cc-text-muted)]">{category.group_name}</p>
+          <p className="inspector__subtitle">{category.group_name}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="inspector__header-actions">
           <button type="button" className="btn-link" onClick={onClose}>
             Limpar seleção
           </button>
           <button
             type="button"
-            className="rounded-full p-2 text-[var(--cc-text-muted)] hover:bg-[var(--tbl-row-hover)]"
-            aria-label="Renomear categoria"
+            className="inspector__icon-button"
+            aria-label="Mais ações"
             onClick={onRename}
           >
             <MoreVertical size={16} />
@@ -408,89 +568,215 @@ function CategoryInspector({ data, month, onClose, onAssign, onMove, onReset, on
         </div>
       </header>
 
-      <dl className="mb-4 grid grid-cols-2 gap-3 text-sm">
-        <div className="card">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">Disponível</dt>
-          <dd className="mt-1 text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(available)}</dd>
+      <section className="card inspector-card">
+        <div className="inspector-balance__header">
+          <div>
+            <h3 className="inspector-card__title">Saldo disponível</h3>
+            <p className="inspector-card__meta">Inclui {fmtBRL(prevAvailable)} de {previousMonthLabel}</p>
+          </div>
+          <p className={`inspector-balance__value ${available < 0 ? "inspector-balance__value--negative" : ""}`}>
+            {fmtBRL(available)}
+          </p>
         </div>
-        <div className="card">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">Atribuído</dt>
-          <dd className="mt-1 text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(assigned)}</dd>
-        </div>
-        <div className="card">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">Atividade</dt>
-          <dd className="mt-1 text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(activity)}</dd>
-        </div>
-        <div className="card">
-          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">Meta</dt>
-          <dd className="mt-1 text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(target)}</dd>
-        </div>
-      </dl>
 
-      <section className="card">
-        <header className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[var(--cc-text)]">Meta da categoria</h3>
-          <button
-            type="button"
-            className="rounded-md border border-[var(--cc-border)] px-2 py-1 text-xs font-semibold text-[var(--cc-text)] hover:bg-[var(--tbl-row-hover)]"
-            onClick={() => {
-              const input = window.prompt("Nova meta", fmtBRL(target));
-              if (!input) return;
-              const cents = normalizarValorMonetario(input);
-              onAssign(cents);
-            }}
-          >
-            Ajustar atribuição
+        <dl className="inspector-balance__grid">
+          <div>
+            <dt>Atribuído em {monthLabel}</dt>
+            <dd>{fmtBRL(assigned)}</dd>
+          </div>
+          <div>
+            <dt>Atividade em {monthLabel}</dt>
+            <dd>{fmtBRL(activity)}</dd>
+          </div>
+          <div>
+            <dt>Disponível vindo de {previousMonthLabel}</dt>
+            <dd>{fmtBRL(prevAvailable)}</dd>
+          </div>
+          <div>
+            <dt>Atribuído em {previousMonthLabel}</dt>
+            <dd>{fmtBRL(prevAssigned)}</dd>
+          </div>
+          <div>
+            <dt>Atividade em {previousMonthLabel}</dt>
+            <dd>{fmtBRL(prevActivity)}</dd>
+          </div>
+        </dl>
+
+        <div className="inspector-balance__actions">
+          <button type="button" className="btn-primary" onClick={handleAssign}>
+            Atribuir
           </button>
+          <button type="button" className="btn-link" onClick={handleMoveMoney}>
+            Mover dinheiro
+          </button>
+          <button type="button" className="btn-link" onClick={onReset}>
+            Zerar categoria
+          </button>
+        </div>
+      </section>
+
+      <section className="card inspector-card">
+        <header className="inspector-target__header">
+          <h3 className="inspector-card__title">Meta da categoria</h3>
+          {goal && !isEditingGoal ? (
+            <button type="button" className="btn-link" onClick={() => setIsEditingGoal(true)}>
+              Editar meta
+            </button>
+          ) : null}
         </header>
-        {projection ? (
-          <p className="text-xs text-[var(--cc-text-muted)]">Necessário este mês: {fmtBRL(projection.necessarioNoMes)}</p>
+
+        {isEditingGoal ? (
+          <form className="inspector-target__form" onSubmit={handleSubmitGoal}>
+            <div className="inspector-target__tabs" role="tablist">
+              {GOAL_FREQUENCY_OPTIONS.map((option) => (
+                <button
+                  key={option.cadence}
+                  type="button"
+                  role="tab"
+                  className={`inspector-target__tab ${form.cadence === option.cadence ? "inspector-target__tab--active" : ""}`}
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      cadence: option.cadence,
+                      type: option.type
+                    }))
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <label className="inspector-target__field">
+              <span>Preciso de</span>
+              <input
+                value={form.amountInput}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    amountInput: formatarInputMonetario(normalizarValorMonetario(event.target.value))
+                  }))
+                }
+                inputMode="numeric"
+              />
+            </label>
+
+            {form.type === "TBD" ? (
+              <label className="inspector-target__field">
+                <span>Até</span>
+                <input
+                  type="month"
+                  value={form.targetMonth ?? ""}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      targetMonth: event.target.value || null
+                    }))
+                  }
+                  required
+                />
+              </label>
+            ) : null}
+
+            <div className="inspector-target__actions">
+              <button type="button" className="btn-link" onClick={() => setIsEditingGoal(false)}>
+                Cancelar
+              </button>
+              {goal ? (
+                <button
+                  type="button"
+                  className="btn-link inspector-target__remove"
+                  onClick={handleRemoveGoal}
+                  disabled={removingGoal}
+                >
+                  {removingGoal ? "Removendo…" : "Remover meta"}
+                </button>
+              ) : null}
+              <button type="submit" className="btn-primary" disabled={savingGoal}>
+                {savingGoal ? "Salvando…" : "Salvar meta"}
+              </button>
+            </div>
+          </form>
+        ) : goal ? (
+          <div className="inspector-target__summary">
+            <div className="inspector-target__summary-head">
+              <div>
+                <p className="inspector-target__summary-type">{GOAL_TYPE_LABELS[goal.type]}</p>
+                <p className="inspector-target__summary-desc">{goalDescription(goal)}</p>
+              </div>
+              <p className="inspector-target__summary-amount">{fmtBRL(goal.amount_cents)}</p>
+            </div>
+
+            {projection ? (
+              <>
+                <div className="inspector-target__progress">
+                  <div className="inspector-target__progress-bar" aria-hidden>
+                    <span
+                      style={{ width: `${Math.min(100, Math.round((projection.progresso ?? 0) * 100))}%` }}
+                    />
+                  </div>
+                  <p className="inspector-target__progress-caption">
+                    Falta {fmtBRL(projection.falta)} para atingir {fmtBRL(projection.alvo)}.
+                  </p>
+                </div>
+                {recommendedAssign > 0 ? (
+                  <button
+                    type="button"
+                    className="btn-primary inspector-target__apply"
+                    onClick={handleApplyGoal}
+                    disabled={applyingGoal}
+                  >
+                    {applyingGoal
+                      ? "Aplicando…"
+                      : `Atribuir ${fmtBRL(recommendedAssign)}`}
+                  </button>
+                ) : null}
+                <dl className="inspector-target__grid">
+                  <div>
+                    <dt>Necessário este mês</dt>
+                    <dd>{fmtBRL(projection.necessarioNoMes)}</dd>
+                  </div>
+                  <div>
+                    <dt>Já atribuído</dt>
+                    <dd>{fmtBRL(projection.atribuido)}</dd>
+                  </div>
+                  <div>
+                    <dt>Saldo disponível</dt>
+                    <dd>{fmtBRL(allocation?.available_cents ?? 0)}</dd>
+                  </div>
+                </dl>
+              </>
+            ) : (
+              <p className="inspector-target__summary-empty">Nenhuma projeção disponível para esta meta.</p>
+            )}
+
+            <button
+              type="button"
+              className="btn-link inspector-target__remove"
+              onClick={handleRemoveGoal}
+              disabled={removingGoal}
+            >
+              {removingGoal ? "Removendo…" : "Remover meta"}
+            </button>
+          </div>
         ) : (
-          <p className="text-xs text-[var(--cc-text-muted)]">Nenhuma meta definida.</p>
+          <div className="inspector-target__empty">
+            <p>Defina um alvo para manter essa categoria sob controle.</p>
+            <button type="button" className="btn-primary" onClick={() => setIsEditingGoal(true)}>
+              Criar meta
+            </button>
+          </div>
         )}
       </section>
 
-      <section className="card">
-        <h3 className="text-sm font-semibold text-[var(--cc-text)]">Transações recentes</h3>
-        <p className="mt-2 text-xs text-[var(--cc-text-muted)]">Nenhuma transação encontrada para este mês.</p>
-      </section>
-
-      <section className="card">
-        <h3 className="mb-3 text-sm font-semibold text-[var(--cc-text)]">Ações rápidas</h3>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => {
-              const input = window.prompt("Atribuir valor", fmtBRL(assigned));
-              if (!input) return;
-              const cents = normalizarValorMonetario(input);
-              onAssign(cents);
-            }}
-          >
-            Atribuir
-          </button>
-          <button
-            type="button"
-            className="btn-link"
-            onClick={() => {
-              const input = window.prompt(
-                "Mover para pronto para atribuir",
-                fmtBRL(0)
-              );
-              if (!input) return;
-              const cents = normalizarValorMonetario(input);
-              if (cents <= 0) return;
-              onMove(cents);
-            }}
-          >
-            Mover
-          </button>
-          <button type="button" className="btn-link" onClick={onReset}>
-            Zerar
+      <section className="card inspector-card">
+        <h3 className="inspector-card__title">Organizar categoria</h3>
+        <div className="inspector-actions__grid">
+          <button type="button" className="btn-link" onClick={onRename}>
+            Renomear categoria
           </button>
           <button type="button" className="btn-link" onClick={onArchive}>
-            Arquivar
+            Arquivar categoria
           </button>
         </div>
       </section>
@@ -508,7 +794,10 @@ function InspectorPanel({
   onMove,
   onReset,
   onArchive,
-  onRename
+  onRename,
+  onSaveGoal,
+  onApplyGoal,
+  onRemoveGoal
 }: InspectorPanelProps) {
   return (
     <aside className="inspector" aria-label="Painel do orçamento">
@@ -522,6 +811,9 @@ function InspectorPanel({
           onReset={onReset}
           onArchive={onArchive}
           onRename={onRename}
+          onSaveGoal={onSaveGoal}
+          onApplyGoal={onApplyGoal}
+          onRemoveGoal={onRemoveGoal}
         />
       ) : (
         <SummaryInspector month={month} readyToAssign={readyToAssign} totals={totals} />
@@ -623,6 +915,9 @@ export default function BudgetMonthPage() {
   const ocultarCategoria = useBudgetPlannerStore((s) => s.ocultarCategoria);
   const excluirCategoria = useBudgetPlannerStore((s) => s.excluirCategoria);
   const editarAtribuido = useBudgetPlannerStore((s) => s.editarAtribuido);
+  const salvarMeta = useBudgetPlannerStore((s) => s.salvarMeta);
+  const aplicarMeta = useBudgetPlannerStore((s) => s.aplicarMeta);
+  const removerMeta = useBudgetPlannerStore((s) => s.removerMeta);
   const desfazer = useBudgetPlannerStore((s) => s.desfazer);
   const refazer = useBudgetPlannerStore((s) => s.refazer);
   const definirToast = useBudgetPlannerStore((s) => s.definirToast);
@@ -633,6 +928,7 @@ export default function BudgetMonthPage() {
   const groups = budgetPlannerSelectors.useGroups();
   const monthSelected = budgetPlannerSelectors.useMonth();
   const currentMonth = monthSelected ?? mesAtual();
+  const previousMonth = shiftMonth(currentMonth, -1);
   const readyToAssign = budgetPlannerSelectors.useReadyToAssign(currentMonth);
   const totals = budgetPlannerSelectors.useTotals(currentMonth);
   const toast = budgetPlannerSelectors.useToast();
@@ -774,12 +1070,14 @@ export default function BudgetMonthPage() {
     if (!selectedId) return null;
     const category = categories.find((item) => item.id === selectedId);
     if (!category) return null;
+    const previousAllocation = allocations[category.id]?.[previousMonth];
     return {
       category,
       allocation: allocations[category.id]?.[currentMonth],
+      previousAllocation,
       goal: goals[category.id]
     };
-  }, [allocations, categories, currentMonth, goals, selectedId]);
+  }, [allocations, categories, currentMonth, goals, previousMonth, selectedId]);
 
   const modalCategory = categories.find((cat) => cat.id === ui.nameModalId) ?? null;
 
@@ -905,6 +1203,18 @@ export default function BudgetMonthPage() {
             onRename={() => {
               if (!selectedData) return;
               abrirModalNome(selectedData.category.id);
+            }}
+            onSaveGoal={async (payload) => {
+              if (!selectedData) return;
+              await salvarMeta(selectedData.category.id, payload);
+            }}
+            onApplyGoal={async () => {
+              if (!selectedData) return;
+              await aplicarMeta(selectedData.category.id);
+            }}
+            onRemoveGoal={async () => {
+              if (!selectedData) return;
+              await removerMeta(selectedData.category.id);
             }}
           />
         </section>
