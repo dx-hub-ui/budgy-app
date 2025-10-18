@@ -220,12 +220,14 @@ function AccountLedger({
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-3xl border border-[var(--cc-border)] bg-white/90 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm font-medium text-[var(--cc-text)]">Lançamentos</div>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+          Lançamentos
+        </div>
+        <div className="flex w-full items-center gap-3 sm:w-auto">
           <input
             type="search"
-            className="h-10 flex-1 rounded-xl border border-[var(--cc-border)] px-3 text-sm"
+            className="h-10 flex-1 rounded-lg border border-[var(--cc-border)] px-3 text-sm shadow-none focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30"
             placeholder="Buscar por descrição, categoria ou memo"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -234,7 +236,7 @@ function AccountLedger({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-[var(--cc-border)] bg-white">
+      <div className="overflow-hidden rounded-xl border border-[var(--cc-border)] bg-white">
         <table className="min-w-full divide-y divide-[var(--cc-border)]">
           <thead className="bg-[var(--brand-soft-fill)]/40 text-[var(--cc-text-muted)]">
             <tr>
@@ -708,18 +710,18 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="h-full overflow-auto bg-[var(--cc-bg)]">
-      <div className="mx-auto flex min-h-full w-full max-w-[1360px] gap-6 px-6 py-8">
-        <AccountSidebar
-          planName={planName}
-          contact={contactEmail}
-          totalBalanceCents={totalBalanceCents}
-          groups={sidebarGroups}
-        />
+    <div className="flex h-full bg-white">
+      <AccountSidebar
+        planName={planName}
+        contact={contactEmail}
+        totalBalanceCents={totalBalanceCents}
+        groups={sidebarGroups}
+      />
 
-        <div className="flex min-w-0 flex-1 flex-col gap-6 pb-10">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 min-h-0 flex-col gap-6 overflow-y-auto px-6 py-6">
           {pageError && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {pageError}
             </div>
           )}
@@ -736,7 +738,7 @@ export default function AccountPage() {
               />
 
               {(showTransferInfo || showReconcileInfo) && (
-                <div className="space-y-3 rounded-3xl border border-[var(--cc-border)] bg-white/90 p-5 text-sm text-[var(--cc-text)]">
+                <div className="space-y-4 rounded-lg border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/20 p-5 text-sm text-[var(--cc-text)]">
                   {showTransferInfo && (
                     <div>
                       <h2 className="text-base font-semibold">Como registrar uma transferência</h2>
@@ -770,7 +772,7 @@ export default function AccountPage() {
               />
             </>
           ) : (
-            <div className="rounded-3xl border border-[var(--cc-border)] bg-white/80 p-8 text-center text-sm text-[var(--cc-text-muted)]">
+            <div className="rounded-lg border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-text-muted)]">
               Crie uma conta para começar a registrar suas movimentações.
             </div>
           )}

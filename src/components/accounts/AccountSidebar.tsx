@@ -37,18 +37,16 @@ type Props = {
 
 export default function AccountSidebar({ planName, contact, totalBalanceCents, groups }: Props) {
   return (
-    <aside className="flex h-full w-[260px] flex-col gap-6 rounded-3xl border border-[var(--cc-border)] bg-white/90 p-5 shadow-sm">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Plano</p>
-        <div className="rounded-2xl bg-[var(--brand-soft-fill)] px-4 py-3">
-          <p className="text-sm font-semibold text-[var(--cc-text)]">{planName}</p>
-          {contact && (
-            <p className="text-xs text-[var(--cc-text-muted)]">{contact}</p>
-          )}
+    <aside className="flex w-full flex-col gap-8 border-b border-[var(--cc-border)] bg-white px-4 py-6 lg:h-full lg:w-[260px] lg:shrink-0 lg:border-b-0 lg:border-r xl:w-[280px]">
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Plano</p>
+          <p className="mt-1 text-sm font-semibold text-[var(--cc-text)]">{planName}</p>
+          {contact && <p className="text-xs text-[var(--cc-text-muted)]">{contact}</p>}
         </div>
-        <div className="rounded-2xl border border-dashed border-[var(--cc-border)] px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-[var(--cc-text-muted)]">Saldo total</p>
-          <p className="text-lg font-semibold text-[var(--cc-text)]">{formatCurrency(totalBalanceCents)}</p>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Saldo total</p>
+          <p className="text-xl font-semibold text-[var(--cc-text)]">{formatCurrency(totalBalanceCents)}</p>
         </div>
       </div>
 
@@ -64,10 +62,10 @@ export default function AccountSidebar({ planName, contact, totalBalanceCents, g
                   <li key={account.id}>
                     <Link
                       href={account.href}
-                      className={`flex items-center justify-between rounded-xl border px-3 py-2 text-sm transition ${
+                      className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
                         account.isActive
-                          ? "border-[var(--brand)] bg-[var(--brand-soft-bg)] text-[var(--cc-text)]"
-                          : "border-transparent bg-white/40 text-[var(--cc-text-muted)] hover:border-[var(--brand-soft-fill-strong)] hover:text-[var(--cc-text)]"
+                          ? "bg-[var(--brand-soft-fill)] text-[var(--cc-text)] font-semibold"
+                          : "text-[var(--cc-text-muted)] hover:bg-[var(--brand-soft-fill)]/60 hover:text-[var(--cc-text)]"
                       }`}
                       aria-current={account.isActive ? "page" : undefined}
                     >
@@ -87,7 +85,7 @@ export default function AccountSidebar({ planName, contact, totalBalanceCents, g
       <div>
         <Link
           href="/contas/nova"
-          className="flex h-11 w-full items-center justify-center rounded-xl bg-[var(--cc-accent)] text-sm font-semibold text-slate-900 transition hover:brightness-95"
+          className="flex h-11 w-full items-center justify-center rounded-lg bg-[var(--cc-accent)] text-sm font-semibold text-slate-900 transition hover:brightness-95"
         >
           Adicionar conta
         </Link>

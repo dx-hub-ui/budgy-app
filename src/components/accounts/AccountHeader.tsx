@@ -44,7 +44,7 @@ export default function AccountHeader({
   const cards = useMemo(() => metrics, [metrics]);
 
   return (
-    <header className="space-y-6 rounded-3xl border border-[var(--cc-border)] bg-white/90 p-6 shadow">
+    <header className="space-y-6 border-b border-[var(--cc-border)] pb-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -58,21 +58,21 @@ export default function AccountHeader({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
             onClick={onAddTransaction}
           >
             Adicionar transação
           </button>
           <button
             type="button"
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
             onClick={onAddTransfer}
           >
             Adicionar transferência
           </button>
           <button
             type="button"
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-[var(--cc-accent)] px-4 text-sm font-semibold text-slate-900 transition hover:brightness-95"
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--cc-accent)] px-4 text-sm font-semibold text-slate-900 transition hover:brightness-95"
             onClick={onReconcile}
           >
             Reconciliar
@@ -80,7 +80,7 @@ export default function AccountHeader({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-3">
         {cards.map((metric) => {
           const toneClass = metric.tone === "positive"
             ? "text-emerald-600"
@@ -88,17 +88,12 @@ export default function AccountHeader({
             ? "text-rose-600"
             : "text-[var(--cc-text)]";
           return (
-            <div
-              key={metric.id}
-              className="rounded-2xl border border-[var(--cc-border)] bg-white/70 px-4 py-3"
-            >
+            <div key={metric.id} className="space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                 {metric.label}
               </p>
-              <p className={`text-xl font-semibold ${toneClass}`}>{formatCurrency(metric.valueCents)}</p>
-              {metric.helper && (
-                <p className="text-xs text-[var(--cc-text-muted)]">{metric.helper}</p>
-              )}
+              <p className={`text-2xl font-semibold ${toneClass}`}>{formatCurrency(metric.valueCents)}</p>
+              {metric.helper && <p className="text-xs text-[var(--cc-text-muted)]">{metric.helper}</p>}
             </div>
           );
         })}
