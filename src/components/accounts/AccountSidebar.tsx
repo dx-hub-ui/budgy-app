@@ -37,7 +37,7 @@ type Props = {
 
 export default function AccountSidebar({ planName, contact, totalBalanceCents, groups }: Props) {
   return (
-    <aside className="hidden h-full w-[260px] shrink-0 flex-col gap-8 border-r border-[var(--cc-border)] bg-white px-4 py-6 lg:flex xl:w-[280px]">
+    <aside className="flex w-full flex-col gap-8 border-b border-[var(--cc-border)] bg-white px-4 py-6 lg:h-full lg:w-[260px] lg:shrink-0 lg:border-b-0 lg:border-r xl:w-[280px]">
       <div className="space-y-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Plano</p>
