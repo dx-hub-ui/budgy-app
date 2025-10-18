@@ -270,7 +270,7 @@ function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, 
 
   return (
     <div
-      className="row tabular"
+      className="row tabular cursor-pointer"
       role="row"
       tabIndex={0}
       aria-selected={selected}
@@ -283,16 +283,18 @@ function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, 
         <span className="shrink-0" aria-hidden>
           {emoji}
         </span>
-        <button
-          type="button"
-          className="flex-1 truncate text-left text-sm font-medium text-[var(--cc-text)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
-          onClick={(event) => {
-            event.stopPropagation();
-            onRename();
-          }}
-        >
-          {category.name}
-        </button>
+        <div className="flex-1 overflow-hidden">
+          <button
+            type="button"
+            className="inline-flex max-w-full truncate text-left text-sm font-medium text-[var(--cc-text)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRename();
+            }}
+          >
+            <span className="truncate">{category.name}</span>
+          </button>
+        </div>
         {renderProgress({ allocation, goal })}
       </div>
       <div className="flex justify-end pr-2">
