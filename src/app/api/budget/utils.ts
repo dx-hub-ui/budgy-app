@@ -183,10 +183,21 @@ export function calcularAAtribuir(entradas: number, totalAtribuido: number) {
 
 export function handleError(error: any) {
   console.error(error);
-  return NextResponse.json(
-    { message: error?.message ?? "Erro inesperado" },
-    { status: error?.status ?? 500 }
-  );
+
+  if (error instanceof TypeError && typeof error.message === "string" && error.message.includes("fetch failed")) {
+    return NextResponse.json(
+      {
+        message:
+          "Não foi possível conectar ao Supabase. Verifique a configuração das variáveis NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY."
+      },
+      { status: 503 }
+    );
+  }
+
+  const status = typeof error?.status === "number" && error.status >= 400 ? error.status : 500;
+  const message = typeof error?.message === "string" && error.message.trim().length > 0 ? error.message : "Erro inesperado";
+
+  return NextResponse.json({ message }, { status });
 }
 
 export async function loadBudgetSnapshot(
