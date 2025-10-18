@@ -128,3 +128,6 @@ no banco. Se algo falhar, rode novamente as migrations com `supabase db reset` a
 - When developing offline or before Supabase credentials are configured correctly, the app may briefly show the `Carregando…` sta
   te before redirecting you back to `/login`. The AuthGate now treats initialization errors as an unauthenticated state so you can
   recover by fixing the connection or credentials and attempting to log in again.
+- Requests to `/api/budget/allocation` (and the remaining budget module routes) now return `503 Serviço indisponível` with the message
+  "Não foi possível conectar ao Supabase" when the RPC or tables are unreachable. Double-check the `NEXT_PUBLIC_SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` variables and the network connectivity before retrying.
