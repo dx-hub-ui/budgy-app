@@ -10,6 +10,7 @@ Esta página descreve a implementação da rota `/como-usar`, que transforma o d
 - **Rotina de aplicação**: distribui tarefas em cadências diária, semanal e mensal.
 - **Princípios**: transforma os princípios do método em comportamentos observáveis.
 - **Delta**: destaca o que já está coberto na plataforma e o que ainda depende de evolução.
+- **Acessibilidade textual**: usamos aspas tipográficas para destacar ações da interface sem quebrar as regras de linting do React.
 
 ## Acessos rápidos
 

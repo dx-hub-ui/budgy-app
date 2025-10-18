@@ -54,6 +54,56 @@ async function ensureProfile(userId) {
   }
 }
 
+async function ensureAccounts(userId) {
+  const definitions = [
+    { name: 'Conta Corrente', type: 'checking', default_method: 'debito', group_label: 'Contas bancárias', sort: 0 },
+    { name: 'Carteira', type: 'cash', default_method: 'dinheiro', group_label: 'Contas bancárias', sort: 1 },
+    { name: 'Carteira Pix', type: 'cash', default_method: 'pix', group_label: 'Contas bancárias', sort: 2 },
+    { name: 'Cartão de Crédito', type: 'credit', default_method: 'credito', group_label: 'Cartões de crédito', sort: 0 },
+  ];
+
+  const accounts = new Map();
+
+  for (const definition of definitions) {
+    const { data: existingAccount, error: fetchError } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('name', definition.name)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new Error(`Failed to lookup account ${definition.name}: ${fetchError.message}`);
+    }
+
+    if (existingAccount) {
+      accounts.set(definition.name, existingAccount.id);
+      continue;
+    }
+
+    const { data: insertedAccount, error: insertError } = await supabase
+      .from('accounts')
+      .insert({
+        user_id: userId,
+        name: definition.name,
+        type: definition.type,
+        default_method: definition.default_method,
+        group_label: definition.group_label,
+        sort: definition.sort,
+      })
+      .select('id')
+      .single();
+
+    if (insertError) {
+      throw new Error(`Failed to create account ${definition.name}: ${insertError.message}`);
+    }
+
+    accounts.set(definition.name, insertedAccount.id);
+  }
+
+  return accounts;
+}
+
 async function ensureCategories(userId) {
   const definitions = [
     { name: 'Alimentação', color: '#22c55e' },
@@ -102,7 +152,7 @@ async function ensureCategories(userId) {
   return categories;
 }
 
-async function ensureExpenses(userId, categories) {
+async function ensureExpenses(userId, categories, accounts) {
   const expenses = [
     {
       amount_cents: 34900,
@@ -183,6 +233,13 @@ async function ensureExpenses(userId, categories) {
     },
   ];
 
+  const methodToAccount = new Map([
+    ['debito', accounts.get('Conta Corrente')],
+    ['dinheiro', accounts.get('Carteira')],
+    ['pix', accounts.get('Carteira Pix')],
+    ['credito', accounts.get('Cartão de Crédito')],
+  ]);
+
   for (const expense of expenses) {
     let query = supabase
       .from('expenses')
@@ -216,6 +273,9 @@ async function ensureExpenses(userId, categories) {
       method: expense.method,
       description: expense.description,
       category_id: expense.category ? categories.get(expense.category) ?? null : null,
+      memo: expense.memo ?? null,
+      account_id: methodToAccount.get(expense.method) ?? null,
+      direction: expense.direction ?? 'outflow',
     });
 
     if (insertError) {
@@ -227,8 +287,11 @@ async function ensureExpenses(userId, categories) {
 async function main() {
   const userId = await ensureDemoUser();
   await ensureProfile(userId);
-  const categories = await ensureCategories(userId);
-  await ensureExpenses(userId, categories);
+  const [accounts, categories] = await Promise.all([
+    ensureAccounts(userId),
+    ensureCategories(userId),
+  ]);
+  await ensureExpenses(userId, categories, accounts);
   console.log('Development data seeded successfully.');
 }
 

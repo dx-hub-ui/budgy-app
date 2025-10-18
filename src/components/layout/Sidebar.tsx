@@ -9,6 +9,7 @@ import {
   Receipt,
   FileDown,
   BookOpenCheck,
+  Wallet2,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -37,6 +38,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
 
   const items: SidebarItem[] = [
     { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
+    { href: "/contas", label: "Contas", icon: Wallet2, isActive: (path) => path.startsWith("/contas") },
     {
       href: `/budgets/${currentMonth}`,
       label: "Orçamento",
