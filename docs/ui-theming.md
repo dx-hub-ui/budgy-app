@@ -7,8 +7,8 @@
 - O logotipo exibido no topo da barra lateral respeita o tema ativo, utilizando as versões claras e escuras disponibilizadas em `/public/brand`.
 
 ## Esquema de cores do painel
-- O painel financeiro replica o visual navy + mint da referência: fundo claro `--cc-bg` (`#f5f7fb`), superfícies elevadas `--cc-bg-elev` (`#ffffff`) e destaque principal em verde `--brand` (`#7cc46e`). Tokens derivados (`--ring`, `--brand-soft-*`, `--chart-grid`) foram ajustados para manter brilho controlado e contraste alto.
-- O tema escuro usa contrapartes azul-marinho profundas (`--cc-bg` `#0b1220`, `--cc-bg-elev` `#0f172a`, `--cc-surface` `#111827`) com o mesmo verde de destaque, preservando a hierarquia luminosa do layout.
+- O painel financeiro replica o visual navy + mint da referência: fundo claro `--cc-bg` (`#f5f7fb`), superfícies elevadas `--cc-bg-elev` (`#ffffff`) e destaque principal em verde `--brand` (`#c2f680`). Tokens derivados (`--ring`, `--brand-soft-*`, `--chart-grid`) foram ajustados para manter brilho controlado e contraste alto.
+- O tema escuro usa contrapartes azul-marinho profundas (`--cc-bg` `#0b1220`, `--cc-bg-elev` `#0f172a`, `--cc-surface` `#111827`) com o mesmo verde de destaque suave, preservando a hierarquia luminosa do layout.
 - A barra lateral permanece com fundo marinho fixo `#0b1220` em ambos os temas e aplica foregrounds semitransparentes (`--sidebar-foreground`, `--sidebar-muted`) para maximizar o contraste de texto e ícones, além de bordas suaves (`--sidebar-border`).
 - Estados positivos dos componentes (ex.: métricas, transações concluídas) continuam a reaproveitar os tokens suaves `--brand-soft-*`, agora com opacidades revisadas para que badges e gráficos tenham presença visual semelhante nos dois temas.
 
