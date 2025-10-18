@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { ensureBudgetSchema, getContext, handleError } from "../utils";
+import type { PostgrestMaybeSingleResponse, PostgrestSingleResponse } from "@supabase/supabase-js";
+
+import type { BudgetCategory } from "@/domain/budgeting";
+
+import { ensureBudgetSchema, getContext, handleError, withFetchRetry } from "../utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,30 +24,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Informe um nome válido" }, { status: 400 });
     }
 
-    const { data: lastSortRow, error: lastSortError } = await supabase
-      .from("budget_categories")
-      .select("sort")
-      .eq("org_id", orgId)
-      .eq("group_name", groupName)
-      .order("sort", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    type SortRow = { sort: number | null };
+    const { data: lastSortRow, error: lastSortError } = await withFetchRetry<
+      PostgrestMaybeSingleResponse<SortRow>
+    >(() =>
+      supabase
+        .from("budget_categories")
+        .select("sort")
+        .eq("org_id", orgId)
+        .eq("group_name", groupName)
+        .order("sort", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    );
 
     if (lastSortError) throw lastSortError;
 
     const nextSort = (lastSortRow?.sort ?? 0) + 100;
 
-    const { data, error } = await supabase
-      .from("budget_categories")
-      .insert({
-        org_id: orgId,
-        group_name: groupName,
-        name,
-        icon,
-        sort: nextSort
-      })
-      .select("*")
-      .single();
+    const { data, error } = await withFetchRetry<PostgrestSingleResponse<BudgetCategory>>(() =>
+      supabase
+        .from("budget_categories")
+        .insert({
+          org_id: orgId,
+          group_name: groupName,
+          name,
+          icon,
+          sort: nextSort
+        })
+        .select("*")
+        .single()
+    );
 
     if (error) throw error;
 
