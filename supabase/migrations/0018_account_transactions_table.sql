@@ -34,9 +34,10 @@ begin
       and tablename = 'account_transactions'
       and policyname = 'account_transactions_org'
   ) then
-    execute $$create policy "account_transactions_org" on public.account_transactions
-      for all using (org_id = current_org())
-      with check (org_id = current_org())$$;
+    execute 'create policy account_transactions_org on public.account_transactions\n'
+      '  for all\n'
+      '  using (org_id = current_org())\n'
+      '  with check (org_id = current_org());';
   end if;
 end;
 $$;
@@ -49,9 +50,9 @@ begin
     where tgname = 't_account_transactions_touch'
       and tgrelid = 'public.account_transactions'::regclass
   ) then
-    execute $$create trigger t_account_transactions_touch
-      before update on public.account_transactions
-      for each row execute function public.touch_updated_at()$$;
+    execute 'create trigger t_account_transactions_touch\n'
+      '  before update on public.account_transactions\n'
+      '  for each row execute function public.touch_updated_at();';
   end if;
 end;
 $$;
