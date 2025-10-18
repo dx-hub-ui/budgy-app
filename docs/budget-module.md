@@ -58,12 +58,12 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
    - Toda a linha responde ao clique para carregar o painel lateral, enquanto apenas o texto do nome da categoria abre o modal de edição, evitando acionar a renomeação ao tocar nos espaços vazios da linha.
    - A seleção grava o `id` da categoria na query string (`?cat=`) e atualiza imediatamente o painel de detalhes sem recarregar a página, preservando o compartilhamento de links e o estado atual do mês.
 5. **Modal de nome** – abre ao clicar no nome da categoria. Permite renomear, ocultar e excluir (soft delete) com acessibilidade (`aria-modal`, foco inicial no campo) e uma confirmação inline (sem `window.confirm`) antes de efetivar a exclusão.
-6. **Painel lateral da categoria** – inspirado no inspector do YNAB, substitui o antigo drawer multi-etapas. Ao selecionar uma linha do grid:
-   - Um card de **Saldo disponível** mostra o valor atual, destaca o rollover do mês anterior (`prev_available_cents`) e lista rapidamente atribuição e atividade do mês corrente e anterior.
-   - A seção **Meta da categoria** concentra criação, edição e remoção do alvo financeiro. As tabs Semanal/Mensal/Anual/Personalizado continuam disponíveis, mas agora ficam inline, com formulário compacto e botão único de "Salvar meta".
-   - O formulário mantém estado inicial mesmo quando a categoria é alternada rapidamente, garantindo que a UI nunca quebre as regras de hooks do React ao montar/desmontar o painel.
-   - Quando existe meta ativa, o painel exibe progress bar, resumo "Necessário este mês / Já atribuído / Saldo disponível" e CTA "Atribuir" que dispara `POST /goal/:id/apply` usando `calcularProjecaoMeta` para sugerir o valor restante.
-   - A parte inferior agrupa ações administrativas (renomear, arquivar) e mantém os atalhos rápidos de atribuir, mover dinheiro e zerar a categoria diretamente no card principal, agora usando modais próprios para entrada de valores (substituindo `window.prompt`).
+6. **Painel lateral da categoria** – ocupa uma única coluna expandida com um cartão consolidado e três estados claros:
+   - O cabeçalho traz o emoji, nome e grupo da categoria, além de um menu contextual (`…`) com ações de **Renomear** e **Arquivar**.
+   - O cartão principal inicia com o resumo de **Saldo disponível**, incluindo rollover do mês anterior e três destaques compactos (atribuído no mês, gasto no mês e sobra do mês anterior).
+   - Sem meta cadastrada, o conteúdo exibe apenas a mensagem introdutória e o botão único **Criar meta**, mantendo o painel limpo como no mock.
+   - Ao criar/editar, o formulário compacto mantém as tabs Semanal/Mensal/Anual/Personalizado, o campo "Preciso de" e, para metas com data, o seletor "Até". Os botões "Cancelar", "Criar meta"/"Salvar alterações" e "Excluir meta" permanecem na borda inferior.
+   - Com a meta ativa, o cartão mostra o anel de progresso âmbar, a recomendação calculada (`calcularProjecaoMeta`), o botão **Atribuir R$X** e os cards "Necessário este mês / Já atribuído / Saldo disponível", seguidos do link para remover a meta.
 7. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store. Todos os alertas/erros dos fluxos de orçamento passam a usar toasts ou mensagens inline, sem diálogos nativos do navegador.
 8. **Distribuição automática** – o botão "Atribuir" do cabeçalho abre um modal que distribui automaticamente o saldo `Pronto para atribuir` entre as categorias selecionadas. O modal lista todas as categorias com checkboxes, permite selecionar/limpar em massa e antecipa quanto cada categoria receberá e qual será o novo total antes de confirmar.
 
