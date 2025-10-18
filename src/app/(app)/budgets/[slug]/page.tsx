@@ -598,7 +598,7 @@ function CategoryInspector({
   onRemoveGoal
 }: CategoryInspectorProps) {
   const goal = data?.goal;
-  const [isEditingGoal, setIsEditingGoal] = useState(() => !goal);
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [form, setForm] = useState<GoalFormState>(() => getInitialGoalForm(goal));
   const [savingGoal, setSavingGoal] = useState(false);
   const [applyingGoal, setApplyingGoal] = useState(false);
@@ -612,7 +612,7 @@ function CategoryInspector({
 
   useEffect(() => {
     setForm(getInitialGoalForm(goal));
-    setIsEditingGoal(!goal);
+    setIsEditingGoal(false);
   }, [goal]);
 
   if (!data) return null;
@@ -630,8 +630,34 @@ function CategoryInspector({
   const previousMonthKey = shiftMonth(month, -1);
   const previousMonthLabel = formatMonthLabel(previousMonthKey);
 
-  const amountCents = normalizarValorMonetario(form.amountInput);
   const recommendedAssign = projection ? Math.max(projection.falta, projection.necessarioNoMes) : 0;
+  const progressPercent = projection ? Math.min(100, Math.round((projection.progresso ?? 0) * 100)) : 0;
+
+  const summaryItems: Array<{ label: string; value: string }> = [
+    { label: "Saldo que sobrou do mês passado", value: fmtBRL(prevAvailable) },
+    { label: `Atribuído em ${monthLabel}`, value: fmtBRL(assigned) },
+    { label: `Atividade em ${monthLabel}`, value: fmtBRL(activity) },
+    { label: `Atividade em ${previousMonthLabel}`, value: fmtBRL(prevActivity) }
+  ];
+
+  const autoAssignStats: Array<{ label: string; value: string }> = [
+    { label: "Atribuído no último mês", value: fmtBRL(prevAssigned) },
+    { label: "Gasto no último mês", value: fmtBRL(prevActivity) },
+    { label: "Atribuído este mês", value: fmtBRL(assigned) },
+    { label: "Gasto este mês", value: fmtBRL(activity) },
+    { label: "Disponível", value: fmtBRL(available) },
+    { label: "Sugerido para a meta", value: fmtBRL(Math.max(recommendedAssign, 0)) }
+  ];
+
+  const startEditingGoal = () => {
+    setForm(getInitialGoalForm(goal));
+    setIsEditingGoal(true);
+  };
+
+  const handleCancelGoal = () => {
+    setForm(getInitialGoalForm(goal));
+    setIsEditingGoal(false);
+  };
 
   const handleAssign = () => {
     setAssignModalOpen(true);
@@ -692,7 +718,11 @@ function CategoryInspector({
         target_month: form.type === "TBD" ? (form.targetMonth ? `${form.targetMonth}-01` : null) : null,
         cadence: form.cadence
       });
+      definirToast({ type: "success", message: "Meta salva com sucesso." });
       setIsEditingGoal(false);
+    } catch (error) {
+      console.error(error);
+      definirToast({ type: "error", message: "Não foi possível salvar a meta." });
     } finally {
       setSavingGoal(false);
     }
@@ -703,6 +733,10 @@ function CategoryInspector({
     setApplyingGoal(true);
     try {
       await onApplyGoal();
+      definirToast({ type: "success", message: "Valor atribuído conforme a meta." });
+    } catch (error) {
+      console.error(error);
+      definirToast({ type: "error", message: "Não foi possível aplicar a meta." });
     } finally {
       setApplyingGoal(false);
     }
@@ -721,7 +755,8 @@ function CategoryInspector({
     setRemovingGoal(true);
     try {
       await onRemoveGoal();
-      setIsEditingGoal(true);
+      setIsEditingGoal(false);
+      setForm(getInitialGoalForm(undefined));
       setConfirmRemoveOpen(false);
       definirToast({ type: "info", message: "Meta removida." });
     } catch (error) {
@@ -732,24 +767,225 @@ function CategoryInspector({
     }
   };
 
+  const goalContent = (() => {
+    if (isEditingGoal) {
+      return (
+        <form className="space-y-5" onSubmit={handleSubmitGoal}>
+          <div className="flex flex-wrap gap-2" role="tablist">
+            {GOAL_FREQUENCY_OPTIONS.map((option) => (
+              <button
+                key={option.cadence}
+                type="button"
+                role="tab"
+                className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
+                  form.cadence === option.cadence
+                    ? "border-amber-500 bg-amber-50 text-[var(--cc-text)]"
+                    : "border-[var(--cc-border)] bg-[var(--cc-bg-elev)] text-[var(--cc-text-muted)] hover:border-[var(--cc-text-muted)]"
+                }`}
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    cadence: option.cadence,
+                    type: option.type
+                  }))
+                }
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--cc-text)]">
+            <span>Preciso de</span>
+            <input
+              value={form.amountInput}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  amountInput: formatarInputMonetario(normalizarValorMonetario(event.target.value))
+                }))
+              }
+              inputMode="numeric"
+              className="rounded-xl border border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-2 text-sm font-semibold shadow-sm focus:border-[var(--ring)] focus:outline-none"
+            />
+          </label>
+
+          {form.type === "TBD" ? (
+            <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--cc-text)]">
+              <span>Até</span>
+              <input
+                type="month"
+                value={form.targetMonth ?? ""}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    targetMonth: event.target.value || null
+                  }))
+                }
+                required
+                className="rounded-xl border border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-2 text-sm font-semibold shadow-sm focus:border-[var(--ring)] focus:outline-none"
+              />
+            </label>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[var(--cc-border)] pt-4">
+            {goal ? (
+              <button
+                type="button"
+                className="mr-auto text-sm font-semibold text-[var(--state-danger)] hover:underline"
+                onClick={handleRemoveGoal}
+                disabled={removingGoal}
+              >
+                {removingGoal ? "Removendo…" : "Excluir meta"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="rounded-full border border-[var(--cc-border)] px-4 py-2 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--cc-bg-elev)]"
+              onClick={handleCancelGoal}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="rounded-full bg-[var(--cc-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={savingGoal}
+            >
+              {savingGoal ? "Salvando…" : goal ? "Salvar alterações" : "Criar meta"}
+            </button>
+          </div>
+        </form>
+      );
+    }
+
+    if (!goal) {
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--cc-text-muted)]">
+            Quando você cria uma meta, nós te avisamos quanto reservar todo mês para manter {category.name} sob controle.
+          </p>
+          <button
+            type="button"
+            className="w-full rounded-full bg-[var(--cc-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 sm:w-auto"
+            onClick={startEditingGoal}
+          >
+            Criar meta
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">{GOAL_TYPE_LABELS[goal.type]}</p>
+            <p className="mt-1 text-sm text-[var(--cc-text-muted)]">{goalDescription(goal)}</p>
+          </div>
+          <p className="text-xl font-semibold text-[var(--cc-text)]">{fmtBRL(goal.amount_cents)}</p>
+        </div>
+
+        {projection ? (
+          <div className="space-y-6">
+            <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+              <div className="relative flex h-28 w-28 items-center justify-center">
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: `conic-gradient(#f97316 ${progressPercent * 3.6}deg, #fef3c7 0deg)`
+                  }}
+                  aria-hidden
+                />
+                <div className="absolute inset-3 rounded-full bg-[var(--cc-surface)]" />
+                <span className="relative text-lg font-semibold text-[var(--cc-text)]">{progressPercent}%</span>
+              </div>
+              <div className="space-y-2 text-center text-sm text-[var(--cc-text)] sm:text-left">
+                <p className="font-semibold">
+                  {recommendedAssign > 0
+                    ? `Separe ${fmtBRL(recommendedAssign)} para alcançar a meta deste mês.`
+                    : "Você está em dia com esta meta."}
+                </p>
+                <p className="text-[var(--cc-text-muted)]">
+                  Alcance {fmtBRL(projection.alvo)} mantendo as contribuições planejadas.
+                </p>
+              </div>
+            </div>
+
+            {recommendedAssign > 0 ? (
+              <button
+                type="button"
+                className="w-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+                onClick={handleApplyGoal}
+                disabled={applyingGoal}
+              >
+                {applyingGoal ? "Aplicando…" : `Atribuir ${fmtBRL(recommendedAssign)}`}
+              </button>
+            ) : null}
+
+            <dl className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl bg-[var(--cc-bg-elev)] px-4 py-3 text-sm">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Necessário este mês</dt>
+                <dd className="mt-1 text-base font-semibold text-[var(--cc-text)]">
+                  {fmtBRL(projection.necessarioNoMes)}
+                </dd>
+              </div>
+              <div className="rounded-2xl bg-[var(--cc-bg-elev)] px-4 py-3 text-sm">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Já atribuído</dt>
+                <dd className="mt-1 text-base font-semibold text-[var(--cc-text)]">{fmtBRL(projection.atribuido)}</dd>
+              </div>
+              <div className="rounded-2xl bg-[var(--cc-bg-elev)] px-4 py-3 text-sm">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Saldo disponível</dt>
+                <dd className="mt-1 text-base font-semibold text-[var(--cc-text)]">
+                  {fmtBRL(allocation?.available_cents ?? 0)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--cc-text-muted)]">Nenhuma projeção disponível para esta meta.</p>
+        )}
+
+        <div className="flex flex-wrap justify-between gap-3 border-t border-[var(--cc-border)] pt-4">
+          <button
+            type="button"
+            className="text-sm font-semibold text-[var(--cc-text)] underline-offset-4 hover:underline"
+            onClick={startEditingGoal}
+          >
+            Editar meta
+          </button>
+          <button
+            type="button"
+            className="text-sm font-semibold text-[var(--state-danger)] underline-offset-4 hover:underline"
+            onClick={handleRemoveGoal}
+            disabled={removingGoal}
+          >
+            {removingGoal ? "Removendo…" : "Remover meta"}
+          </button>
+        </div>
+      </div>
+    );
+  })();
+
   return (
-    <div className="inspector__content">
-      <header className="inspector__header">
-        <div>
-          <div className="inspector__title">
-            <span aria-hidden>{emoji}</span>
+    <div className="flex h-full flex-col gap-4">
+      <header className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-base font-semibold text-[var(--cc-text)]">
+            <span aria-hidden className="text-lg">
+              {emoji}
+            </span>
             <span>{category.name}</span>
           </div>
-          <p className="inspector__subtitle">{category.group_name}</p>
+          <p className="text-xs text-[var(--cc-text-muted)]">{category.group_name}</p>
         </div>
-        <div className="inspector__header-actions">
-          <button type="button" className="btn-link" onClick={onClose}>
+        <div className="flex items-center gap-2">
+          <button type="button" className="text-sm font-semibold text-[var(--cc-text-muted)] hover:underline" onClick={onClose}>
             Limpar seleção
           </button>
           <button
             type="button"
-            className="inspector__icon-button"
-            aria-label="Mais ações"
+            className="rounded-full border border-transparent p-2 text-[var(--cc-text-muted)] transition hover:bg-[var(--cc-bg-elev)]"
+            aria-label="Renomear categoria"
             onClick={onRename}
           >
             <MoreVertical size={16} />
@@ -757,214 +993,95 @@ function CategoryInspector({
         </div>
       </header>
 
-      <section className="card inspector-card">
-        <div className="inspector-balance__header">
+      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="inspector-card__title">Saldo disponível</h3>
-            <p className="inspector-card__meta">Inclui {fmtBRL(prevAvailable)} de {previousMonthLabel}</p>
+            <h3 className="text-sm font-semibold text-[var(--cc-text)]">Saldo disponível</h3>
+            <p className="text-xs text-[var(--cc-text-muted)]">Inclui {fmtBRL(prevAvailable)} de {previousMonthLabel}</p>
           </div>
-          <p className={`inspector-balance__value ${available < 0 ? "inspector-balance__value--negative" : ""}`}>
+          <p
+            className={`text-2xl font-semibold text-[var(--cc-text)] ${
+              available < 0 ? "text-[var(--state-danger)]" : ""
+            }`}
+          >
             {fmtBRL(available)}
           </p>
         </div>
-
-        <dl className="inspector-balance__grid">
-          <div>
-            <dt>Atribuído em {monthLabel}</dt>
-            <dd>{fmtBRL(assigned)}</dd>
-          </div>
-          <div>
-            <dt>Atividade em {monthLabel}</dt>
-            <dd>{fmtBRL(activity)}</dd>
-          </div>
-          <div>
-            <dt>Disponível vindo de {previousMonthLabel}</dt>
-            <dd>{fmtBRL(prevAvailable)}</dd>
-          </div>
-          <div>
-            <dt>Atribuído em {previousMonthLabel}</dt>
-            <dd>{fmtBRL(prevAssigned)}</dd>
-          </div>
-          <div>
-            <dt>Atividade em {previousMonthLabel}</dt>
-            <dd>{fmtBRL(prevActivity)}</dd>
-          </div>
+        <dl className="mt-4 space-y-3 text-sm">
+          {summaryItems.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-3">
+              <dt className="text-[var(--cc-text-muted)]">{item.label}</dt>
+              <dd className="font-semibold text-[var(--cc-text)]">{item.value}</dd>
+            </div>
+          ))}
         </dl>
+      </section>
 
-        <div className="inspector-balance__actions">
-          <button type="button" className="btn-primary" onClick={handleAssign}>
-            Atribuir
+      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+        <header className="mb-4">
+          <h3 className="text-sm font-semibold text-[var(--cc-text)]">Meta da categoria</h3>
+        </header>
+        {goalContent}
+      </section>
+
+      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+        <h3 className="text-sm font-semibold text-[var(--cc-text)]">Auto-atribuição</h3>
+        <p className="mt-1 text-xs text-[var(--cc-text-muted)]">
+          Use esses números para planejar distribuições rápidas nesta categoria.
+        </p>
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          {autoAssignStats.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl bg-[var(--cc-bg-elev)] px-4 py-3">
+              <dt className="text-[var(--cc-text-muted)]">{item.label}</dt>
+              <dd className="font-semibold text-[var(--cc-text)]">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+        <h3 className="text-sm font-semibold text-[var(--cc-text)]">Ações rápidas</h3>
+        <p className="mt-1 text-xs text-[var(--cc-text-muted)]">Atualize os valores desta categoria sem sair da tela.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-full bg-[var(--cc-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105"
+            onClick={handleAssign}
+          >
+            Atribuir valor
           </button>
-          <button type="button" className="btn-link" onClick={handleMoveMoney}>
-            Mover dinheiro
+          <button
+            type="button"
+            className="rounded-full border border-[var(--cc-border)] px-4 py-2 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--cc-bg-elev)]"
+            onClick={handleMoveMoney}
+          >
+            Mover para pronto para atribuir
           </button>
-          <button type="button" className="btn-link" onClick={onReset}>
+          <button
+            type="button"
+            className="rounded-full border border-transparent px-4 py-2 text-sm font-semibold text-[var(--cc-text-muted)] underline-offset-4 hover:underline"
+            onClick={onReset}
+          >
             Zerar categoria
           </button>
         </div>
       </section>
 
-      <section className="card inspector-card">
-        <header className="inspector-target__header">
-          <h3 className="inspector-card__title">Meta da categoria</h3>
-          {goal && !isEditingGoal ? (
-            <button type="button" className="btn-link" onClick={() => setIsEditingGoal(true)}>
-              Editar meta
-            </button>
-          ) : null}
-        </header>
-
-        {isEditingGoal ? (
-          <form className="inspector-target__form" onSubmit={handleSubmitGoal}>
-            <div className="inspector-target__tabs" role="tablist">
-              {GOAL_FREQUENCY_OPTIONS.map((option) => (
-                <button
-                  key={option.cadence}
-                  type="button"
-                  role="tab"
-                  className={`inspector-target__tab ${form.cadence === option.cadence ? "inspector-target__tab--active" : ""}`}
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      cadence: option.cadence,
-                      type: option.type
-                    }))
-                  }
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-
-            <label className="inspector-target__field">
-              <span>Preciso de</span>
-              <input
-                value={form.amountInput}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    amountInput: formatarInputMonetario(normalizarValorMonetario(event.target.value))
-                  }))
-                }
-                inputMode="numeric"
-              />
-            </label>
-
-            {form.type === "TBD" ? (
-              <label className="inspector-target__field">
-                <span>Até</span>
-                <input
-                  type="month"
-                  value={form.targetMonth ?? ""}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      targetMonth: event.target.value || null
-                    }))
-                  }
-                  required
-                />
-              </label>
-            ) : null}
-
-            <div className="inspector-target__actions">
-              <button type="button" className="btn-link" onClick={() => setIsEditingGoal(false)}>
-                Cancelar
-              </button>
-              {goal ? (
-                <button
-                  type="button"
-                  className="btn-link inspector-target__remove"
-                  onClick={handleRemoveGoal}
-                  disabled={removingGoal}
-                >
-                  {removingGoal ? "Removendo…" : "Remover meta"}
-                </button>
-              ) : null}
-              <button type="submit" className="btn-primary" disabled={savingGoal}>
-                {savingGoal ? "Salvando…" : "Salvar meta"}
-              </button>
-            </div>
-          </form>
-        ) : goal ? (
-          <div className="inspector-target__summary">
-            <div className="inspector-target__summary-head">
-              <div>
-                <p className="inspector-target__summary-type">{GOAL_TYPE_LABELS[goal.type]}</p>
-                <p className="inspector-target__summary-desc">{goalDescription(goal)}</p>
-              </div>
-              <p className="inspector-target__summary-amount">{fmtBRL(goal.amount_cents)}</p>
-            </div>
-
-            {projection ? (
-              <>
-                <div className="inspector-target__progress">
-                  <div className="inspector-target__progress-bar" aria-hidden>
-                    <span
-                      style={{ width: `${Math.min(100, Math.round((projection.progresso ?? 0) * 100))}%` }}
-                    />
-                  </div>
-                  <p className="inspector-target__progress-caption">
-                    Falta {fmtBRL(projection.falta)} para atingir {fmtBRL(projection.alvo)}.
-                  </p>
-                </div>
-                {recommendedAssign > 0 ? (
-                  <button
-                    type="button"
-                    className="btn-primary inspector-target__apply"
-                    onClick={handleApplyGoal}
-                    disabled={applyingGoal}
-                  >
-                    {applyingGoal
-                      ? "Aplicando…"
-                      : `Atribuir ${fmtBRL(recommendedAssign)}`}
-                  </button>
-                ) : null}
-                <dl className="inspector-target__grid">
-                  <div>
-                    <dt>Necessário este mês</dt>
-                    <dd>{fmtBRL(projection.necessarioNoMes)}</dd>
-                  </div>
-                  <div>
-                    <dt>Já atribuído</dt>
-                    <dd>{fmtBRL(projection.atribuido)}</dd>
-                  </div>
-                  <div>
-                    <dt>Saldo disponível</dt>
-                    <dd>{fmtBRL(allocation?.available_cents ?? 0)}</dd>
-                  </div>
-                </dl>
-              </>
-            ) : (
-              <p className="inspector-target__summary-empty">Nenhuma projeção disponível para esta meta.</p>
-            )}
-
-            <button
-              type="button"
-              className="btn-link inspector-target__remove"
-              onClick={handleRemoveGoal}
-              disabled={removingGoal}
-            >
-              {removingGoal ? "Removendo…" : "Remover meta"}
-            </button>
-          </div>
-        ) : (
-          <div className="inspector-target__empty">
-            <p>Defina um alvo para manter essa categoria sob controle.</p>
-            <button type="button" className="btn-primary" onClick={() => setIsEditingGoal(true)}>
-              Criar meta
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section className="card inspector-card">
-        <h3 className="inspector-card__title">Organizar categoria</h3>
-        <div className="inspector-actions__grid">
-          <button type="button" className="btn-link" onClick={onRename}>
+      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+        <h3 className="text-sm font-semibold text-[var(--cc-text)]">Organizar categoria</h3>
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            className="text-left text-sm font-semibold text-[var(--cc-text)] underline-offset-4 hover:underline"
+            onClick={onRename}
+          >
             Renomear categoria
           </button>
-          <button type="button" className="btn-link" onClick={onArchive}>
+          <button
+            type="button"
+            className="text-left text-sm font-semibold text-[var(--cc-text)] underline-offset-4 hover:underline"
+            onClick={onArchive}
+          >
             Arquivar categoria
           </button>
         </div>
