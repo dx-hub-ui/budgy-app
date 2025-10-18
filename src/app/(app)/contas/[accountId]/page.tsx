@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/AuthGate";
 import AccountHeader, { type AccountMetric } from "@/components/accounts/AccountHeader";
-import AccountSidebar, { type SidebarGroup } from "@/components/accounts/AccountSidebar";
 import { ymd } from "@/domain/format";
 import { ExpenseSchema, UpdateExpenseSchema } from "@/domain/models";
 import {
@@ -657,39 +656,6 @@ export default function AccountPage() {
     return map;
   }, [expenses]);
 
-  const totalBalanceCents = useMemo(() => {
-    let total = 0;
-    totalsByAccount.forEach((value) => {
-      total += value;
-    });
-    return total;
-  }, [totalsByAccount]);
-
-  const sidebarGroups: SidebarGroup[] = useMemo(() => {
-    const grouped = new Map<string, SidebarGroup>();
-    accounts.forEach((account) => {
-      const groupId = account.group_label.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
-      const existing = grouped.get(groupId);
-      const accountEntry = {
-        id: account.id,
-        name: account.name,
-        href: `/contas/${account.id}`,
-        balanceCents: totalsByAccount.get(account.id) ?? 0,
-        isActive: selectedAccount?.id === account.id,
-      };
-      if (existing) {
-        existing.accounts.push(accountEntry);
-      } else {
-        grouped.set(groupId, {
-          id: groupId,
-          label: account.group_label,
-          accounts: [accountEntry],
-        });
-      }
-    });
-    return Array.from(grouped.values());
-  }, [accounts, totalsByAccount, selectedAccount]);
-
   const transactions: LedgerTransaction[] = useMemo(() => {
     if (!selectedAccount) return [];
     return expenses
@@ -775,9 +741,6 @@ export default function AccountPage() {
     await refreshExpenses();
   }
 
-  const planName = `Plano de ${displayName}`;
-  const contactEmail = user?.email ?? null;
-
   const workingTone: NonNullable<AccountMetric["tone"]> = workingBalance >= 0 ? "positive" : "negative";
 
   const metrics: AccountMetric[] = [
@@ -805,73 +768,66 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="flex h-full bg-white">
-      <AccountSidebar
-        planName={planName}
-        contact={contactEmail}
-        totalBalanceCents={totalBalanceCents}
-        groups={sidebarGroups}
-      />
+    <div className="flex h-full flex-1 flex-col overflow-hidden bg-white">
+      <div className="flex flex-1 min-h-0 flex-col gap-6 overflow-y-auto px-6 py-6">
+        {pageError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {pageError}
+          </div>
+        )}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex flex-1 min-h-0 flex-col gap-6 overflow-y-auto px-6 py-6">
-          {pageError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {pageError}
+        {selectedAccount ? (
+          <>
+            <AccountHeader
+              name={selectedAccount.name}
+              subtitle={`Saldo projetado: ${formatCurrency(totalsByAccount.get(selectedAccount.id) ?? 0)}`}
+              metrics={metrics}
+              onAddTransaction={() => setAddDraftSignal(Date.now())}
+              onAddTransfer={() => setShowTransferInfo((value) => !value)}
+              onReconcile={() => setShowReconcileInfo((value) => !value)}
+            />
+
+            {(showTransferInfo || showReconcileInfo) && (
+              <div className="space-y-4 rounded-lg border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/20 p-5 text-sm text-[var(--cc-text)]">
+                {showTransferInfo && (
+                  <div>
+                    <h2 className="text-base font-semibold">Como registrar uma transferência</h2>
+                    <p className="mt-2 text-sm text-[var(--cc-text-muted)]">
+                      Registre duas transações reais: uma saída na conta de origem e uma entrada na conta de destino. Use o memo
+                      para identificar a transferência e mantenha os valores idênticos para que o saldo total permaneça
+                      equilibrado.
+                    </p>
+                  </div>
+                )}
+                {showReconcileInfo && (
+                  <div>
+                    <h2 className="text-base font-semibold">Conciliação rápida</h2>
+                    <p className="mt-2 text-sm text-[var(--cc-text-muted)]">
+                      Compare o saldo atual ({formatCurrency(workingBalance)}) com o extrato do banco. Marque entradas e saídas
+                      pendentes como reconciliadas ajustando o memo das transações. Quando os valores coincidirem, sua conta
+                      estará conciliada.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <AccountLedger
+              categories={categories}
+              transactions={transactions}
+              loading={loadingTransactions}
+              addSignal={addDraftSignal}
+              onCreate={handleCreateTransaction}
+              onAssignCategory={handleAssignCategory}
+            />
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            <div className="rounded-lg border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/40 px-6 py-10 text-center text-sm text-[var(--cc-text-muted)]">
+              Nenhuma conta selecionada. Utilize o menu de contas na barra lateral para escolher uma conta ou criar uma nova.
             </div>
-          )}
-
-          {selectedAccount ? (
-            <>
-              <AccountHeader
-                name={selectedAccount.name}
-                subtitle={`Saldo projetado: ${formatCurrency(totalsByAccount.get(selectedAccount.id) ?? 0)}`}
-                metrics={metrics}
-                onAddTransaction={() => setAddDraftSignal(Date.now())}
-                onAddTransfer={() => setShowTransferInfo((value) => !value)}
-                onReconcile={() => setShowReconcileInfo((value) => !value)}
-              />
-
-              {(showTransferInfo || showReconcileInfo) && (
-                <div className="space-y-4 rounded-lg border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/20 p-5 text-sm text-[var(--cc-text)]">
-                  {showTransferInfo && (
-                    <div>
-                      <h2 className="text-base font-semibold">Como registrar uma transferência</h2>
-                      <p className="mt-2 text-sm text-[var(--cc-text-muted)]">
-                        Registre duas transações reais: uma saída na conta de origem e uma entrada na conta de destino. Use o memo
-                        para identificar a transferência e mantenha os valores idênticos para que o saldo total permaneça
-                        equilibrado.
-                      </p>
-                    </div>
-                  )}
-                  {showReconcileInfo && (
-                    <div>
-                      <h2 className="text-base font-semibold">Conciliação rápida</h2>
-                      <p className="mt-2 text-sm text-[var(--cc-text-muted)]">
-                        Compare o saldo atual ({formatCurrency(workingBalance)}) com o extrato do banco. Marque entradas e saídas
-                        pendentes como reconciliadas ajustando o memo das transações. Quando os valores coincidirem, sua conta
-                        estará conciliada.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <AccountLedger
-                categories={categories}
-                transactions={transactions}
-                loading={loadingTransactions}
-                addSignal={addDraftSignal}
-                onCreate={handleCreateTransaction}
-                onAssignCategory={handleAssignCategory}
-              />
-            </>
-          ) : (
-            <div className="rounded-lg border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-text-muted)]">
-              Crie uma conta para começar a registrar suas movimentações.
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

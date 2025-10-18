@@ -26,6 +26,14 @@
 - A seção "Lançamentos" apresenta contagem e busca inline com bordas sutis, alinhadas ao screenshot de referência.
 - Métricas do cabeçalho permanecem visíveis como texto puro, evitando painéis destacados para facilitar leitura em telas grandes.
 
+## Menu lateral unificado (jan/2025)
+- A navegação principal agora inclui o bloco **Contas** com saldo total e agrupamento por `group_label`, permitindo alternar entre
+  contas diretamente pela sidebar.
+- O botão **+ Criar conta** abre um modal em duas etapas: primeiro o usuário informa o nome, depois escolhe o tipo dentro de
+  categorias traduzidas para PT-BR (contas à vista, crédito, financiamentos/empréstimos e acompanhamento).
+- Após a criação, o app redireciona automaticamente para o ledger da nova conta e persiste a seleção em `localStorage` via chave
+  `cc_last_account`.
+
 ## Compatibilidade com triggers antigas
 - A migration `0017_fix_budget_refresh.sql` redefine `public.fn_recalc_month` para ignorar a antiga tabela
   `public.budget_allocations`. Em instalações novas, a função apenas verifica a existência de linhas em `public.budget_allocation`,

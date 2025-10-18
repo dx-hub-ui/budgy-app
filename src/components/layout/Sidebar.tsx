@@ -2,14 +2,24 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { PiggyBank, Wallet2, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  PiggyBank,
+  Receipt,
+  FileDown,
+  Wallet2,
+  ChevronLeft,
+  ChevronRight,
+  type LucideIcon
+} from "lucide-react";
 
 import IconButton from "@/components/ui/IconButton";
 import Tooltip from "@/components/ui/Tooltip";
 import { SidebarUserMenu } from "./UserMenu";
 import { mesAtual } from "@/domain/budgeting";
+import { listAccounts, listExpenses } from "@/domain/repo";
+import CreateAccountModal from "@/components/accounts/CreateAccountModal";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -24,6 +34,13 @@ type SidebarItem = {
   isActive?: (pathname: string) => boolean;
 };
 
+type SidebarAccount = {
+  id: string;
+  name: string;
+  balanceCents: number;
+  groupLabel: string;
+};
+
 function resolveStoredAccountHref(accountId: string | null | undefined) {
   if (!accountId || accountId.trim().length === 0) {
     return "/contas";
@@ -33,8 +50,13 @@ function resolveStoredAccountHref(accountId: string | null | undefined) {
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const currentMonth = mesAtual();
   const [accountsHref, setAccountsHref] = useState<string>("/contas");
+  const [accounts, setAccounts] = useState<SidebarAccount[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState<boolean>(false);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -102,6 +124,88 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
     [accountsHref, currentMonth]
   );
 
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }),
+    [],
+  );
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      setLoadingAccounts(true);
+      setAccountsError(null);
+      const [accountRows, expenseRows] = await Promise.all([listAccounts(), listExpenses()]);
+      const totals = new Map<string, number>();
+      expenseRows.forEach((expense) => {
+        const accountId = expense.account_id ?? "sem-conta";
+        const direction = expense.direction === "inflow" ? 1 : -1;
+        const amount = Number.isFinite(expense.amount_cents) ? expense.amount_cents : 0;
+        totals.set(accountId, (totals.get(accountId) ?? 0) + direction * amount);
+      });
+      const summaries: SidebarAccount[] = accountRows.map((account) => ({
+        id: account.id,
+        name: account.name,
+        groupLabel: account.group_label ?? "Outras contas",
+        balanceCents: totals.get(account.id) ?? 0,
+      }));
+      setAccounts(summaries);
+    } catch (error) {
+      console.error(error);
+      setAccountsError("Não foi possível carregar as contas.");
+    } finally {
+      setLoadingAccounts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchAccounts();
+  }, [fetchAccounts]);
+
+  const accountsByGroup = useMemo(() => {
+    const grouped = new Map<string, { label: string; accounts: SidebarAccount[] }>();
+    accounts.forEach((account) => {
+      const key = account.groupLabel;
+      const entry = grouped.get(key);
+      if (entry) {
+        entry.accounts.push(account);
+      } else {
+        grouped.set(key, { label: key, accounts: [account] });
+      }
+    });
+    return Array.from(grouped.values());
+  }, [accounts]);
+
+  const totalBalance = useMemo(
+    () => accounts.reduce((sum, account) => sum + account.balanceCents, 0),
+    [accounts],
+  );
+
+  const currentAccountId = useMemo(() => {
+    if (!pathname?.startsWith("/contas/")) return null;
+    const [, , accountId] = pathname.split("/");
+    return accountId ?? null;
+  }, [pathname]);
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleAccountCreated = useCallback(
+    async (account: { id: string; name: string }) => {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("cc_last_account", account.id);
+        setAccountsHref(`/contas/${account.id}`);
+      }
+      await fetchAccounts();
+      router.push(`/contas/${account.id}`);
+      setIsModalOpen(false);
+    },
+    [fetchAccounts, router],
+  );
+
   const headerClass = cn(
     "border-b px-3 py-4",
     collapsed ? "flex flex-col items-center gap-3" : "flex flex-col gap-3"
@@ -160,6 +264,76 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
               </li>
             );
           })}
+
+          {!collapsed && (
+            <li className="mt-4 border-t border-dashed border-[var(--sidebar-border)] pt-4">
+              <div className="flex items-center justify-between gap-2 px-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--sidebar-foreground)]">
+                  <Wallet2 size={18} />
+                  <span>Contas</span>
+                </div>
+                <span className="text-xs font-semibold text-[var(--sidebar-muted)]">
+                  {currencyFormatter.format(totalBalance / 100)}
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-3 px-3 text-sm">
+                {loadingAccounts && <p className="text-xs text-[var(--sidebar-muted)]">Carregando contas…</p>}
+                {accountsError && (
+                  <p className="text-xs text-red-400" role="alert">
+                    {accountsError}
+                  </p>
+                )}
+                {!loadingAccounts && !accountsError && accountsByGroup.length === 0 && (
+                  <p className="text-xs text-[var(--sidebar-muted)]">
+                    Nenhuma conta cadastrada. Crie a primeira para começar.
+                  </p>
+                )}
+
+                {accountsByGroup.map((group) => (
+                  <div key={group.label} className="space-y-2">
+                    <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--sidebar-muted)]">
+                      {group.label}
+                    </p>
+                    <ul className="space-y-1">
+                      {group.accounts.map((account) => {
+                        const isActive = currentAccountId === account.id;
+                        return (
+                          <li key={account.id}>
+                            <Link
+                              href={`/contas/${account.id}`}
+                              className={cn(
+                                "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition",
+                                isActive
+                                  ? "bg-[var(--sidebar-hover)] text-[var(--sidebar-foreground)]"
+                                  : "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-foreground)]",
+                              )}
+                              aria-current={isActive ? "page" : undefined}
+                            >
+                              <span className="font-medium">{account.name}</span>
+                              <span className="text-xs font-semibold">
+                                {currencyFormatter.format(account.balanceCents / 100)}
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 px-3">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--sidebar-border)] px-3 py-2 text-sm font-semibold text-[var(--sidebar-foreground)] transition hover:border-[var(--ring)] hover:text-[var(--sidebar-foreground)]"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  + Criar conta
+                </button>
+              </div>
+            </li>
+          )}
         </ul>
 
         <div className="border-t px-2 py-2" style={{ borderColor: "var(--sidebar-border)" }}>
@@ -180,6 +354,8 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
           </div>
         </div>
       </div>
+
+      <CreateAccountModal open={isModalOpen} onClose={handleModalClose} onCreated={handleAccountCreated} />
     </nav>
   );
 }
