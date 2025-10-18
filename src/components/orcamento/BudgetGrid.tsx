@@ -16,6 +16,7 @@ type BudgetGridProps = {
   onOpenName: (categoryId: string) => void;
   onOpenDrawer: (categoryId: string) => void;
   onAddCategory: (groupName: string) => void;
+  onOpenActivity: (categoryId: string, month: string) => void;
 };
 
 type CategoryRowProps = {
@@ -25,6 +26,7 @@ type CategoryRowProps = {
   assignedCents: number;
   onEdit: (value: number) => void;
   onOpenName: () => void;
+  onOpenActivity: () => void;
 };
 
 function CategoryRow({
@@ -33,7 +35,8 @@ function CategoryRow({
   availableCents,
   assignedCents,
   onEdit,
-  onOpenName
+  onOpenName,
+  onOpenActivity
 }: CategoryRowProps) {
   const [inputValue, setInputValue] = useState(formatarInputMonetario(assignedCents));
   const [rawValue, setRawValue] = useState(assignedCents);
@@ -87,7 +90,18 @@ function CategoryRow({
           inputMode="numeric"
         />
       </div>
-      <div className="text-right text-[var(--cc-text-muted)] font-medium">{fmtBRL(activityCents)}</div>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="rounded-lg px-3 py-1 text-right text-sm font-medium text-[var(--cc-text-muted)] transition hover:bg-[var(--cc-bg)]"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenActivity();
+          }}
+        >
+          {fmtBRL(activityCents)}
+        </button>
+      </div>
       <div className="flex justify-end">
         <span className={classNames("cc-pill", availableClass)}>{fmtBRL(availableCents)}</span>
       </div>
@@ -95,7 +109,14 @@ function CategoryRow({
   );
 }
 
-export function BudgetGrid({ month, onEdit, onOpenName, onOpenDrawer, onAddCategory }: BudgetGridProps) {
+export function BudgetGrid({
+  month,
+  onEdit,
+  onOpenName,
+  onOpenDrawer,
+  onAddCategory,
+  onOpenActivity
+}: BudgetGridProps) {
   const groups = budgetPlannerSelectors.useGroups();
   const allocations = useBudgetPlannerStore((state) => state.allocations.byCategoryIdMonth);
 
@@ -155,6 +176,7 @@ export function BudgetGrid({ month, onEdit, onOpenName, onOpenDrawer, onAddCateg
                         assignedCents={assigned}
                         onEdit={handleEdit(category.id)}
                         onOpenName={() => onOpenName(category.id)}
+                        onOpenActivity={() => onOpenActivity(category.id, month)}
                       />
                     </div>
                   );

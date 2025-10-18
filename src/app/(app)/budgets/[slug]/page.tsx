@@ -38,6 +38,7 @@ import {
 import { AutoAssignModal, type AutoAssignCategory } from "@/components/orcamento/AutoAssignModal";
 import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
 import { CategoryNameModal } from "@/components/orcamento/CategoryNameModal";
+import { listCategoryActivity, monthToRange } from "@/domain/repo";
 
 function shiftMonth(month: string, delta: number) {
   const [year, monthPart] = month.split("-").map(Number);
@@ -47,6 +48,12 @@ function shiftMonth(month: string, delta: number) {
   const shiftedMonth = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `${shiftedYear}-${shiftedMonth}`;
 }
+
+const activityDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric"
+});
 
 type CollapsedMap = Record<string, boolean>;
 
@@ -60,6 +67,18 @@ type CategoryWithData = {
   allocation: BudgetAllocation | undefined;
   previousAllocation: BudgetAllocation | undefined;
   goal: BudgetGoal | undefined;
+};
+
+type CategoryActivityRow = Awaited<ReturnType<typeof listCategoryActivity>>[number];
+
+type ActivityModalState = {
+  open: boolean;
+  categoryId: string | null;
+  categoryName: string;
+  monthLabel: string;
+  items: CategoryActivityRow[];
+  loading: boolean;
+  error: string | null;
 };
 
 type CategoryInspectorProps = {
@@ -120,6 +139,7 @@ type CategoryRowProps = {
   onClear: () => void;
   onRename: () => void;
   onAssign: (value: number) => void | Promise<void>;
+  onShowActivity: () => void;
 };
 
 function availablePill(value: number) {
@@ -214,7 +234,17 @@ function GroupRow({ group, collapsed, onToggle, onAddCategory }: GroupRowProps) 
   );
 }
 
-function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, onRename, onAssign }: CategoryRowProps) {
+function CategoryRow({
+  category,
+  allocation,
+  goal,
+  selected,
+  onSelect,
+  onClear,
+  onRename,
+  onAssign,
+  onShowActivity
+}: CategoryRowProps) {
   const emoji = category.icon ?? "🏷️";
   const assigned = allocation?.assigned_cents ?? 0;
   const activity = allocation?.activity_cents ?? 0;
@@ -341,7 +371,18 @@ function CategoryRow({ category, allocation, goal, selected, onSelect, onClear, 
           </button>
         )}
       </div>
-      <div className="text-right pr-2">{fmtBRL(activity)}</div>
+      <div className="text-right pr-2">
+        <button
+          type="button"
+          className="min-w-[6.5rem] rounded-lg border border-transparent px-2 py-1 text-sm font-semibold text-[var(--cc-text-muted)] transition hover:border-[var(--cc-border)] hover:bg-[var(--tbl-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+          onClick={(event) => {
+            event.stopPropagation();
+            onShowActivity();
+          }}
+        >
+          {fmtBRL(activity)}
+        </button>
+      </div>
       <div className="text-right pr-2">{availablePill(available)}</div>
     </div>
   );
@@ -353,6 +394,87 @@ function SummaryCard({ title, value, description }: { title: string; value: stri
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">{title}</p>
       <p className="mt-1 text-xl font-semibold text-[var(--cc-text)]">{value}</p>
       {description ? <p className="mt-1 text-xs text-[var(--cc-text-muted)]">{description}</p> : null}
+    </div>
+  );
+}
+
+function CategoryActivityModal({ state, onClose }: { state: ActivityModalState; onClose: () => void }) {
+  if (!state.open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-6"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl rounded-3xl border border-[var(--tbl-border)] bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--tbl-border)] px-6 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--cc-text)]">Atividades da categoria</h2>
+            <p className="text-sm text-[var(--cc-text-muted)]">
+              {state.categoryName} · {state.monthLabel}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="rounded-full border border-transparent p-1 text-[var(--cc-text-muted)] transition hover:border-[var(--cc-border)] hover:text-[var(--cc-text)]"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="max-h-[420px] overflow-y-auto px-6 py-5">
+          {state.loading ? (
+            <p className="text-sm text-[var(--cc-text-muted)]">Carregando atividades…</p>
+          ) : state.error ? (
+            <p className="text-sm text-red-600" role="alert">
+              {state.error}
+            </p>
+          ) : state.items.length === 0 ? (
+            <p className="text-sm text-[var(--cc-text-muted)]">Nenhuma movimentação registrada para este mês.</p>
+          ) : (
+            <ul className="space-y-3">
+              {state.items.map((item) => {
+                const signed = item.direction === "outflow" ? -item.amount_cents : item.amount_cents;
+                const tone = signed < 0 ? "text-rose-600" : "text-emerald-600";
+                const dateLabel = item.date
+                  ? activityDateFormatter.format(new Date(`${item.date}T00:00:00`))
+                  : "—";
+                const accountName = Array.isArray(item.account)
+                  ? item.account[0]?.name ?? null
+                  : (item.account as { name?: string } | null)?.name ?? null;
+                return (
+                  <li
+                    key={item.id}
+                    className="rounded-2xl border border-[var(--tbl-border)] bg-[var(--cc-bg-elev)] px-4 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-[var(--cc-text)]">
+                          {item.description || "Sem descrição"}
+                        </p>
+                        <p className="text-xs text-[var(--cc-text-muted)]">
+                          {dateLabel}
+                          {accountName ? ` • ${accountName}` : ""}
+                        </p>
+                        {item.memo ? (
+                          <p className="text-xs text-[var(--cc-text-muted)]">{item.memo}</p>
+                        ) : null}
+                      </div>
+                      <span className={`text-sm font-semibold ${tone}`}>{fmtBRL(signed)}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -948,6 +1070,15 @@ export default function BudgetMonthPage() {
   });
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [autoAssignSubmitting, setAutoAssignSubmitting] = useState(false);
+  const [activityModal, setActivityModal] = useState<ActivityModalState>(() => ({
+    open: false,
+    categoryId: null,
+    categoryName: "",
+    monthLabel: formatMonthLabel(mesAtual()),
+    items: [],
+    loading: false,
+    error: null
+  }));
 
   const didInitRef = useRef(false);
   const syncingUrlRef = useRef(false);
@@ -1076,6 +1207,61 @@ export default function BudgetMonthPage() {
     },
     [editarAtribuido]
   );
+
+  const openActivityModal = useCallback(
+    (categoryId: string | null, categoryName: string) => {
+      const [yearStr, monthStr] = currentMonth.split("-");
+      const year = Number(yearStr);
+      const monthNumber = Number(monthStr);
+      const label = formatMonthLabel(currentMonth);
+
+      if (!Number.isFinite(year) || !Number.isFinite(monthNumber)) {
+        setActivityModal({
+          open: true,
+          categoryId,
+          categoryName,
+          monthLabel: label,
+          items: [],
+          loading: false,
+          error: "Mês inválido para consultar as atividades."
+        });
+        return;
+      }
+
+      const { s, e } = monthToRange({ year, month: monthNumber });
+
+      setActivityModal({
+        open: true,
+        categoryId,
+        categoryName,
+        monthLabel: label,
+        items: [],
+        loading: true,
+        error: null
+      });
+
+      listCategoryActivity(categoryId, { start: s, end: e })
+        .then((data) => {
+          setActivityModal((prev) => ({
+            ...prev,
+            items: Array.isArray(data) ? data : [],
+            loading: false
+          }));
+        })
+        .catch((error: any) => {
+          setActivityModal((prev) => ({
+            ...prev,
+            loading: false,
+            error: error?.message ?? "Não foi possível carregar as atividades desta categoria."
+          }));
+        });
+    },
+    [currentMonth]
+  );
+
+  const closeActivityModal = useCallback(() => {
+    setActivityModal((prev) => ({ ...prev, open: false }));
+  }, []);
 
   const groupsWithAllocations = useMemo(() => {
     return groups.map((group) => ({
@@ -1210,6 +1396,9 @@ export default function BudgetMonthPage() {
                           onClear={closeSelection}
                           onRename={() => abrirModalNome(item.category.id)}
                           onAssign={(value) => handleAssign(item.category.id, value)}
+                          onShowActivity={() =>
+                            openActivityModal(item.category.id, item.category.name)
+                          }
                         />
                       ))}
                 </Fragment>
@@ -1260,6 +1449,8 @@ export default function BudgetMonthPage() {
           />
         </section>
       </div>
+
+      <CategoryActivityModal state={activityModal} onClose={closeActivityModal} />
 
       {modalCategory && (
         <CategoryNameModal
