@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase, setSupabaseOrgId } from "@/lib/supabase";
 import { fetchProfile, type UserProfile } from "@/domain/profile";
 
 type AuthContextValue = {
@@ -25,8 +25,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [signingOut, setSigningOut] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfileState] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+
+  const setProfile = useCallback((nextProfile: UserProfile | null) => {
+    setProfileState(nextProfile);
+    setSupabaseOrgId(nextProfile?.org_id ?? null);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -88,12 +93,13 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       active = false;
       unsubscribe?.();
     };
-  }, [router]);
+  }, [router, setProfile]);
 
   const signOut = useCallback(async () => {
     try {
       setSigningOut(true);
       await supabase.auth.signOut();
+      setSupabaseOrgId(null);
     } finally {
       setSigningOut(false);
     }
@@ -112,7 +118,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     } finally {
       setLoadingProfile(false);
     }
-  }, []);
+  }, [setProfile]);
 
   useEffect(() => {
     if (user === undefined) {
@@ -149,7 +155,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [setProfile, user]);
 
   if (user === undefined) {
     return <div className="grid min-h-screen place-items-center text-sm opacity-70">Carregando…</div>;
