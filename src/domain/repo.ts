@@ -83,7 +83,7 @@ export async function listExpensesByMonth(f: MonthFilter) {
   return data;
 }
 
-export async function createExpense(input: ExpenseInput) {
+export async function createExpense(input: ExpenseInput & { org_id?: string }) {
   const { data, error } = await supabase.from("account_transactions").insert(input).select().single();
   if (error) throw error;
   return data;

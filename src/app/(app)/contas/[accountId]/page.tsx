@@ -563,7 +563,7 @@ function AccountLedger({
 export default function AccountPage() {
   const params = useParams<{ accountId?: string }>();
   const router = useRouter();
-  const { displayName, user } = useAuth();
+  const { displayName, orgId, user } = useAuth();
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
@@ -705,6 +705,10 @@ export default function AccountPage() {
       throw new Error("Selecione uma conta antes de registrar uma transação.");
     }
 
+    if (!orgId) {
+      throw new Error("Não foi possível identificar a organização atual. Atualize a página e tente novamente.");
+    }
+
     const direction = payload.outflowCents > 0 ? "outflow" : "inflow";
     const amountCents = direction === "outflow" ? payload.outflowCents : payload.inflowCents;
     if (amountCents <= 0) {
@@ -728,7 +732,7 @@ export default function AccountPage() {
       throw new Error("Os dados fornecidos para a transação são inválidos.");
     }
 
-    await createExpense(parsed.data);
+    await createExpense({ ...parsed.data, org_id: orgId });
     await refreshExpenses();
   }
 
