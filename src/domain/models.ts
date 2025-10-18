@@ -34,8 +34,8 @@ export const ExpenseSchema = z.object({
   category_id: z.string().uuid().nullable(),
   account_id: z.string().uuid().nullable().optional(),
   method: z.enum(["pix", "debito", "credito", "dinheiro"]),
-  description: z.string().max(140).optional(),
-  memo: z.string().max(280).optional(),
+  description: z.string().max(140).nullable().optional(),
+  memo: z.string().max(280).nullable().optional(),
   direction: z.enum(["outflow", "inflow"]).optional()
 });
 export type ExpenseInput = z.infer<typeof ExpenseSchema>;
@@ -47,7 +47,7 @@ export const UpdateExpenseSchema = z
     category_id: z.string().uuid().nullable().optional(),
     account_id: z.string().uuid().nullable().optional(),
     method: z.enum(["pix", "debito", "credito", "dinheiro"]).optional(),
-    description: z.string().max(140).optional(),
+    description: z.string().max(140).nullable().optional(),
     memo: z.string().max(280).nullable().optional(),
     direction: z.enum(["outflow", "inflow"]).optional()
   })
