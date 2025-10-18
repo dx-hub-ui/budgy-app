@@ -41,11 +41,24 @@ type SidebarAccount = {
   groupLabel: string;
 };
 
+function sanitizeStoredAccountId(accountId: string | null | undefined) {
+  if (!accountId) return null;
+  const trimmed = accountId.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") {
+    return null;
+  }
+  if (/[^a-zA-Z0-9-]/.test(trimmed)) {
+    return null;
+  }
+  return trimmed;
+}
+
 function resolveStoredAccountHref(accountId: string | null | undefined) {
-  if (!accountId || accountId.trim().length === 0) {
+  const sanitized = sanitizeStoredAccountId(accountId);
+  if (!sanitized) {
     return "/contas";
   }
-  return `/contas/${accountId}`;
+  return `/contas/${sanitized}`;
 }
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
@@ -152,6 +165,19 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         balanceCents: totals.get(account.id) ?? 0,
       }));
       setAccounts(summaries);
+
+      if (typeof window !== "undefined") {
+        const stored = sanitizeStoredAccountId(window.localStorage.getItem("cc_last_account"));
+        const hasStored = stored ? summaries.some((account) => account.id === stored) : false;
+
+        if (!hasStored) {
+          if (stored) {
+            window.localStorage.removeItem("cc_last_account");
+          }
+          const fallback = summaries[0]?.id ?? null;
+          setAccountsHref(fallback ? `/contas/${fallback}` : "/contas");
+        }
+      }
     } catch (error) {
       console.error(error);
       setAccountsError("Não foi possível carregar as contas.");
