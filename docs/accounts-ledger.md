@@ -7,7 +7,9 @@
 ## Criação e edição inline
 - O botão **Adicionar transação** abre uma nova linha editável no topo da tabela, mantendo o usuário na mesma página.
 - Entradas e saídas aceitam valores livres (sem validação obrigatória de categoria). Caso a transação seja salva sem categoria, um _badge_ laranja "Requer uma categoria" aparece sobre a célula.
-- Ao clicar no alerta, um popover azul apresenta atalhos de categoria. A ação salva imediatamente a categoria via `updateExpense`.
+- Ao clicar no alerta, uma barra de ações azul surge fixa no rodapé da tela com atalhos como **Categorizar** e **Sem categoria**. A seleção confirma imediatamente via `updateExpense`.
+- Um duplo clique na célula de categoria também abre a barra já com o seletor expandido para acelerar a triagem de múltiplos lançamentos.
+- Descrições e memos vazios são enviados como `null`, preservando integrações que diferenciam campos em branco de campos não informados.
 
 ## Tratamento de valores
 - Os campos de valor trabalham com entrada textual em PT-BR e normalizam o conteúdo para centavos (`parseCurrencyInput`).
@@ -15,7 +17,7 @@
 - Após a persistência, os dados são atualizados chamando `listExpenses()` para manter saldo, totais e painel lateral sincronizados.
 
 ## Acessibilidade
-- O popover pode ser fechado pelo botão "Fechar" ou clicando fora da célula.
+- A barra flutuante pode ser fechada pelo botão "Fechar" ou salvando uma categoria, e permanece acessível via teclado (os botões recebem `aria-expanded`/`aria-pressed` adequados).
 - Todos os rótulos da UI permanecem em PT-BR conforme o padrão do produto.
 
 ## Layout atualizado (dez/2024)

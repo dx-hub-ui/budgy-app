@@ -61,9 +61,9 @@ type CategoryGroup = {
 
 type CreateTransactionPayload = {
   date: string;
-  description: string;
+  description: string | null;
   categoryId: string | null;
-  memo: string;
+  memo: string | null;
   outflowCents: number;
   inflowCents: number;
 };
@@ -128,6 +128,7 @@ function AccountLedger({
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   useEffect(() => {
     if (!addSignal) return;
@@ -150,13 +151,59 @@ function AccountLedger({
     if (!search) return transactions;
     const term = search.toLowerCase();
     return transactions.filter((transaction) => {
+      const description = (transaction.description ?? "").toLowerCase();
+      const category = (transaction.categoryName ?? "").toLowerCase();
+      const memo = (transaction.memo ?? "").toLowerCase();
       return (
-        transaction.description?.toLowerCase().includes(term) ||
-        transaction.categoryName?.toLowerCase().includes(term) ||
-        transaction.memo?.toLowerCase().includes(term)
+        description.includes(term) || category.includes(term) || memo.includes(term)
       );
     });
   }, [transactions, search]);
+
+  const activeTransaction = useMemo(
+    () => transactions.find((transaction) => transaction.id === activePrompt) ?? null,
+    [transactions, activePrompt],
+  );
+
+  useEffect(() => {
+    if (!activePrompt) {
+      setShowCategoryPicker(false);
+      setAssignError(null);
+    }
+  }, [activePrompt]);
+
+  function openPrompt(transaction: LedgerTransaction, options?: { showPicker?: boolean }) {
+    setActivePrompt(transaction.id);
+    setShowCategoryPicker(Boolean(options?.showPicker));
+    setAssignError(null);
+  }
+
+  function closePrompt() {
+    setActivePrompt(null);
+    setShowCategoryPicker(false);
+    setAssignError(null);
+  }
+
+  const isAssigningActive = activeTransaction ? assigningId === activeTransaction.id : false;
+
+  async function handlePromptSelection(categoryId: string | null) {
+    if (!activeTransaction) return;
+    await handleAssignCategory(activeTransaction, categoryId);
+  }
+
+  const activeDescription =
+    activeTransaction && typeof activeTransaction.description === "string" &&
+    activeTransaction.description.trim().length > 0
+      ? activeTransaction.description
+      : "Transação sem descrição";
+
+  const activeAmountLabel = activeTransaction
+    ? activeTransaction.inflowCents > 0
+      ? `Entrada de ${formatCurrency(activeTransaction.inflowCents)}`
+      : activeTransaction.outflowCents > 0
+        ? `Saída de ${formatCurrency(activeTransaction.outflowCents)}`
+        : null
+    : null;
 
   function updateDraft(id: string, patch: Partial<DraftTransaction>) {
     setDrafts((prev) => prev.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
@@ -169,11 +216,6 @@ function AccountLedger({
   async function saveDraft(draft: DraftTransaction) {
     const outflowCents = parseCurrencyInput(draft.outflow);
     const inflowCents = parseCurrencyInput(draft.inflow);
-
-    if (!draft.description.trim()) {
-      updateDraft(draft.id, { error: "Informe uma descrição" });
-      return;
-    }
 
     if (outflowCents === 0 && inflowCents === 0) {
       updateDraft(draft.id, { error: "Preencha saída ou entrada" });
@@ -188,11 +230,13 @@ function AccountLedger({
     updateDraft(draft.id, { saving: true, error: null });
 
     try {
+      const description = draft.description.trim();
+      const memo = draft.memo.trim();
       await onCreate({
         date: draft.date,
-        description: draft.description.trim(),
+        description: description.length > 0 ? description : null,
         categoryId: draft.categoryId,
-        memo: draft.memo.trim(),
+        memo: memo.length > 0 ? memo : null,
         outflowCents,
         inflowCents,
       });
@@ -210,7 +254,7 @@ function AccountLedger({
     setAssigningId(transaction.id);
     try {
       await onAssignCategory(transaction.id, categoryId);
-      setActivePrompt(null);
+      closePrompt();
     } catch (error: any) {
       setAssignError(error?.message ?? "Falha ao atualizar a categoria");
     } finally {
@@ -377,7 +421,10 @@ function AccountLedger({
                   <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
                     {transaction.description || "—"}
                   </td>
-                  <td className="relative px-4 py-3 text-sm text-[var(--cc-text)]">
+                  <td
+                    className="relative px-4 py-3 text-sm text-[var(--cc-text)]"
+                    onDoubleClick={() => openPrompt(transaction, { showPicker: true })}
+                  >
                     {transaction.categoryName ? (
                       transaction.categoryName
                     ) : (
@@ -386,63 +433,11 @@ function AccountLedger({
                         <button
                           type="button"
                           className="absolute -top-2 left-0 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-700 shadow"
-                          onClick={() =>
-                            setActivePrompt((current) =>
-                              current === transaction.id ? null : transaction.id,
-                            )
-                          }
+                          onClick={() => openPrompt(transaction)}
+                          aria-pressed={activePrompt === transaction.id}
                         >
                           Requer uma categoria
                         </button>
-                        {activePrompt === transaction.id && (
-                          <div className="absolute z-20 mt-3 w-72 rounded-2xl border border-blue-200 bg-blue-600 text-white shadow-lg">
-                            <div className="flex items-center justify-between px-4 py-3 text-sm font-semibold">
-                              <span>Escolher categoria</span>
-                              <button
-                                type="button"
-                                className="text-xs font-medium text-blue-100 hover:text-white"
-                                onClick={() => setActivePrompt(null)}
-                              >
-                                Fechar
-                              </button>
-                            </div>
-                            <div className="max-h-60 space-y-3 overflow-y-auto px-4 pb-4">
-                              <button
-                                type="button"
-                                className="block w-full rounded-lg bg-white/10 px-3 py-2 text-left text-sm transition hover:bg-white/20"
-                                onClick={() => handleAssignCategory(transaction, null)}
-                                disabled={assigningId === transaction.id}
-                              >
-                                Sem categoria
-                              </button>
-                              {categoryGroups.map((group) => (
-                                <div key={group.name} className="space-y-2">
-                                  <p className="text-xs uppercase tracking-wide text-blue-100">
-                                    {group.name}
-                                  </p>
-                                  <div className="space-y-1">
-                                    {group.items.map((category) => (
-                                      <button
-                                        key={category.id}
-                                        type="button"
-                                        className="block w-full rounded-lg bg-white/10 px-3 py-2 text-left text-sm transition hover:bg-white/20"
-                                        onClick={() => handleAssignCategory(transaction, category.id)}
-                                        disabled={assigningId === transaction.id}
-                                      >
-                                        {category.name}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                              {assignError && assigningId === transaction.id && (
-                                <p className="rounded-lg bg-white/20 px-3 py-2 text-xs" role="alert">
-                                  {assignError}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
                   </td>
@@ -464,6 +459,104 @@ function AccountLedger({
           </tbody>
         </table>
       </div>
+      {activeTransaction && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
+          <div className="pointer-events-auto w-full max-w-3xl rounded-2xl border border-blue-200 bg-blue-600 text-white shadow-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
+                  1 transação selecionada
+                </p>
+                <p className="text-sm font-semibold">{activeDescription}</p>
+                <p className="text-xs text-blue-100">
+                  {dateHelper.format(new Date(`${activeTransaction.date}T00:00:00`))}
+                  {activeAmountLabel ? ` • ${activeAmountLabel}` : ""}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    showCategoryPicker
+                      ? "border-white bg-white text-blue-700 shadow-sm"
+                      : "border-white/40 text-white hover:bg-white/10"
+                  }`}
+                  onClick={() => setShowCategoryPicker((value) => !value)}
+                  aria-expanded={showCategoryPicker}
+                  disabled={isAssigningActive}
+                >
+                  Categorizar
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    activeTransaction.categoryId === null
+                      ? "border-white bg-white text-blue-700 shadow-sm"
+                      : "border-white/40 text-white hover:bg-white/10"
+                  }`}
+                  onClick={() => handlePromptSelection(null)}
+                  disabled={isAssigningActive}
+                >
+                  Sem categoria
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-white/40 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10"
+                  onClick={closePrompt}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+            {showCategoryPicker && (
+              <div className="max-h-64 space-y-3 overflow-y-auto border-t border-blue-500/40 px-6 py-4">
+                <button
+                  type="button"
+                  className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    activeTransaction.categoryId === null
+                      ? "bg-white text-blue-700 shadow-sm"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                  }`}
+                  onClick={() => handlePromptSelection(null)}
+                  disabled={isAssigningActive}
+                >
+                  Sem categoria
+                </button>
+                {categoryGroups.map((group) => (
+                  <div key={group.name} className="space-y-2">
+                    <p className="text-xs uppercase tracking-wide text-blue-100">{group.name}</p>
+                    <div className="space-y-1">
+                      {group.items.map((category) => {
+                        const isSelected = activeTransaction.categoryId === category.id;
+                        return (
+                          <button
+                            key={category.id}
+                            type="button"
+                            className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              isSelected
+                                ? "bg-white text-blue-700 shadow-sm"
+                                : "bg-white/10 text-white hover:bg-white/20"
+                            }`}
+                            onClick={() => handlePromptSelection(category.id)}
+                            disabled={isAssigningActive}
+                          >
+                            {category.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {assignError && (
+              <div className="border-t border-blue-500/40 bg-white/20 px-6 py-3 text-xs" role="alert">
+                {assignError}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -606,7 +699,7 @@ export default function AccountPage() {
         return {
           id: expense.id,
           date: expense.date,
-          description: expense.description ?? "",
+          description: expense.description ?? null,
           categoryId: expense.category_id ?? null,
           categoryName: category?.name ?? null,
           memo: expense.memo ?? null,
@@ -658,7 +751,7 @@ export default function AccountPage() {
       account_id: selectedAccount.id,
       method: baseMethod,
       description: payload.description,
-      memo: payload.memo.length > 0 ? payload.memo : undefined,
+      memo: payload.memo,
       direction,
     };
 
