@@ -42,19 +42,17 @@ export async function POST(request: NextRequest) {
 
     const nextSort = (lastSortRow?.sort ?? 0) + 100;
 
-    const { data, error } = await withFetchRetry<PostgrestSingleResponse<BudgetCategory>>(() =>
-      supabase
-        .from("budget_categories")
-        .insert({
-          org_id: orgId,
-          group_name: groupName,
-          name,
-          icon,
-          sort: nextSort
-        })
-        .select("*")
-        .single()
-    );
+    const { data, error } = await supabase
+      .from("budget_categories")
+      .insert({
+        org_id: orgId,
+        group_name: groupName,
+        name,
+        icon,
+        sort: nextSort
+      })
+      .select("*")
+      .single();
 
     if (error) throw error;
 
