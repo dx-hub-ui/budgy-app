@@ -4,7 +4,7 @@ Esta página descreve a implementação da rota `/como-usar`, que transforma o d
 
 ## Estrutura
 
-- **Fundamento**: reforça a ideia de que todo real precisa de propósito e aponta o link direto para o orçamento.
+- **Fundamento**: reforça a ideia de que todo real precisa de propósito e aponta o link direto para o orçamento, destacando o indicador tipográfico “A distribuir”.
 - **Quatro Regras**: cada regra recebe um bloco com descrição ampliada e uma lista de ações recomendadas no produto.
 - **Estrutura de categorias**: apresenta os quatro grupos sugeridos no documento original com exemplos práticos.
 - **Rotina de aplicação**: distribui tarefas em cadências diária, semanal e mensal.
