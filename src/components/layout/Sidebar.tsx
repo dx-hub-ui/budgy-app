@@ -119,9 +119,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         label: "Contas",
         icon: Wallet2,
         isActive: (path) => path.startsWith("/contas")
-      },
-      { href: "/new", label: "Nova despesa", icon: Receipt },
-      { href: "/export", label: "Exportar dados", icon: FileDown }
+      }
     ],
     [accountsHref, currentMonth]
   );

@@ -14,7 +14,7 @@ Esta página descreve a implementação da rota `/como-usar`, que transforma o d
 
 ## Acessos rápidos
 
-O item "Como usar" foi adicionado ao menu lateral autenticado (`Sidebar.tsx`). Ele pode ser acessado por qualquer usuário logado e está localizado após o item de exportação.
+O item "Como usar" foi adicionado ao menu lateral autenticado (`Sidebar.tsx`). Ele pode ser acessado por qualquer usuário logado e está localizado após o item de contas.
 
 ## Próximos passos sugeridos
 
