@@ -35,6 +35,7 @@ import {
   type BudgetGoal,
   useBudgetPlannerStore
 } from "@/stores/budgetPlannerStore";
+import { AutoAssignModal, type AutoAssignCategory } from "@/components/orcamento/AutoAssignModal";
 import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
 import { CategoryNameModal } from "@/components/orcamento/CategoryNameModal";
 
@@ -945,6 +946,8 @@ export default function BudgetMonthPage() {
     const params = new URLSearchParams(searchParamsString);
     return params.get("cat");
   });
+  const [autoAssignOpen, setAutoAssignOpen] = useState(false);
+  const [autoAssignSubmitting, setAutoAssignSubmitting] = useState(false);
 
   const didInitRef = useRef(false);
   const syncingUrlRef = useRef(false);
@@ -1054,6 +1057,24 @@ export default function BudgetMonthPage() {
     [editarAtribuido]
   );
 
+  const handleAutoAssignConfirm = useCallback(
+    async (assignments: Array<{ categoryId: string; value: number }>) => {
+      setAutoAssignSubmitting(true);
+      try {
+        for (const assignment of assignments) {
+          await editarAtribuido(assignment.categoryId, assignment.value);
+        }
+        setAutoAssignOpen(false);
+      } catch (error) {
+        console.error(error);
+        window.alert("Não foi possível distribuir automaticamente. Tente novamente.");
+      } finally {
+        setAutoAssignSubmitting(false);
+      }
+    },
+    [editarAtribuido]
+  );
+
   const groupsWithAllocations = useMemo(() => {
     return groups.map((group) => ({
       id: group.name,
@@ -1065,6 +1086,22 @@ export default function BudgetMonthPage() {
       }))
     }));
   }, [allocations, currentMonth, goals, groups]);
+
+  const autoAssignCategories = useMemo<AutoAssignCategory[]>(() => {
+    return categories
+      .filter((category) => !category.deleted_at)
+      .map((category) => {
+        const allocation = allocations[category.id]?.[currentMonth];
+        return {
+          id: category.id,
+          name: category.name,
+          group: category.group_name,
+          assignedCents: allocation?.assigned_cents ?? 0,
+          isHidden: category.is_hidden,
+          isDeleted: Boolean(category.deleted_at)
+        } satisfies AutoAssignCategory;
+      });
+  }, [allocations, categories, currentMonth]);
 
   const selectedData: CategoryWithData | null = useMemo(() => {
     if (!selectedId) return null;
@@ -1104,10 +1141,12 @@ export default function BudgetMonthPage() {
             void selecionarMes(shiftMonth(currentMonth, 1));
           }}
           onOpenGroups={alternarOcultas}
+          onOpenAutoAssign={() => setAutoAssignOpen(true)}
           onUndo={desfazer}
           onRedo={refazer}
           canUndo={history.past.length > 0}
           canRedo={history.future.length > 0}
+          autoAssignDisabled={autoAssignCategories.length === 0 || readyToAssign <= 0}
         />
 
         {error ? (
@@ -1235,6 +1274,18 @@ export default function BudgetMonthPage() {
           }}
         />
       )}
+
+      <AutoAssignModal
+        open={autoAssignOpen}
+        onClose={() => {
+          if (autoAssignSubmitting) return;
+          setAutoAssignOpen(false);
+        }}
+        onConfirm={handleAutoAssignConfirm}
+        categories={autoAssignCategories}
+        readyToAssignCents={readyToAssign}
+        isSubmitting={autoAssignSubmitting}
+      />
 
       <AddCategoryModal
         state={addCategory}
