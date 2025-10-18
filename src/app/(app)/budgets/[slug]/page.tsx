@@ -1482,8 +1482,6 @@ export default function BudgetMonthPage() {
   }));
 
   const didInitRef = useRef(false);
-  const syncingUrlRef = useRef(false);
-  const initialMonthRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!pathname?.startsWith("/budgets")) return;
@@ -1496,36 +1494,15 @@ export default function BudgetMonthPage() {
       queryMonth = new URLSearchParams(window.location.search).get("m");
     }
     const initial = (queryMonth ?? slugMonth ?? mesAtual()).slice(0, 7);
-    initialMonthRef.current = initial;
-
     void initializeMonth(initial);
 
     if (typeof window !== "undefined" && queryMonth) {
       const desiredPath = `/budgets/${initial}`;
       if (pathname !== desiredPath) {
-        syncingUrlRef.current = true;
         router.replace(desiredPath, { scroll: false });
-        queueMicrotask(() => {
-          syncingUrlRef.current = false;
-        });
       }
     }
   }, [initializeMonth, params?.slug, pathname, router]);
-
-  useEffect(() => {
-    if (!monthSelected) return;
-    if (!pathname?.startsWith("/budgets")) return;
-    if (syncingUrlRef.current) return;
-
-    const desiredPath = `/budgets/${monthSelected}`;
-    if (pathname !== desiredPath) {
-      syncingUrlRef.current = true;
-      router.replace(desiredPath, { scroll: false });
-      queueMicrotask(() => {
-        syncingUrlRef.current = false;
-      });
-    }
-  }, [monthSelected, pathname, router]);
 
   useEffect(() => {
     if (!toast) return;
@@ -1551,9 +1528,26 @@ export default function BudgetMonthPage() {
     setSelectedId(paramId);
   }, [searchParamsString]);
 
+  const goToMonth = useCallback(
+    async (nextMonth: string) => {
+      const normalized = nextMonth.slice(0, 7);
+      if (pathname?.startsWith("/budgets")) {
+        const desiredPath = `/budgets/${normalized}`;
+        if (pathname !== desiredPath) {
+          router.replace(desiredPath, { scroll: false });
+        }
+      }
+      await selecionarMes(normalized);
+    },
+    [pathname, router, selecionarMes]
+  );
+
   const select = useCallback(
     (id: string | null) => {
       setSelectedId(id);
+      if (!pathname?.startsWith("/budgets")) {
+        return;
+      }
       const paramsObj = new URLSearchParams(searchParamsString);
       if (!id) paramsObj.delete("cat");
       else paramsObj.set("cat", id);
@@ -1726,11 +1720,11 @@ export default function BudgetMonthPage() {
           readyToAssignCents={readyToAssign}
           onGoPrevious={() => {
             if (!currentMonth) return;
-            void selecionarMes(shiftMonth(currentMonth, -1));
+            void goToMonth(shiftMonth(currentMonth, -1));
           }}
           onGoNext={() => {
             if (!currentMonth) return;
-            void selecionarMes(shiftMonth(currentMonth, 1));
+            void goToMonth(shiftMonth(currentMonth, 1));
           }}
           onOpenGroups={alternarOcultas}
           onOpenAutoAssign={() => setAutoAssignOpen(true)}
