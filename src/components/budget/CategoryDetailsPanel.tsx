@@ -124,10 +124,14 @@ function useCategoryDetails(categoryId: string, month: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!categoryId) return;
+    setData(null);
+    setError(null);
+    if (!categoryId) {
+      setLoading(false);
+      return;
+    }
     const controller = new AbortController();
     setLoading(true);
-    setError(null);
     fetch(`/api/budget/category/${categoryId}/details?month=${month}`, {
       signal: controller.signal
     })
@@ -210,6 +214,11 @@ export function CategoryDetailsPanel({
     setIsEditingTarget(false);
     setTargetExpanded(Boolean(goal));
   }, [goal]);
+
+  useEffect(() => {
+    setNoteDraft("");
+    setNoteError(null);
+  }, [category.id, month]);
 
   useEffect(() => {
     if (data?.note) {
