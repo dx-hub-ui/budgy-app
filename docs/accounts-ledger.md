@@ -17,3 +17,14 @@
 ## Acessibilidade
 - O popover pode ser fechado pelo botão "Fechar" ou clicando fora da célula.
 - Todos os rótulos da UI permanecem em PT-BR conforme o padrão do produto.
+
+## Layout atualizado (dez/2024)
+- O conteúdo principal ocupa toda a largura útil do `Shell`, sem cartões elevados. Sidebar e cabeçalho foram simplificados para
+  replicar a hierarquia visual da página de orçamento.
+- A seção "Lançamentos" apresenta contagem e busca inline com bordas sutis, alinhadas ao screenshot de referência.
+- Métricas do cabeçalho permanecem visíveis como texto puro, evitando painéis destacados para facilitar leitura em telas grandes.
+
+## Compatibilidade com triggers antigas
+- A migration `0017_fix_budget_refresh.sql` redefine `public.fn_recalc_month` para ignorar a antiga tabela
+  `public.budget_allocations`. Em instalações novas, a função apenas verifica a existência de linhas em `public.budget_allocation`,
+  eliminando o erro "relation public.budget_allocations does not exist" ao salvar transações.
