@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
-import type { AccountInput, CategoryInput, ExpenseInput } from "./models";
+import type { AccountInput, CategoryInput, ExpenseInput, UpdateExpenseInput } from "./models";
 
 export async function getSessionUser() {
   const { data } = await supabase.auth.getUser();
@@ -10,6 +10,18 @@ export async function getSessionUser() {
 
 export async function listCategories() {
   const { data, error } = await supabase.from("categories").select("*").order("name");
+  if (error) throw error;
+  return data;
+}
+
+export async function listBudgetCategories() {
+  const { data, error } = await supabase
+    .from("budget_categories")
+    .select("*")
+    .is("deleted_at", null)
+    .eq("is_hidden", false)
+    .order("group_name")
+    .order("sort");
   if (error) throw error;
   return data;
 }
@@ -73,6 +85,41 @@ export async function listExpensesByMonth(f: MonthFilter) {
 
 export async function createExpense(input: ExpenseInput) {
   const { data, error } = await supabase.from("expenses").insert(input).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateExpense(id: string, input: UpdateExpenseInput) {
+  const { data, error } = await supabase
+    .from("expenses")
+    .update({ ...input })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function listCategoryActivity(
+  categoryId: string | null,
+  range: { start: string; end: string }
+) {
+  let query = supabase
+    .from("expenses")
+    .select("id, date, amount_cents, direction, description, memo, account:accounts(name)")
+    .gte("date", range.start)
+    .lt("date", range.end)
+    .is("deleted_at", null)
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (categoryId) {
+    query = query.eq("category_id", categoryId);
+  } else {
+    query = query.is("category_id", null);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }

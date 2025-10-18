@@ -6,12 +6,15 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthGate";
 import AccountHeader, { type AccountMetric } from "@/components/accounts/AccountHeader";
 import AccountSidebar, { type SidebarGroup } from "@/components/accounts/AccountSidebar";
-import AccountTransactionsTable, {
-  type AccountTransaction,
-  type CreateTransactionPayload,
-} from "@/components/accounts/AccountTransactionsTable";
-import { ExpenseSchema } from "@/domain/models";
-import { createExpense, listAccounts, listCategories, listExpenses } from "@/domain/repo";
+import { ymd } from "@/domain/format";
+import { ExpenseSchema, UpdateExpenseSchema } from "@/domain/models";
+import {
+  createExpense,
+  listAccounts,
+  listBudgetCategories,
+  listExpenses,
+  updateExpense
+} from "@/domain/repo";
 
 const dateHelper = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -26,10 +29,441 @@ const currencyHelper = new Intl.NumberFormat("pt-BR", {
 
 type AccountRow = Awaited<ReturnType<typeof listAccounts>>[number];
 type ExpenseRow = Awaited<ReturnType<typeof listExpenses>>[number];
-type CategoryRow = Awaited<ReturnType<typeof listCategories>>[number];
+type CategoryRow = Awaited<ReturnType<typeof listBudgetCategories>>[number];
+
+type LedgerTransaction = {
+  id: string;
+  date: string;
+  description: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  memo: string | null;
+  outflowCents: number;
+  inflowCents: number;
+};
+
+type DraftTransaction = {
+  id: string;
+  date: string;
+  description: string;
+  categoryId: string | null;
+  memo: string;
+  outflow: string;
+  inflow: string;
+  saving: boolean;
+  error: string | null;
+};
+
+type CategoryGroup = {
+  name: string;
+  items: CategoryRow[];
+};
+
+type CreateTransactionPayload = {
+  date: string;
+  description: string;
+  categoryId: string | null;
+  memo: string;
+  outflowCents: number;
+  inflowCents: number;
+};
 
 function formatCurrency(valueCents: number) {
   return currencyHelper.format(valueCents / 100);
+}
+
+function newDraftTransaction(): DraftTransaction {
+  return {
+    id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    date: ymd(new Date()),
+    description: "",
+    categoryId: null,
+    memo: "",
+    outflow: "",
+    inflow: "",
+    saving: false,
+    error: null,
+  };
+}
+
+function parseCurrencyInput(value: string) {
+  if (!value) return 0;
+  const normalized = value
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[^0-9,.-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const parsed = Number.parseFloat(normalized);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.round(parsed * 100);
+}
+
+function formatCurrencyInput(value: string) {
+  if (!value) return "";
+  const cents = parseCurrencyInput(value);
+  if (cents === 0) return "";
+  return currencyHelper.format(cents / 100);
+}
+
+type AccountLedgerProps = {
+  categories: CategoryRow[];
+  transactions: LedgerTransaction[];
+  loading: boolean;
+  addSignal?: number;
+  onCreate: (payload: CreateTransactionPayload) => Promise<void>;
+  onAssignCategory: (id: string, categoryId: string | null) => Promise<void>;
+};
+
+function AccountLedger({
+  categories,
+  transactions,
+  loading,
+  addSignal,
+  onCreate,
+  onAssignCategory
+}: AccountLedgerProps) {
+  const [drafts, setDrafts] = useState<DraftTransaction[]>([]);
+  const [search, setSearch] = useState("");
+  const [activePrompt, setActivePrompt] = useState<string | null>(null);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!addSignal) return;
+    setDrafts((prev) => [...prev, newDraftTransaction()]);
+  }, [addSignal]);
+
+  const categoryGroups = useMemo<CategoryGroup[]>(() => {
+    const map = new Map<string, CategoryRow[]>();
+    categories.forEach((category) => {
+      const key = category.group_name ?? "Outras";
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key)!.push(category);
+    });
+    return Array.from(map.entries()).map(([name, items]) => ({ name, items }));
+  }, [categories]);
+
+  const filteredTransactions = useMemo(() => {
+    if (!search) return transactions;
+    const term = search.toLowerCase();
+    return transactions.filter((transaction) => {
+      return (
+        transaction.description?.toLowerCase().includes(term) ||
+        transaction.categoryName?.toLowerCase().includes(term) ||
+        transaction.memo?.toLowerCase().includes(term)
+      );
+    });
+  }, [transactions, search]);
+
+  function updateDraft(id: string, patch: Partial<DraftTransaction>) {
+    setDrafts((prev) => prev.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
+  }
+
+  function removeDraft(id: string) {
+    setDrafts((prev) => prev.filter((draft) => draft.id !== id));
+  }
+
+  async function saveDraft(draft: DraftTransaction) {
+    const outflowCents = parseCurrencyInput(draft.outflow);
+    const inflowCents = parseCurrencyInput(draft.inflow);
+
+    if (!draft.description.trim()) {
+      updateDraft(draft.id, { error: "Informe uma descrição" });
+      return;
+    }
+
+    if (outflowCents === 0 && inflowCents === 0) {
+      updateDraft(draft.id, { error: "Preencha saída ou entrada" });
+      return;
+    }
+
+    if (outflowCents > 0 && inflowCents > 0) {
+      updateDraft(draft.id, { error: "Use apenas saída ou entrada" });
+      return;
+    }
+
+    updateDraft(draft.id, { saving: true, error: null });
+
+    try {
+      await onCreate({
+        date: draft.date,
+        description: draft.description.trim(),
+        categoryId: draft.categoryId,
+        memo: draft.memo.trim(),
+        outflowCents,
+        inflowCents,
+      });
+      removeDraft(draft.id);
+    } catch (error: any) {
+      updateDraft(draft.id, {
+        saving: false,
+        error: error?.message ?? "Não foi possível salvar",
+      });
+    }
+  }
+
+  async function handleAssignCategory(transaction: LedgerTransaction, categoryId: string | null) {
+    setAssignError(null);
+    setAssigningId(transaction.id);
+    try {
+      await onAssignCategory(transaction.id, categoryId);
+      setActivePrompt(null);
+    } catch (error: any) {
+      setAssignError(error?.message ?? "Falha ao atualizar a categoria");
+    } finally {
+      setAssigningId(null);
+    }
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-3xl border border-[var(--cc-border)] bg-white/90 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm font-medium text-[var(--cc-text)]">Lançamentos</div>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <input
+            type="search"
+            className="h-10 flex-1 rounded-xl border border-[var(--cc-border)] px-3 text-sm"
+            placeholder="Buscar por descrição, categoria ou memo"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <span className="text-xs text-[var(--cc-text-muted)]">{filteredTransactions.length} itens</span>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-3xl border border-[var(--cc-border)] bg-white">
+        <table className="min-w-full divide-y divide-[var(--cc-border)]">
+          <thead className="bg-[var(--brand-soft-fill)]/40 text-[var(--cc-text-muted)]">
+            <tr>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                Data
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                Descrição
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                Categoria
+              </th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                Memo
+              </th>
+              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+                Saída
+              </th>
+              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+                Entrada
+              </th>
+              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--cc-border)]">
+            {drafts.map((draft) => (
+              <tr key={draft.id} className="bg-[var(--brand-soft-fill)]/20">
+                <td className="px-4 py-2 text-sm">
+                  <input
+                    type="date"
+                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
+                    value={draft.date}
+                    onChange={(event) => updateDraft(draft.id, { date: event.target.value })}
+                  />
+                </td>
+                <td className="px-4 py-2">
+                  <input
+                    type="text"
+                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
+                    placeholder="Quem recebeu?"
+                    value={draft.description}
+                    onChange={(event) => updateDraft(draft.id, { description: event.target.value })}
+                  />
+                </td>
+                <td className="px-4 py-2">
+                  <select
+                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
+                    value={draft.categoryId ?? ""}
+                    onChange={(event) =>
+                      updateDraft(draft.id, { categoryId: event.target.value || null })
+                    }
+                  >
+                    <option value="">Sem categoria</option>
+                    {categoryGroups.map((group) => (
+                      <optgroup key={group.name} label={group.name}>
+                        {group.items.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-4 py-2">
+                  <input
+                    type="text"
+                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
+                    placeholder="Observação"
+                    value={draft.memo}
+                    onChange={(event) => updateDraft(draft.id, { memo: event.target.value })}
+                  />
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-right text-sm"
+                    placeholder="0,00"
+                    value={draft.outflow}
+                    onChange={(event) => updateDraft(draft.id, { outflow: event.target.value })}
+                    onBlur={(event) => updateDraft(draft.id, { outflow: formatCurrencyInput(event.target.value) })}
+                  />
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-right text-sm"
+                    placeholder="0,00"
+                    value={draft.inflow}
+                    onChange={(event) => updateDraft(draft.id, { inflow: event.target.value })}
+                    onBlur={(event) => updateDraft(draft.id, { inflow: formatCurrencyInput(event.target.value) })}
+                  />
+                </td>
+                <td className="px-4 py-2">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      className="rounded-full border border-[var(--cc-border)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--cc-text)]"
+                      onClick={() => saveDraft(draft)}
+                      disabled={draft.saving}
+                    >
+                      {draft.saving ? "Salvando…" : "Salvar"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-[var(--cc-border)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
+                      onClick={() => removeDraft(draft.id)}
+                      disabled={draft.saving}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                  {draft.error && (
+                    <p className="pt-2 text-xs text-red-600" role="alert">
+                      {draft.error}
+                    </p>
+                  )}
+                </td>
+              </tr>
+            ))}
+
+            {filteredTransactions.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-[var(--cc-text-muted)]">
+                  {loading ? "Carregando…" : "Nenhum lançamento encontrado."}
+                </td>
+              </tr>
+            ) : (
+              filteredTransactions.map((transaction) => (
+                <tr key={transaction.id} className="hover:bg-[var(--cc-bg-elev)]">
+                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
+                    {dateHelper.format(new Date(`${transaction.date}T00:00:00`))}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
+                    {transaction.description || "—"}
+                  </td>
+                  <td className="relative px-4 py-3 text-sm text-[var(--cc-text)]">
+                    {transaction.categoryName ? (
+                      transaction.categoryName
+                    ) : (
+                      <div className="relative">
+                        <span className="text-[var(--cc-text-muted)]">Sem categoria</span>
+                        <button
+                          type="button"
+                          className="absolute -top-2 left-0 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-700 shadow"
+                          onClick={() =>
+                            setActivePrompt((current) =>
+                              current === transaction.id ? null : transaction.id,
+                            )
+                          }
+                        >
+                          Requer uma categoria
+                        </button>
+                        {activePrompt === transaction.id && (
+                          <div className="absolute z-20 mt-3 w-72 rounded-2xl border border-blue-200 bg-blue-600 text-white shadow-lg">
+                            <div className="flex items-center justify-between px-4 py-3 text-sm font-semibold">
+                              <span>Escolher categoria</span>
+                              <button
+                                type="button"
+                                className="text-xs font-medium text-blue-100 hover:text-white"
+                                onClick={() => setActivePrompt(null)}
+                              >
+                                Fechar
+                              </button>
+                            </div>
+                            <div className="max-h-60 space-y-3 overflow-y-auto px-4 pb-4">
+                              <button
+                                type="button"
+                                className="block w-full rounded-lg bg-white/10 px-3 py-2 text-left text-sm transition hover:bg-white/20"
+                                onClick={() => handleAssignCategory(transaction, null)}
+                                disabled={assigningId === transaction.id}
+                              >
+                                Sem categoria
+                              </button>
+                              {categoryGroups.map((group) => (
+                                <div key={group.name} className="space-y-2">
+                                  <p className="text-xs uppercase tracking-wide text-blue-100">
+                                    {group.name}
+                                  </p>
+                                  <div className="space-y-1">
+                                    {group.items.map((category) => (
+                                      <button
+                                        key={category.id}
+                                        type="button"
+                                        className="block w-full rounded-lg bg-white/10 px-3 py-2 text-left text-sm transition hover:bg-white/20"
+                                        onClick={() => handleAssignCategory(transaction, category.id)}
+                                        disabled={assigningId === transaction.id}
+                                      >
+                                        {category.name}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                              {assignError && assigningId === transaction.id && (
+                                <p className="rounded-lg bg-white/20 px-3 py-2 text-xs" role="alert">
+                                  {assignError}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
+                    {transaction.memo || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-medium text-rose-600">
+                    {transaction.outflowCents > 0 ? formatCurrency(transaction.outflowCents) : ""}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-medium text-emerald-600">
+                    {transaction.inflowCents > 0 ? formatCurrency(transaction.inflowCents) : ""}
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs text-[var(--cc-text-muted)]">
+                    —
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
 
 export default function AccountPage() {
@@ -43,7 +477,7 @@ export default function AccountPage() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [focusSignal, setFocusSignal] = useState<number>(0);
+  const [addDraftSignal, setAddDraftSignal] = useState<number>(0);
   const [showTransferInfo, setShowTransferInfo] = useState(false);
   const [showReconcileInfo, setShowReconcileInfo] = useState(false);
 
@@ -53,7 +487,7 @@ export default function AccountPage() {
     setLoadingTransactions(true);
     setPageError(null);
 
-    Promise.all([listAccounts(), listCategories(), listExpenses()])
+    Promise.all([listAccounts(), listBudgetCategories(), listExpenses()])
       .then(([accountsData, categoriesData, expensesData]) => {
         if (!active) return;
         setAccounts(Array.isArray(accountsData) ? accountsData : []);
@@ -161,7 +595,7 @@ export default function AccountPage() {
     return Array.from(grouped.values());
   }, [accounts, totalsByAccount, selectedAccount]);
 
-  const transactions: AccountTransaction[] = useMemo(() => {
+  const transactions: LedgerTransaction[] = useMemo(() => {
     if (!selectedAccount) return [];
     return expenses
       .filter((expense) => expense.account_id === selectedAccount.id)
@@ -171,11 +605,12 @@ export default function AccountPage() {
           id: expense.id,
           date: expense.date,
           description: expense.description ?? "",
+          categoryId: expense.category_id ?? null,
           categoryName: category?.name ?? null,
           memo: expense.memo ?? null,
           outflowCents: expense.direction === "outflow" ? expense.amount_cents : 0,
           inflowCents: expense.direction === "inflow" ? expense.amount_cents : 0,
-        } satisfies AccountTransaction;
+        } satisfies LedgerTransaction;
       });
   }, [expenses, selectedAccount, categoriesMap]);
 
@@ -234,6 +669,15 @@ export default function AccountPage() {
     await refreshExpenses();
   }
 
+  async function handleAssignCategory(expenseId: string, categoryId: string | null) {
+    const parsed = UpdateExpenseSchema.safeParse({ category_id: categoryId });
+    if (!parsed.success) {
+      throw new Error("Selecione uma categoria válida.");
+    }
+    await updateExpense(expenseId, parsed.data);
+    await refreshExpenses();
+  }
+
   const planName = `Plano de ${displayName}`;
   const contactEmail = user?.email ?? null;
 
@@ -286,7 +730,7 @@ export default function AccountPage() {
                 name={selectedAccount.name}
                 subtitle={`Saldo projetado: ${formatCurrency(totalsByAccount.get(selectedAccount.id) ?? 0)}`}
                 metrics={metrics}
-                onAddTransaction={() => setFocusSignal(Date.now())}
+                onAddTransaction={() => setAddDraftSignal(Date.now())}
                 onAddTransfer={() => setShowTransferInfo((value) => !value)}
                 onReconcile={() => setShowReconcileInfo((value) => !value)}
               />
@@ -316,12 +760,13 @@ export default function AccountPage() {
                 </div>
               )}
 
-              <AccountTransactionsTable
-                categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+              <AccountLedger
+                categories={categories}
                 transactions={transactions}
                 loading={loadingTransactions}
+                addSignal={addDraftSignal}
                 onCreate={handleCreateTransaction}
-                focusSignal={focusSignal}
+                onAssignCategory={handleAssignCategory}
               />
             </>
           ) : (
