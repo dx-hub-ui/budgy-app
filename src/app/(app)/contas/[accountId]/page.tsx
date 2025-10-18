@@ -112,6 +112,8 @@ type AccountLedgerProps = {
   addSignal?: number;
   onCreate: (payload: CreateTransactionPayload) => Promise<void>;
   onAssignCategory: (id: string, categoryId: string | null) => Promise<void>;
+  onAddTransaction?: () => void;
+  onAddTransfer?: () => void;
 };
 
 function AccountLedger({
@@ -120,7 +122,9 @@ function AccountLedger({
   loading,
   addSignal,
   onCreate,
-  onAssignCategory
+  onAssignCategory,
+  onAddTransaction,
+  onAddTransfer
 }: AccountLedgerProps) {
   const [drafts, setDrafts] = useState<DraftTransaction[]>([]);
   const [search, setSearch] = useState("");
@@ -264,8 +268,28 @@ function AccountLedger({
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-          Lançamentos
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-sm font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+            Lançamentos
+          </div>
+          {onAddTransaction && (
+            <button
+              type="button"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--brand-soft-fill)]/60 px-4 text-sm font-semibold text-[var(--cc-text)] shadow-sm transition hover:bg-[var(--brand-soft-fill)]"
+              onClick={onAddTransaction}
+            >
+              Adicionar transação
+            </button>
+          )}
+          {onAddTransfer && (
+            <button
+              type="button"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--cc-border)] bg-white px-4 text-sm font-medium text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
+              onClick={onAddTransfer}
+            >
+              Adicionar transferência
+            </button>
+          )}
         </div>
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <input
@@ -786,8 +810,6 @@ export default function AccountPage() {
               name={selectedAccount.name}
               subtitle={`Saldo projetado: ${formatCurrency(totalsByAccount.get(selectedAccount.id) ?? 0)}`}
               metrics={metrics}
-              onAddTransaction={() => setAddDraftSignal(Date.now())}
-              onAddTransfer={() => setShowTransferInfo((value) => !value)}
               onReconcile={() => setShowReconcileInfo((value) => !value)}
             />
 
@@ -823,6 +845,8 @@ export default function AccountPage() {
               addSignal={addDraftSignal}
               onCreate={handleCreateTransaction}
               onAssignCategory={handleAssignCategory}
+              onAddTransaction={() => setAddDraftSignal(Date.now())}
+              onAddTransfer={() => setShowTransferInfo((value) => !value)}
             />
           </>
         ) : (

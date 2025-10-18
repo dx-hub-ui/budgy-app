@@ -27,25 +27,16 @@ type Props = {
   subtitle?: string;
   metrics: Metric[];
   onReconcile?: () => void;
-  onAddTransaction?: () => void;
-  onAddTransfer?: () => void;
 };
 
 export type AccountHeaderProps = Props;
 
-export default function AccountHeader({
-  name,
-  subtitle,
-  metrics,
-  onReconcile,
-  onAddTransaction,
-  onAddTransfer,
-}: Props) {
+export default function AccountHeader({ name, subtitle, metrics, onReconcile }: Props) {
   const cards = useMemo(() => metrics, [metrics]);
 
   return (
     <header className="space-y-6 border-b border-[var(--cc-border)] pb-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-[var(--cc-text)]">{name}</h1>
@@ -55,29 +46,15 @@ export default function AccountHeader({
           </div>
           {subtitle && <p className="text-sm text-[var(--cc-text-muted)]">{subtitle}</p>}
         </div>
-        <div className="flex flex-wrap gap-2">
+        {onReconcile && (
           <button
             type="button"
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
-            onClick={onAddTransaction}
-          >
-            Adicionar transação
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--cc-border)] bg-white px-4 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
-            onClick={onAddTransfer}
-          >
-            Adicionar transferência
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--cc-accent)] px-4 text-sm font-semibold text-slate-900 transition hover:brightness-95"
+            className="inline-flex h-11 items-center justify-center self-start rounded-lg bg-[var(--cc-accent)] px-4 text-sm font-semibold text-slate-900 transition hover:brightness-95"
             onClick={onReconcile}
           >
             Reconciliar
           </button>
-        </div>
+        )}
       </div>
 
       <div className="grid gap-6 sm:grid-cols-3">
