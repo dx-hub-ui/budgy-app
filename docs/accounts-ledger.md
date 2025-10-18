@@ -24,6 +24,8 @@
 - O conteúdo principal ocupa toda a largura útil do `Shell`, sem cartões elevados. Sidebar e cabeçalho foram simplificados para
   replicar a hierarquia visual da página de orçamento.
 - A seção "Lançamentos" apresenta contagem e busca inline com bordas sutis, alinhadas ao screenshot de referência.
+- A barra de ações agora mantém o botão **Adicionar transação** alinhado à esquerda da listagem, enquanto **Reconciliar** fica
+  sozinho no topo direito do cabeçalho, reproduzindo o layout exibido na captura de referência.
 - Métricas do cabeçalho permanecem visíveis como texto puro, evitando painéis destacados para facilitar leitura em telas grandes.
 
 ## Menu lateral unificado (jan/2025)
