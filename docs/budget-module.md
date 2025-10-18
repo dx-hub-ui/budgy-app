@@ -57,10 +57,11 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
 4. **Grid de categorias** – accordions por grupo, célula "Atribuído" mostra o valor formatado em BRL e, ao clicar, revela um campo inline para edição. A pill de "Disponível" permanece colorida (`cc-pill-positive`, `cc-pill-zero`, `cc-pill-negative`). Clicar em qualquer linha seleciona a categoria e abre seus detalhes no painel lateral.
    - A seleção grava o `id` da categoria na query string (`?cat=`) e atualiza imediatamente o painel de detalhes sem recarregar a página, preservando o compartilhamento de links e o estado atual do mês.
 5. **Modal de nome** – abre ao clicar no nome da categoria. Permite renomear, ocultar e excluir (soft delete) com acessibilidade (`aria-modal`, foco inicial no campo).
-6. **Drawer Assistente (3 passos)**:
-   - *Passo 1* – tabs Semanal/Mensal/Anual/Personalizado, input de valor, prazo e estratégia para o mês seguinte. Salva via `PUT /goal`.
-   - *Passo 2* – usa `calcularProjecaoMeta` para exibir progresso, CTA "Atribuir" (POST apply) e estatísticas "Atribuir este mês / Atribuído / Falta".
-   - *Passo 3* – resumo, botão "Editar meta" (volta ao passo 1), "Remover" e "Atribuir".
+6. **Painel lateral da categoria** – inspirado no inspector do YNAB, substitui o antigo drawer multi-etapas. Ao selecionar uma linha do grid:
+   - Um card de **Saldo disponível** mostra o valor atual, destaca o rollover do mês anterior (`prev_available_cents`) e lista rapidamente atribuição e atividade do mês corrente e anterior.
+   - A seção **Meta da categoria** concentra criação, edição e remoção do alvo financeiro. As tabs Semanal/Mensal/Anual/Personalizado continuam disponíveis, mas agora ficam inline, com formulário compacto e botão único de "Salvar meta".
+   - Quando existe meta ativa, o painel exibe progress bar, resumo "Necessário este mês / Já atribuído / Saldo disponível" e CTA "Atribuir" que dispara `POST /goal/:id/apply` usando `calcularProjecaoMeta` para sugerir o valor restante.
+   - A parte inferior agrupa ações administrativas (renomear, arquivar) e mantém os atalhos rápidos de atribuir, mover dinheiro e zerar a categoria diretamente no card principal.
 7. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store.
 
 ## Fórmulas e regras financeiras
