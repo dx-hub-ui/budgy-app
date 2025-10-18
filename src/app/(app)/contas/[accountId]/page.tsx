@@ -33,7 +33,7 @@ type CategoryRow = Awaited<ReturnType<typeof listBudgetCategories>>[number];
 
 type LedgerTransaction = {
   id: string;
-  date: string;
+  occurred_on: string;
   description: string | null;
   categoryId: string | null;
   categoryName: string | null;
@@ -44,7 +44,7 @@ type LedgerTransaction = {
 
 type DraftTransaction = {
   id: string;
-  date: string;
+  occurred_on: string;
   description: string;
   categoryId: string | null;
   memo: string;
@@ -60,7 +60,7 @@ type CategoryGroup = {
 };
 
 type CreateTransactionPayload = {
-  date: string;
+  occurred_on: string;
   description: string | null;
   categoryId: string | null;
   memo: string | null;
@@ -75,7 +75,7 @@ function formatCurrency(valueCents: number) {
 function newDraftTransaction(): DraftTransaction {
   return {
     id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    date: ymd(new Date()),
+    occurred_on: ymd(new Date()),
     description: "",
     categoryId: null,
     memo: "",
@@ -233,7 +233,7 @@ function AccountLedger({
       const description = draft.description.trim();
       const memo = draft.memo.trim();
       await onCreate({
-        date: draft.date,
+        occurred_on: draft.occurred_on,
         description: description.length > 0 ? description : null,
         categoryId: draft.categoryId,
         memo: memo.length > 0 ? memo : null,
@@ -314,8 +314,8 @@ function AccountLedger({
                   <input
                     type="date"
                     className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
-                    value={draft.date}
-                    onChange={(event) => updateDraft(draft.id, { date: event.target.value })}
+                    value={draft.occurred_on}
+                    onChange={(event) => updateDraft(draft.id, { occurred_on: event.target.value })}
                   />
                 </td>
                 <td className="px-4 py-2">
@@ -416,7 +416,7 @@ function AccountLedger({
               filteredTransactions.map((transaction) => (
                 <tr key={transaction.id} className="hover:bg-[var(--cc-bg-elev)]">
                   <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
-                    {dateHelper.format(new Date(`${transaction.date}T00:00:00`))}
+                  {dateHelper.format(new Date(`${transaction.occurred_on}T00:00:00`))}
                   </td>
                   <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
                     {transaction.description || "—"}
@@ -469,7 +469,7 @@ function AccountLedger({
                 </p>
                 <p className="text-sm font-semibold">{activeDescription}</p>
                 <p className="text-xs text-blue-100">
-                  {dateHelper.format(new Date(`${activeTransaction.date}T00:00:00`))}
+                  {dateHelper.format(new Date(`${activeTransaction.occurred_on}T00:00:00`))}
                   {activeAmountLabel ? ` • ${activeAmountLabel}` : ""}
                 </p>
               </div>
@@ -698,7 +698,7 @@ export default function AccountPage() {
         const category = expense.category_id ? categoriesMap.get(expense.category_id) : null;
         return {
           id: expense.id,
-          date: expense.date,
+          occurred_on: expense.occurred_on,
           description: expense.description ?? null,
           categoryId: expense.category_id ?? null,
           categoryName: category?.name ?? null,
@@ -718,7 +718,9 @@ export default function AccountPage() {
     [transactions],
   );
   const workingBalance = totalInflow - totalOutflow;
-  const lastMovement = transactions[0]?.date ? dateHelper.format(new Date(`${transactions[0].date}T00:00:00`)) : null;
+  const lastMovement = transactions[0]?.occurred_on
+    ? dateHelper.format(new Date(`${transactions[0].occurred_on}T00:00:00`))
+    : null;
 
   async function refreshExpenses() {
     setLoadingTransactions(true);
@@ -746,7 +748,7 @@ export default function AccountPage() {
     const baseMethod = selectedAccount.default_method ?? "debito";
     const candidate = {
       amount_cents: amountCents,
-      date: payload.date,
+      occurred_on: payload.occurred_on,
       category_id: payload.categoryId,
       account_id: selectedAccount.id,
       method: baseMethod,

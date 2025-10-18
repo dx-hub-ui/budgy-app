@@ -15,7 +15,7 @@ export default function NewExpensePage() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     amount_cents: 0,
-    date: ymd(new Date()),
+    occurred_on: ymd(new Date()),
     category_id: null as string | null,
     account_id: null as string | null,
     method: "pix",
@@ -100,8 +100,8 @@ export default function NewExpensePage() {
                 className="h-11 w-full rounded-md border px-3 text-sm"
                 style={{ borderColor: "var(--cc-border)" }}
                 type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                value={form.occurred_on}
+                onChange={(e) => setForm({ ...form, occurred_on: e.target.value })}
                 required
               />
             </label>
