@@ -38,6 +38,23 @@ export async function PUT(
       payload.cadence = body.cadence;
     }
 
+    if ("due_day_of_month" in body) {
+      if (body.due_day_of_month === null) {
+        payload.due_day_of_month = null;
+      } else if (
+        typeof body.due_day_of_month === "number" &&
+        Number.isInteger(body.due_day_of_month) &&
+        body.due_day_of_month >= 1 &&
+        body.due_day_of_month <= 31
+      ) {
+        payload.due_day_of_month = body.due_day_of_month;
+      } else {
+        return NextResponse.json({ message: "Dia inválido" }, { status: 400 });
+      }
+    } else {
+      payload.due_day_of_month = null;
+    }
+
     const { data, error } = await supabase
       .from("budget_goal")
       .upsert(payload, { onConflict: "org_id,category_id" })

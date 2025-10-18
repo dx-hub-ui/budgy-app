@@ -18,7 +18,7 @@ import {
   useRouter,
   useSearchParams
 } from "next/navigation";
-import { ChevronDown, ChevronRight, MoreVertical, X } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 
 import {
   calcularProjecaoMeta,
@@ -38,6 +38,7 @@ import {
 import { AutoAssignModal, type AutoAssignCategory } from "@/components/orcamento/AutoAssignModal";
 import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
 import { CategoryNameModal } from "@/components/orcamento/CategoryNameModal";
+import { CategoryDetailsPanel } from "@/components/budget/CategoryDetailsPanel";
 import { listCategoryActivity, monthToRange } from "@/domain/repo";
 
 function shiftMonth(month: string, delta: number) {
@@ -81,10 +82,13 @@ type ActivityModalState = {
   error: string | null;
 };
 
-type CategoryInspectorProps = {
-  data: CategoryWithData | null;
+type InspectorPanelProps = {
+  selected: CategoryWithData | null;
   month: string;
+  readyToAssign: number;
+  totals: { assigned: number; activity: number; available: number };
   onClose: () => void;
+  onAssign: (value: number) => void;
   onArchive: () => void;
   onRename: () => void;
   onSaveGoal: (payload: {
@@ -92,22 +96,10 @@ type CategoryInspectorProps = {
     amount_cents: number;
     target_month?: string | null;
     cadence?: BudgetGoal["cadence"];
+    due_day_of_month?: number | null;
   }) => Promise<void> | void;
   onApplyGoal: () => Promise<void> | void;
   onRemoveGoal: () => Promise<void> | void;
-};
-
-type InspectorPanelProps = {
-  selected: CategoryWithData | null;
-  month: string;
-  readyToAssign: number;
-  totals: { assigned: number; activity: number; available: number };
-  onClose: () => void;
-  onArchive: () => void;
-  onRename: () => void;
-  onSaveGoal: CategoryInspectorProps["onSaveGoal"];
-  onApplyGoal: CategoryInspectorProps["onApplyGoal"];
-  onRemoveGoal: CategoryInspectorProps["onRemoveGoal"];
 };
 
 type AddCategoryModalProps = {
@@ -115,18 +107,6 @@ type AddCategoryModalProps = {
   onClose: () => void;
   onSubmit: (payload: { name: string; group: string }) => Promise<void>;
   groups: string[];
-};
-
-type ConfirmDialogProps = {
-  open: boolean;
-  title: string;
-  description?: string;
-  confirmLabel: string;
-  cancelLabel?: string;
-  onClose: () => void;
-  onConfirm: () => Promise<void> | void;
-  isSubmitting?: boolean;
-  tone?: "default" | "danger";
 };
 
 type GroupRowProps = {
@@ -516,506 +496,13 @@ function SummaryInspector({ month, readyToAssign, totals }: { month: string; rea
   );
 }
 
-type GoalFormState = {
-  amountInput: string;
-  cadence: "weekly" | "monthly" | "yearly" | "custom";
-  type: BudgetGoal["type"];
-  targetMonth: string | null;
-};
-
-const GOAL_FREQUENCY_OPTIONS: ReadonlyArray<{
-  cadence: GoalFormState["cadence"];
-  label: string;
-  type: BudgetGoal["type"];
-}> = [
-  { cadence: "weekly", label: "Semanal", type: "CUSTOM" },
-  { cadence: "monthly", label: "Mensal", type: "MFG" },
-  { cadence: "yearly", label: "Anual", type: "TBD" },
-  { cadence: "custom", label: "Personalizado", type: "CUSTOM" }
-];
-
-const GOAL_TYPE_LABELS: Record<BudgetGoal["type"], string> = {
-  MFG: "Meta mensal",
-  TB: "Saldo desejado",
-  TBD: "Meta com data",
-  CUSTOM: "Meta personalizada"
-};
-
-function goalDescription(goal: BudgetGoal) {
-  switch (goal.type) {
-    case "MFG":
-      return "Reserve esse valor todo mês.";
-    case "TB":
-      return "Mantenha esse saldo disponível.";
-    case "TBD": {
-      const monthKey = goal.target_month ? goal.target_month.slice(0, 7) : null;
-      return monthKey ? `Atingir até ${formatMonthLabel(monthKey)}.` : "Defina uma data final para essa meta.";
-    }
-    case "CUSTOM":
-    default:
-      return "Adapte o valor conforme sua estratégia.";
-  }
-}
-
-function getInitialGoalForm(goal: BudgetGoal | undefined): GoalFormState {
-  return {
-    amountInput: formatarInputMonetario(goal?.amount_cents ?? 0),
-    cadence: goal?.cadence ?? "monthly",
-    type: goal?.type ?? "MFG",
-    targetMonth: goal?.target_month ? goal.target_month.slice(0, 7) : null
-  };
-}
-
-function CategoryInspector({
-  data,
-  month,
-  onClose,
-  onArchive,
-  onRename,
-  onSaveGoal,
-  onApplyGoal,
-  onRemoveGoal
-}: CategoryInspectorProps) {
-  const goal = data?.goal;
-  const [isEditingGoal, setIsEditingGoal] = useState(false);
-  const [form, setForm] = useState<GoalFormState>(() => getInitialGoalForm(goal));
-  const [savingGoal, setSavingGoal] = useState(false);
-  const [applyingGoal, setApplyingGoal] = useState(false);
-  const [removingGoal, setRemovingGoal] = useState(false);
-  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
-  const definirToast = useBudgetPlannerStore((s) => s.definirToast);
-  const actionsRef = useRef<HTMLDetailsElement | null>(null);
-
-  useEffect(() => {
-    setForm(getInitialGoalForm(goal));
-    setIsEditingGoal(false);
-  }, [goal]);
-
-  if (!data) return null;
-
-  const { category, allocation, previousAllocation } = data;
-  const assigned = allocation?.assigned_cents ?? 0;
-  const activity = allocation?.activity_cents ?? 0;
-  const available = allocation?.available_cents ?? 0;
-  const prevAvailable = allocation?.prev_available_cents ?? previousAllocation?.available_cents ?? 0;
-  const emoji = category.icon ?? "🏷️";
-  const projection = goal && allocation ? calcularProjecaoMeta(goal, allocation, month) : null;
-  const monthLabel = formatMonthLabel(month);
-  const previousMonthKey = shiftMonth(month, -1);
-  const previousMonthLabel = formatMonthLabel(previousMonthKey);
-
-  const recommendedAssign = projection ? Math.max(projection.falta, projection.necessarioNoMes) : 0;
-  const progressPercent = projection ? Math.min(100, Math.round((projection.progresso ?? 0) * 100)) : 0;
-
-  const summaryHighlights: Array<{ label: string; value: string }> = [
-    { label: `Atribuído em ${monthLabel}`, value: fmtBRL(assigned) },
-    { label: `Gasto em ${monthLabel}`, value: fmtBRL(activity) },
-    { label: `Saldo que sobrou de ${previousMonthLabel}`, value: fmtBRL(prevAvailable) }
-  ];
-
-  const startEditingGoal = () => {
-    setForm(getInitialGoalForm(goal));
-    setIsEditingGoal(true);
-  };
-
-  const handleCancelGoal = () => {
-    setForm(getInitialGoalForm(goal));
-    setIsEditingGoal(false);
-  };
-
-  const handleSubmitGoal = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const value = normalizarValorMonetario(form.amountInput);
-    if (value <= 0) {
-      definirToast({ type: "error", message: "Informe um valor maior que zero para a meta." });
-      return;
-    }
-    if (form.type === "TBD" && !form.targetMonth) {
-      definirToast({ type: "error", message: "Defina um mês-alvo para esta meta." });
-      return;
-    }
-    setSavingGoal(true);
-    try {
-      await onSaveGoal({
-        type: form.type,
-        amount_cents: value,
-        target_month: form.type === "TBD" ? (form.targetMonth ? `${form.targetMonth}-01` : null) : null,
-        cadence: form.cadence
-      });
-      definirToast({ type: "success", message: "Meta salva com sucesso." });
-      setIsEditingGoal(false);
-    } catch (error) {
-      console.error(error);
-      definirToast({ type: "error", message: "Não foi possível salvar a meta." });
-    } finally {
-      setSavingGoal(false);
-    }
-  };
-
-  const handleApplyGoal = async () => {
-    if (!projection || recommendedAssign <= 0) return;
-    setApplyingGoal(true);
-    try {
-      await onApplyGoal();
-      definirToast({ type: "success", message: "Valor atribuído conforme a meta." });
-    } catch (error) {
-      console.error(error);
-      definirToast({ type: "error", message: "Não foi possível aplicar a meta." });
-    } finally {
-      setApplyingGoal(false);
-    }
-  };
-
-  const handleRemoveGoal = () => {
-    if (!goal) return;
-    setConfirmRemoveOpen(true);
-  };
-
-  const confirmRemoveGoal = async () => {
-    if (!goal) {
-      setConfirmRemoveOpen(false);
-      return;
-    }
-    setRemovingGoal(true);
-    try {
-      await onRemoveGoal();
-      setIsEditingGoal(false);
-      setForm(getInitialGoalForm(undefined));
-      setConfirmRemoveOpen(false);
-      definirToast({ type: "info", message: "Meta removida." });
-    } catch (error) {
-      console.error(error);
-      definirToast({ type: "error", message: "Não foi possível remover a meta." });
-    } finally {
-      setRemovingGoal(false);
-    }
-  };
-
-  const goalContent = (() => {
-    if (isEditingGoal) {
-      return (
-        <form className="space-y-5" onSubmit={handleSubmitGoal}>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-[var(--cc-text)]">
-              {goal ? "Editar meta" : "Criar meta"}
-            </h3>
-            <p className="text-sm text-[var(--cc-text-muted)]">
-              {goal
-                ? "Ajuste o valor e a frequência para manter esta categoria em dia."
-                : `Defina um objetivo para ${category.name} e acompanhe quanto falta para alcançar.`}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2" role="tablist">
-            {GOAL_FREQUENCY_OPTIONS.map((option) => (
-              <button
-                key={option.cadence}
-                type="button"
-                role="tab"
-                className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
-                  form.cadence === option.cadence
-                    ? "border-amber-500 bg-amber-50 text-[var(--cc-text)]"
-                    : "border-[var(--cc-border)] bg-[var(--cc-bg-elev)] text-[var(--cc-text-muted)] hover:border-[var(--cc-text-muted)]"
-                }`}
-                onClick={() =>
-                  setForm((prev) => ({
-                    ...prev,
-                    cadence: option.cadence,
-                    type: option.type
-                  }))
-                }
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--cc-text)]">
-            <span>Preciso de</span>
-            <input
-              value={form.amountInput}
-              onChange={(event) =>
-                setForm((prev) => ({
-                  ...prev,
-                  amountInput: formatarInputMonetario(normalizarValorMonetario(event.target.value))
-                }))
-              }
-              inputMode="numeric"
-              className="rounded-xl border border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-2 text-sm font-semibold shadow-sm focus:border-[var(--ring)] focus:outline-none"
-            />
-          </label>
-
-          {form.type === "TBD" ? (
-            <label className="flex flex-col gap-2 text-sm font-semibold text-[var(--cc-text)]">
-              <span>Até</span>
-              <input
-                type="month"
-                value={form.targetMonth ?? ""}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    targetMonth: event.target.value || null
-                  }))
-                }
-                required
-                className="rounded-xl border border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-2 text-sm font-semibold shadow-sm focus:border-[var(--ring)] focus:outline-none"
-              />
-            </label>
-          ) : null}
-
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[var(--cc-border)] pt-4">
-            {goal ? (
-              <button
-                type="button"
-                className="mr-auto text-sm font-semibold text-[var(--state-danger)] hover:underline"
-                onClick={handleRemoveGoal}
-                disabled={removingGoal}
-              >
-                {removingGoal ? "Removendo…" : "Excluir meta"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="rounded-full border border-[var(--cc-border)] px-4 py-2 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--cc-bg-elev)]"
-              onClick={handleCancelGoal}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-full bg-[var(--cc-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={savingGoal}
-            >
-              {savingGoal ? "Salvando…" : goal ? "Salvar alterações" : "Criar meta"}
-            </button>
-          </div>
-        </form>
-      );
-    }
-
-    if (!goal) {
-      return (
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-[var(--cc-text)]">Planeje uma meta</h3>
-            <p className="text-sm text-[var(--cc-text-muted)]">
-              Crie um objetivo para {category.name} e saiba exatamente quanto separar a cada mês.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="w-full rounded-full bg-[var(--cc-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 sm:w-auto"
-            onClick={startEditingGoal}
-          >
-            Criar meta
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">{GOAL_TYPE_LABELS[goal.type]}</p>
-            <h3 className="text-xl font-semibold text-[var(--cc-text)]">{fmtBRL(goal.amount_cents)}</h3>
-            <p className="text-sm text-[var(--cc-text-muted)]">{goalDescription(goal)}</p>
-          </div>
-          <button
-            type="button"
-            className="rounded-full border border-[var(--cc-border)] px-4 py-2 text-xs font-semibold text-[var(--cc-text)] transition hover:bg-[var(--cc-bg-elev)]"
-            onClick={startEditingGoal}
-          >
-            Ajustar meta
-          </button>
-        </div>
-
-        {projection ? (
-          <div className="space-y-6">
-            <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-              <div className="relative flex h-28 w-28 items-center justify-center">
-                <div
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background: `conic-gradient(#f97316 ${progressPercent * 3.6}deg, #fef3c7 0deg)`
-                  }}
-                  aria-hidden
-                />
-                <div className="absolute inset-3 rounded-full bg-[var(--cc-surface)]" />
-                <span className="relative text-lg font-semibold text-[var(--cc-text)]">{progressPercent}%</span>
-              </div>
-              <div className="space-y-2 text-center text-sm text-[var(--cc-text)] sm:text-left">
-                <p className="font-semibold">
-                  {recommendedAssign > 0
-                    ? `Separe ${fmtBRL(recommendedAssign)} para alcançar a meta deste mês.`
-                    : "Você está em dia com esta meta."}
-                </p>
-                <p className="text-[var(--cc-text-muted)]">
-                  Alcance {fmtBRL(projection.alvo)} mantendo as contribuições planejadas.
-                </p>
-              </div>
-            </div>
-
-            {recommendedAssign > 0 ? (
-              <button
-                type="button"
-                className="w-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
-                onClick={handleApplyGoal}
-                disabled={applyingGoal}
-              >
-                {applyingGoal ? "Aplicando…" : `Atribuir ${fmtBRL(recommendedAssign)}`}
-              </button>
-            ) : null}
-
-            <dl className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-[var(--cc-bg-elev)] px-4 py-3 text-sm">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Necessário este mês</dt>
-                <dd className="mt-1 text-base font-semibold text-[var(--cc-text)]">
-                  {fmtBRL(projection.necessarioNoMes)}
-                </dd>
-              </div>
-              <div className="rounded-2xl bg-[var(--cc-bg-elev)] px-4 py-3 text-sm">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Já atribuído</dt>
-                <dd className="mt-1 text-base font-semibold text-[var(--cc-text)]">{fmtBRL(projection.atribuido)}</dd>
-              </div>
-              <div className="rounded-2xl bg-[var(--cc-bg-elev)] px-4 py-3 text-sm">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">Saldo disponível</dt>
-                <dd className="mt-1 text-base font-semibold text-[var(--cc-text)]">
-                  {fmtBRL(allocation?.available_cents ?? 0)}
-                </dd>
-              </div>
-            </dl>
-          </div>
-        ) : (
-          <p className="text-sm text-[var(--cc-text-muted)]">Nenhuma projeção disponível para esta meta.</p>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            className="text-sm font-semibold text-[var(--state-danger)] underline-offset-4 hover:underline"
-            onClick={handleRemoveGoal}
-            disabled={removingGoal}
-          >
-            {removingGoal ? "Removendo…" : "Remover meta"}
-          </button>
-        </div>
-      </div>
-    );
-  })();
-
-  return (
-    <div className="flex h-full flex-col gap-6">
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="text-2xl">
-            {emoji}
-          </span>
-          <div className="space-y-0.5">
-            <p className="text-base font-semibold text-[var(--cc-text)]">{category.name}</p>
-            <p className="text-xs text-[var(--cc-text-muted)]">{category.group_name}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button type="button" className="text-sm font-semibold text-[var(--cc-text-muted)] hover:underline" onClick={onClose}>
-            Limpar seleção
-          </button>
-          <details ref={actionsRef} className="relative">
-            <summary
-              className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-transparent text-[var(--cc-text-muted)] transition hover:bg-[var(--cc-bg-elev)]"
-              aria-label="Mais ações"
-            >
-              <MoreVertical size={16} />
-            </summary>
-            <div className="absolute right-0 z-10 mt-2 w-44 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-2 shadow-[var(--shadow-1)]">
-              <button
-                type="button"
-                className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[var(--cc-text)] hover:bg-[var(--cc-bg)]"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  actionsRef.current?.removeAttribute("open");
-                  onRename();
-                }}
-              >
-                Renomear categoria
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[var(--state-danger)] hover:bg-[var(--cc-bg)]"
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  actionsRef.current?.removeAttribute("open");
-                  onArchive();
-                }}
-              >
-                Arquivar categoria
-              </button>
-            </div>
-          </details>
-        </div>
-      </header>
-
-      <section className="rounded-3xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-6 shadow-[var(--shadow-1)]">
-        <div className="space-y-6">
-          <div className="rounded-2xl bg-[var(--cc-bg)] p-4">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">Disponível</p>
-                <p className="text-xs text-[var(--cc-text-muted)]">Inclui {fmtBRL(prevAvailable)} de {previousMonthLabel}</p>
-              </div>
-              <p
-                className={`text-2xl font-semibold ${
-                  available < 0 ? "text-[var(--state-danger)]" : "text-[var(--cc-text)]"
-                }`}
-              >
-                {fmtBRL(available)}
-              </p>
-            </div>
-            <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
-              {summaryHighlights.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex flex-col gap-1 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] px-4 py-3 shadow-[var(--shadow-1)]"
-                >
-                  <dt className="text-[var(--cc-text-muted)]">{item.label}</dt>
-                  <dd className="text-sm font-semibold text-[var(--cc-text)]">{item.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          <div className="h-px w-full bg-[var(--cc-border)]" />
-
-          <div className="space-y-6">{goalContent}</div>
-        </div>
-      </section>
-
-      <ConfirmDialog
-        open={confirmRemoveOpen}
-        title="Remover meta"
-        description="Essa ação removerá a meta atual desta categoria. Você poderá definir outra meta depois."
-        confirmLabel="Remover"
-        tone="danger"
-        onClose={() => {
-          if (!removingGoal) {
-            setConfirmRemoveOpen(false);
-          }
-        }}
-        onConfirm={confirmRemoveGoal}
-        isSubmitting={removingGoal}
-      />
-    </div>
-  );
-}
-
 function InspectorPanel({
   selected,
   month,
   readyToAssign,
   totals,
   onClose,
+  onAssign,
   onArchive,
   onRename,
   onSaveGoal,
@@ -1025,10 +512,14 @@ function InspectorPanel({
   return (
     <aside className="inspector" aria-label="Painel do orçamento">
       {selected ? (
-        <CategoryInspector
-          data={selected}
+        <CategoryDetailsPanel
+          category={selected.category}
+          allocation={selected.allocation}
+          previousAllocation={selected.previousAllocation}
+          goal={selected.goal}
           month={month}
           onClose={onClose}
+          onAssign={onAssign}
           onArchive={onArchive}
           onRename={onRename}
           onSaveGoal={onSaveGoal}
@@ -1039,65 +530,6 @@ function InspectorPanel({
         <SummaryInspector month={month} readyToAssign={readyToAssign} totals={totals} />
       )}
     </aside>
-  );
-}
-
-function ConfirmDialog({
-  open,
-  title,
-  description,
-  confirmLabel,
-  cancelLabel = "Cancelar",
-  onClose,
-  onConfirm,
-  isSubmitting,
-  tone = "default"
-}: ConfirmDialogProps) {
-  if (!open) return null;
-
-  const confirmClassName =
-    tone === "danger"
-      ? "rounded-lg bg-[var(--state-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-70"
-      : "btn-primary";
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
-      onClick={() => {
-        if (!isSubmitting) onClose();
-      }}
-    >
-      <div
-        className="w-full max-w-md rounded-[var(--radius)] border border-[var(--cc-border)] bg-white p-6 text-[var(--cc-text)] shadow-[var(--shadow-2)]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="mb-4">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          {description ? (
-            <p className="mt-1 text-sm text-[var(--cc-text-muted)]">{description}</p>
-          ) : null}
-        </header>
-        <div className="flex justify-end gap-3">
-          <button type="button" className="btn-link" onClick={onClose} disabled={isSubmitting}>
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className={confirmClassName}
-            onClick={() => {
-              if (!isSubmitting) {
-                void onConfirm();
-              }
-            }}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Confirmando…" : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -1576,6 +1008,10 @@ export default function BudgetMonthPage() {
             readyToAssign={readyToAssign}
             totals={totals}
             onClose={closeSelection}
+            onAssign={(value) => {
+              if (!selectedData) return;
+              void handleAssign(selectedData.category.id, value);
+            }}
             onArchive={() => {
               if (!selectedData) return;
               void ocultarCategoria(selectedData.category.id);

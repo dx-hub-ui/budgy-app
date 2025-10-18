@@ -70,7 +70,7 @@ function compareGroup(a: string, b: string) {
   return a.localeCompare(b, "en-US");
 }
 
-export type BudgetGoalType = "TB" | "TBD" | "MFG";
+export type BudgetGoalType = "TB" | "TBD" | "MFG" | "CUSTOM";
 
 export type BudgetGoal = {
   id: UUID;
@@ -79,6 +79,8 @@ export type BudgetGoal = {
   goal_type: BudgetGoalType;
   amount_cents: number;
   target_month: string | null;
+  cadence?: "weekly" | "monthly" | "yearly" | "custom" | null;
+  due_day_of_month?: number | null;
 };
 
 export type BudgetAllocationView = {

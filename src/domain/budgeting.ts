@@ -23,6 +23,7 @@ export type BudgetGoal = {
   amount_cents: number;
   target_month: string | null;
   cadence: "weekly" | "monthly" | "yearly" | "custom" | null;
+  due_day_of_month: number | null;
   created_at: string;
 };
 
