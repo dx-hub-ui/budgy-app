@@ -15,6 +15,7 @@ export type CategoryNameModalProps = {
 export function CategoryNameModal({ category, onCancel, onConfirm, onHide, onDelete }: CategoryNameModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(category.name);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -75,11 +76,7 @@ export function CategoryNameModal({ category, onCancel, onConfirm, onHide, onDel
             <button
               type="button"
               className="rounded-lg border border-[var(--state-danger)] px-3 py-2 text-sm font-semibold text-[var(--state-danger)] transition hover:bg-[var(--state-danger)] hover:text-white"
-              onClick={() => {
-                if (window.confirm("Tem certeza que deseja excluir?")) {
-                  onDelete();
-                }
-              }}
+              onClick={() => setConfirmingDelete(true)}
             >
               Excluir
             </button>
@@ -101,6 +98,34 @@ export function CategoryNameModal({ category, onCancel, onConfirm, onHide, onDel
             </button>
           </div>
         </div>
+
+        {confirmingDelete ? (
+          <div className="mt-6 rounded-lg border border-[var(--state-danger)] bg-[var(--state-danger)]/5 p-4 text-sm text-[var(--cc-text)]">
+            <p className="font-semibold text-[var(--state-danger)]">Excluir categoria</p>
+            <p className="mt-2 text-[var(--cc-text)]">
+              Esta ação moverá a categoria para a lixeira. Você pode recuperá-la depois, mas as atribuições serão perdidas.
+            </p>
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                className="btn-link"
+                onClick={() => setConfirmingDelete(false)}
+              >
+                Manter categoria
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-[var(--state-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-90"
+                onClick={() => {
+                  setConfirmingDelete(false);
+                  onDelete();
+                }}
+              >
+                Confirmar exclusão
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

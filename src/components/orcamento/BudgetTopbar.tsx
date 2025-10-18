@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { fmtBRL, formatMonthLabel } from "@/domain/budgeting";
 
@@ -64,24 +64,28 @@ export function BudgetTopbar({
           </div>
 
           <div className="flex flex-col items-center justify-center gap-3 text-center lg:flex-row lg:gap-4">
-            <div
-              className="min-w-[12rem] rounded-xl px-6 py-4 shadow-sm"
-              style={{ backgroundColor: "#D6F5C6", color: "#1F6B2D" }}
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#1F6B2D]/80">
-                Pronto para atribuir
-              </p>
-              <p className="mt-2 text-[22px] font-bold tracking-tight">{fmtBRL(readyToAssignCents)}</p>
-              <p className="text-xs text-[#1F6B2D]/80">Saldo a distribuir neste mês</p>
+            <div className="w-full max-w-sm rounded-xl bg-[#C6FF7F] px-5 py-4 text-left text-[#1C3A0D] shadow-sm lg:max-w-md">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-[22px] font-bold leading-tight text-[#1C3A0D]">
+                    {fmtBRL(readyToAssignCents)}
+                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#1C3A0D]/70">
+                    Pronto para atribuir
+                  </p>
+                  <p className="text-xs text-[#1C3A0D]/70">Saldo a distribuir neste mês</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenAutoAssign}
+                  disabled={readyToAssignDisabled}
+                  className="inline-flex items-center gap-1 rounded-md bg-[#3E8E41] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#357835] disabled:cursor-not-allowed disabled:bg-[#A5D6A7] disabled:text-white"
+                >
+                  Atribuir
+                  <ChevronDown size={14} aria-hidden />
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onOpenAutoAssign}
-              disabled={readyToAssignDisabled}
-              className="rounded-md bg-[#4CAF50] px-6 py-2 text-sm font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[#3E8E41] disabled:cursor-not-allowed disabled:bg-[#A5D6A7] disabled:text-white"
-            >
-              Atribuir
-            </button>
           </div>
 
           <div className="flex flex-col items-stretch gap-2">
