@@ -133,3 +133,7 @@ no banco. Se algo falhar, rode novamente as migrations com `supabase db reset` a
 - Requests to `/api/budget/allocation` (and the remaining budget module routes) now return `503 Serviço indisponível` with the message
   "Não foi possível conectar ao Supabase" when the RPC or tables are unreachable. Double-check the `NEXT_PUBLIC_SUPABASE_URL` and
   `SUPABASE_SERVICE_ROLE_KEY` variables and the network connectivity before retrying.
+- If browser inserts to `public.account_transactions` fail with "new row violates row-level security policy", ensure the profile
+  cookie is available. The client now forwards the `cc_org_id` cookie as the `x-cc-org-id` header on every Supabase request once the
+  profile is loaded, so reloading `/api/profile` (or signing out and back in) refreshes the cookie and rehydrates the header without
+  needing manual configuration.
