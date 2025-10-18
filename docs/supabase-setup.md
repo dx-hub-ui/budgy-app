@@ -80,11 +80,11 @@ Re-running the command is safe—the script is idempotent and only inserts recor
 
 ## 6. Sprint 2 CRUD validation
 
-With a signed-in session you can exercise the new category and expense flows:
+With a signed-in session you can exercise the new category and transaction flows:
 
 1. Navigate to `/categories` and add a couple of sample categories with distinct colors.
 2. Use the delete action to confirm that Supabase writes propagate instantly.
-3. Head to `/new` to create expenses, selecting a category, payment method, and optional description.
+3. Head to `/new` to create a transaction, selecting a category, payment method, and optional description.
 4. After saving, you will be redirected to the dashboard (`/`).
 
 These steps verify the Supabase mutations and client-side validation introduced in sprint 2.
@@ -93,9 +93,9 @@ These steps verify the Supabase mutations and client-side validation introduced 
 
 Sprint 3 wires the dashboard metrics and CSV export to live Supabase data. After completing the steps above:
 
-1. Refresh the dashboard (`/`) and use the selector to switch between months. The headline cards update totals and expense counts based on Supabase queries.
-2. Confirm that the “Recentes” list shows the 20 most recent expenses, including descriptions and category context where available.
-3. Visit `/export`, choose the same month, and click **Baixar CSV**. The downloaded file should contain every expense within the selected window along with category names and formatted amounts.
+1. Refresh the dashboard (`/`) and use the selector to switch between months. The headline cards update totals and transaction counts based on Supabase queries.
+2. Confirm that the “Recentes” list shows the 20 most recent transactions, including descriptions and category context where available.
+3. Visit `/export`, choose the same month, and click **Baixar CSV**. The downloaded file should contain every transaction within the selected window along with category names and formatted amounts.
 4. Open the CSV in a spreadsheet editor to confirm UTF-8 encoding and escaped quotes.
 
 If any of these steps fail, re-run `pnpm dev` to observe console output and ensure the Supabase environment variables are set.
@@ -104,12 +104,14 @@ If any of these steps fail, re-run `pnpm dev` to observe console output and ensu
 
 O módulo de contas cria uma tabela dedicada (`public.accounts`) com políticas de RLS, mapeia cada lançamento financeiro a uma
 conta (`account_id`) e registra o sentido de cada movimento (`direction`, com valores `outflow` ou `inflow`). A migration
-`0016_accounts_table.sql` cuida da criação da tabela, adiciona a coluna `memo` às despesas existentes e garante o relacionamento.
+`0019_migrate_expenses_to_account_transactions.sql` consolida o livro-razão em `public.account_transactions`, garante o campo
+`method` e remove a antiga tabela `public.expenses`.
 
 Após executar `pnpm seed`, o usuário demo passa a contar com quatro contas padrão (Conta Corrente, Carteira, Carteira Pix e
-Cartão de Crédito). Cada lançamento carregado pelo seed recebe automaticamente o `account_id` correspondente e continua usando o
-método de pagamento original. Isso permite testar a tela `/contas`, que agrupa contas por tipo, apresenta saldos calculados em
-tempo real e permite inserir novas transações diretamente na grade.
+Cartão de Crédito). Cada lançamento carregado pelo seed recebe automaticamente o `account_id` correspondente, preserva o método
+de pagamento original e passa a ser registrado exclusivamente na tabela `public.account_transactions`. Isso permite testar a
+tela `/contas`, que agrupa contas por tipo, apresenta saldos calculados em tempo real e permite inserir novas transações
+diretamente na grade.
 
 Para validar o fluxo completo:
 

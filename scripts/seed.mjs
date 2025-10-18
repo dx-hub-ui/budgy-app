@@ -54,6 +54,24 @@ async function ensureProfile(userId) {
   }
 }
 
+async function getOrgId(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('org_id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to fetch profile org: ${error.message}`);
+  }
+
+  if (!data?.org_id) {
+    throw new Error('Profile org_id is missing; run migrations before seeding.');
+  }
+
+  return data.org_id;
+}
+
 async function ensureAccounts(userId) {
   const definitions = [
     { name: 'Conta Corrente', type: 'checking', default_method: 'debito', group_label: 'Contas bancárias', sort: 0 },
@@ -152,81 +170,81 @@ async function ensureCategories(userId) {
   return categories;
 }
 
-async function ensureExpenses(userId, categories, accounts) {
-  const expenses = [
+async function ensureTransactions(orgId, categories, accounts) {
+  const transactions = [
     {
       amount_cents: 34900,
-      date: '2025-01-05',
+      occurred_on: '2025-01-05',
       method: 'debito',
       description: 'Supermercado Semanal',
       category: 'Alimentação',
     },
     {
       amount_cents: 5900,
-      date: '2025-01-08',
+      occurred_on: '2025-01-08',
       method: 'pix',
       description: 'Corrida de aplicativo',
       category: 'Transporte',
     },
     {
       amount_cents: 12000,
-      date: '2025-01-12',
+      occurred_on: '2025-01-12',
       method: 'credito',
       description: 'Cinema com amigos',
       category: 'Lazer',
     },
     {
       amount_cents: 210000,
-      date: '2025-01-01',
+      occurred_on: '2025-01-01',
       method: 'pix',
       description: 'Aluguel Janeiro',
       category: 'Moradia',
     },
     {
       amount_cents: 8600,
-      date: '2025-01-18',
+      occurred_on: '2025-01-18',
       method: 'dinheiro',
       description: 'Consulta de rotina',
       category: 'Saúde',
     },
     {
       amount_cents: 35500,
-      date: '2024-12-16',
+      occurred_on: '2024-12-16',
       method: 'credito',
       description: 'Supermercado Festa de Fim de Ano',
       category: 'Alimentação',
     },
     {
       amount_cents: 4300,
-      date: '2024-12-20',
+      occurred_on: '2024-12-20',
       method: 'debito',
       description: 'Recarga de bilhete único',
       category: 'Transporte',
     },
     {
       amount_cents: 15000,
-      date: '2024-12-22',
+      occurred_on: '2024-12-22',
       method: 'pix',
       description: 'Presente de amigo secreto',
       category: 'Lazer',
     },
     {
       amount_cents: 210000,
-      date: '2024-12-01',
+      occurred_on: '2024-12-01',
       method: 'pix',
       description: 'Aluguel Dezembro',
       category: 'Moradia',
     },
     {
       amount_cents: 6400,
-      date: '2024-12-27',
+      occurred_on: '2024-12-27',
       method: 'debito',
       description: 'Farmácia pós festas',
       category: 'Saúde',
     },
     {
       amount_cents: 2500,
-      date: '2025-01-15',
+      occurred_on: '2025-01-15',
       method: 'pix',
       description: 'Café co-working',
       category: null,
@@ -240,18 +258,19 @@ async function ensureExpenses(userId, categories, accounts) {
     ['credito', accounts.get('Cartão de Crédito')],
   ]);
 
-  for (const expense of expenses) {
+  for (const transaction of transactions) {
     let query = supabase
-      .from('expenses')
+      .from('account_transactions')
       .select('id')
-      .eq('user_id', userId)
-      .eq('amount_cents', expense.amount_cents)
-      .eq('date', expense.date)
-      .eq('method', expense.method)
+      .eq('org_id', orgId)
+      .eq('amount_cents', transaction.amount_cents)
+      .eq('occurred_on', transaction.occurred_on)
+      .eq('method', transaction.method)
+      .eq('direction', transaction.direction ?? 'outflow')
       .limit(1);
 
-    if (expense.description) {
-      query = query.eq('description', expense.description);
+    if (transaction.description) {
+      query = query.eq('description', transaction.description);
     } else {
       query = query.is('description', null);
     }
@@ -259,27 +278,27 @@ async function ensureExpenses(userId, categories, accounts) {
     const { data: existingExpense, error: fetchError } = await query.maybeSingle();
 
     if (fetchError) {
-      throw new Error(`Failed to lookup expense ${expense.description ?? 'sem descrição'}: ${fetchError.message}`);
+      throw new Error(`Failed to lookup transaction ${transaction.description ?? 'sem descrição'}: ${fetchError.message}`);
     }
 
     if (existingExpense) {
       continue;
     }
 
-    const { error: insertError } = await supabase.from('expenses').insert({
-      user_id: userId,
-      amount_cents: expense.amount_cents,
-      date: expense.date,
-      method: expense.method,
-      description: expense.description,
-      category_id: expense.category ? categories.get(expense.category) ?? null : null,
-      memo: expense.memo ?? null,
-      account_id: methodToAccount.get(expense.method) ?? null,
-      direction: expense.direction ?? 'outflow',
+    const { error: insertError } = await supabase.from('account_transactions').insert({
+      org_id: orgId,
+      amount_cents: transaction.amount_cents,
+      occurred_on: transaction.occurred_on,
+      method: transaction.method,
+      description: transaction.description,
+      category_id: transaction.category ? categories.get(transaction.category) ?? null : null,
+      memo: transaction.memo ?? null,
+      account_id: methodToAccount.get(transaction.method) ?? null,
+      direction: transaction.direction ?? 'outflow',
     });
 
     if (insertError) {
-      throw new Error(`Failed to create expense ${expense.description ?? 'sem descrição'}: ${insertError.message}`);
+      throw new Error(`Failed to create transaction ${transaction.description ?? 'sem descrição'}: ${insertError.message}`);
     }
   }
 }
@@ -287,11 +306,12 @@ async function ensureExpenses(userId, categories, accounts) {
 async function main() {
   const userId = await ensureDemoUser();
   await ensureProfile(userId);
+  const orgId = await getOrgId(userId);
   const [accounts, categories] = await Promise.all([
     ensureAccounts(userId),
     ensureCategories(userId),
   ]);
-  await ensureExpenses(userId, categories, accounts);
+  await ensureTransactions(orgId, categories, accounts);
   console.log('Development data seeded successfully.');
 }
 

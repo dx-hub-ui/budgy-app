@@ -7,7 +7,7 @@ type CategoryOption = { id: string; name: string };
 
 export type AccountTransaction = {
   id: string;
-  date: string;
+  occurred_on: string;
   description: string | null;
   categoryName: string | null;
   memo: string | null;
@@ -16,10 +16,10 @@ export type AccountTransaction = {
 };
 
 type CreatePayload = {
-  date: string;
+  occurred_on: string;
   description: string;
   categoryId: string | null;
-  memo: string;
+  memo: string | null;
   outflowCents: number;
   inflowCents: number;
   repeat: string;
@@ -71,7 +71,7 @@ export default function AccountTransactionsTable({
   const [error, setError] = useState<string | null>(null);
   const payeeInputRef = useRef<HTMLInputElement | null>(null);
   const [form, setForm] = useState({
-    date: ymd(new Date()),
+    occurred_on: ymd(new Date()),
     description: "",
     categoryId: "",
     memo: "",
@@ -121,16 +121,16 @@ export default function AccountTransactionsTable({
     setSaving(true);
     try {
       await onCreate({
-        date: form.date,
+        occurred_on: form.occurred_on,
         description: form.description.trim(),
         categoryId: form.categoryId || null,
-        memo: form.memo.trim(),
+        memo: form.memo.trim() || null,
         outflowCents,
         inflowCents,
         repeat: form.repeat,
       });
       setForm({
-        date: ymd(new Date()),
+        occurred_on: ymd(new Date()),
         description: "",
         categoryId: "",
         memo: "",
@@ -179,8 +179,8 @@ export default function AccountTransactionsTable({
                 <input
                   type="date"
                   className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
-                  value={form.date}
-                  onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+                  value={form.occurred_on}
+                  onChange={(event) => setForm((prev) => ({ ...prev, occurred_on: event.target.value }))}
                 />
               </td>
               <td className="px-4 py-2">
@@ -278,7 +278,7 @@ export default function AccountTransactionsTable({
             {!loading &&
               filteredTransactions.map((transaction) => (
                 <tr key={transaction.id} className="hover:bg-[var(--brand-soft-fill)]/15">
-                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">{formatDate(transaction.date)}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">{formatDate(transaction.occurred_on)}</td>
                   <td className="px-4 py-3 text-sm text-[var(--cc-text)]">{transaction.description || "(Sem descrição)"}</td>
                   <td className="px-4 py-3 text-sm text-[var(--cc-text)]">{transaction.categoryName ?? "Sem categoria"}</td>
                   <td className="px-4 py-3 text-sm text-[var(--cc-text-muted)]">{transaction.memo ?? ""}</td>

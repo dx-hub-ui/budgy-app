@@ -46,13 +46,13 @@ export default function ExportPage() {
   }, [month, year]);
 
   const csv = useMemo(() => {
-    const head = ["id", "date", "amount_cents", "amount_brl", "category_name", "method", "description"];
+    const head = ["id", "occurred_on", "amount_cents", "amount_brl", "category_name", "method", "description"];
     const categoryById = new Map(categories.map((cat) => [cat.id, cat]));
     const rows = expenses.map((expense) => {
       const category = expense.category_id ? categoryById.get(expense.category_id) : null;
       return [
         expense.id,
-        expense.date,
+        expense.occurred_on,
         expense.amount_cents,
         fmtBRL(expense.amount_cents),
         category?.name ?? "",

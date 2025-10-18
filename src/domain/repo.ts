@@ -72,26 +72,26 @@ export function monthToRange({ year, month }: MonthFilter) {
 export async function listExpensesByMonth(f: MonthFilter) {
   const { s, e } = monthToRange(f);
   const { data, error } = await supabase
-    .from("expenses")
+    .from("account_transactions")
     .select("*")
-    .gte("date", s)
-    .lt("date", e)
+    .gte("occurred_on", s)
+    .lt("occurred_on", e)
     .is("deleted_at", null)
-    .order("date", { ascending: false })
+    .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
 }
 
 export async function createExpense(input: ExpenseInput) {
-  const { data, error } = await supabase.from("expenses").insert(input).select().single();
+  const { data, error } = await supabase.from("account_transactions").insert(input).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function updateExpense(id: string, input: UpdateExpenseInput) {
   const { data, error } = await supabase
-    .from("expenses")
+    .from("account_transactions")
     .update({ ...input })
     .eq("id", id)
     .select()
@@ -105,12 +105,12 @@ export async function listCategoryActivity(
   range: { start: string; end: string }
 ) {
   let query = supabase
-    .from("expenses")
-    .select("id, date, amount_cents, direction, description, memo, account:accounts(name)")
-    .gte("date", range.start)
-    .lt("date", range.end)
+    .from("account_transactions")
+    .select("id, occurred_on, amount_cents, direction, description, memo, account:accounts(name)")
+    .gte("occurred_on", range.start)
+    .lt("occurred_on", range.end)
     .is("deleted_at", null)
-    .order("date", { ascending: false })
+    .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (categoryId) {
@@ -128,10 +128,10 @@ type ExpenseRow = Awaited<ReturnType<typeof listExpensesByMonth>>[number];
 
 export async function listExpenses(options?: { methods?: ExpenseRow["method"][] }) {
   let query = supabase
-    .from("expenses")
+    .from("account_transactions")
     .select("*")
     .is("deleted_at", null)
-    .order("date", { ascending: false })
+    .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (options?.methods && options.methods.length > 0) {

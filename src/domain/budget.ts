@@ -2,7 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { fmtBRL } from "./format";
-import { listCategories } from "./repo";
+import { listCategories, monthToRange } from "./repo";
 
 type UUID = string;
 
@@ -246,16 +246,20 @@ type BudgetCategoryUpsertPayload = {
 };
 
 export async function getActivityMap(year: number, month: number) {
+  const { s, e } = monthToRange({ year, month });
   const { data, error } = await supabase
-    .from("v_budget_activity")
-    .select("category_id, executed_cents")
-    .eq("year", year)
-    .eq("month", month);
+    .from("account_transactions")
+    .select("category_id, amount_cents, direction")
+    .gte("occurred_on", s)
+    .lt("occurred_on", e)
+    .eq("direction", "outflow")
+    .is("deleted_at", null);
   if (error) throw error;
   const map: Record<string, number> = {};
   for (const row of data ?? []) {
     const key = categoryKey(row.category_id);
-    map[key] = Number(row.executed_cents ?? 0);
+    const amount = Number(row.amount_cents ?? 0);
+    map[key] = (map[key] ?? 0) + amount;
   }
   return map;
 }

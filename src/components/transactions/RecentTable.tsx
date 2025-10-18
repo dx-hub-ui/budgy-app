@@ -2,7 +2,7 @@ export type RecentRow = {
   id: string;
   name: string;
   note?: string;
-  date: string;
+  occurred_on: string;
   time: string;
   status: "pending" | "completed" | "failed";
   amount: number;
@@ -73,7 +73,7 @@ export default function RecentTable({ rows }: RecentTableProps) {
                     {row.note && <span className="text-xs text-[var(--muted)]">{row.note}</span>}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-4 py-4 text-[var(--cc-text)]">{row.date}</td>
+                <td className="whitespace-nowrap px-4 py-4 text-[var(--cc-text)]">{row.occurred_on}</td>
                 <td className="whitespace-nowrap px-4 py-4 text-[var(--cc-text)]">{row.time}</td>
                 <td className="whitespace-nowrap px-4 py-4">
                   <span

@@ -30,7 +30,7 @@ export type AccountInput = z.infer<typeof AccountSchema>;
 export const ExpenseSchema = z.object({
   id: z.string().uuid().optional(),
   amount_cents: z.number().int().positive(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   category_id: z.string().uuid().nullable(),
   account_id: z.string().uuid().nullable().optional(),
   method: z.enum(["pix", "debito", "credito", "dinheiro"]),
@@ -43,7 +43,7 @@ export type ExpenseInput = z.infer<typeof ExpenseSchema>;
 export const UpdateExpenseSchema = z
   .object({
     amount_cents: z.number().int().positive().optional(),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     category_id: z.string().uuid().nullable().optional(),
     account_id: z.string().uuid().nullable().optional(),
     method: z.enum(["pix", "debito", "credito", "dinheiro"]).optional(),

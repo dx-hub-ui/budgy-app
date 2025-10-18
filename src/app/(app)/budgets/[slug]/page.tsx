@@ -428,8 +428,8 @@ function CategoryActivityModal({ state, onClose }: { state: ActivityModalState; 
               {state.items.map((item) => {
                 const signed = item.direction === "outflow" ? -item.amount_cents : item.amount_cents;
                 const tone = signed < 0 ? "text-rose-600" : "text-emerald-600";
-                const dateLabel = item.date
-                  ? activityDateFormatter.format(new Date(`${item.date}T00:00:00`))
+                const dateLabel = item.occurred_on
+                  ? activityDateFormatter.format(new Date(`${item.occurred_on}T00:00:00`))
                   : "—";
                 const accountName = Array.isArray(item.account)
                   ? item.account[0]?.name ?? null
