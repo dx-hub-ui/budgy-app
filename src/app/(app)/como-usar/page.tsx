@@ -174,7 +174,7 @@ export default function HowToUsePage() {
             <p className="text-sm leading-relaxed text-[var(--cc-text)]">
               Você não controla gastos: você dá propósito a cada real. Todo valor que entra deve encontrar uma categoria imediatamente. No Budgy, isso significa distribuir o saldo disponível na tela de <Link className="font-medium text-[var(--cc-accent)]" href={`/budgets/${mesAtual()}`}>
                 Orçamento
-              </Link> até que o indicador \"A distribuir\" chegue a zero.
+              </Link> até que o indicador &ldquo;A distribuir&rdquo; chegue a zero.
             </p>
             <p className="text-sm leading-relaxed text-[var(--cc-text)]">
               O saldo global representa apenas decisões ainda não executadas. Ao registrar uma despesa, você está cumprindo o plano desenhado previamente.
