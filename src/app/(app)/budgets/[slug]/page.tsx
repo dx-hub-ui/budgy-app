@@ -85,9 +85,6 @@ type CategoryInspectorProps = {
   data: CategoryWithData | null;
   month: string;
   onClose: () => void;
-  onAssign: (value: number) => void;
-  onMove: (value: number) => void;
-  onReset: () => void;
   onArchive: () => void;
   onRename: () => void;
   onSaveGoal: (payload: {
@@ -106,9 +103,6 @@ type InspectorPanelProps = {
   readyToAssign: number;
   totals: { assigned: number; activity: number; available: number };
   onClose: () => void;
-  onAssign: (value: number) => void;
-  onMove: (value: number) => void;
-  onReset: () => void;
   onArchive: () => void;
   onRename: () => void;
   onSaveGoal: CategoryInspectorProps["onSaveGoal"];
@@ -121,18 +115,6 @@ type AddCategoryModalProps = {
   onClose: () => void;
   onSubmit: (payload: { name: string; group: string }) => Promise<void>;
   groups: string[];
-};
-
-type AmountDialogProps = {
-  open: boolean;
-  title: string;
-  description?: string;
-  confirmLabel: string;
-  initialValue: number;
-  minValue?: number;
-  onClose: () => void;
-  onConfirm: (value: number) => Promise<void> | void;
-  isSubmitting?: boolean;
 };
 
 type ConfirmDialogProps = {
@@ -588,9 +570,6 @@ function CategoryInspector({
   data,
   month,
   onClose,
-  onAssign,
-  onMove,
-  onReset,
   onArchive,
   onRename,
   onSaveGoal,
@@ -603,12 +582,9 @@ function CategoryInspector({
   const [savingGoal, setSavingGoal] = useState(false);
   const [applyingGoal, setApplyingGoal] = useState(false);
   const [removingGoal, setRemovingGoal] = useState(false);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
-  const [assignSubmitting, setAssignSubmitting] = useState(false);
-  const [moveSubmitting, setMoveSubmitting] = useState(false);
   const definirToast = useBudgetPlannerStore((s) => s.definirToast);
+  const actionsRef = useRef<HTMLDetailsElement | null>(null);
 
   useEffect(() => {
     setForm(getInitialGoalForm(goal));
@@ -622,8 +598,6 @@ function CategoryInspector({
   const activity = allocation?.activity_cents ?? 0;
   const available = allocation?.available_cents ?? 0;
   const prevAvailable = allocation?.prev_available_cents ?? previousAllocation?.available_cents ?? 0;
-  const prevAssigned = previousAllocation?.assigned_cents ?? 0;
-  const prevActivity = previousAllocation?.activity_cents ?? 0;
   const emoji = category.icon ?? "🏷️";
   const projection = goal && allocation ? calcularProjecaoMeta(goal, allocation, month) : null;
   const monthLabel = formatMonthLabel(month);
@@ -633,20 +607,10 @@ function CategoryInspector({
   const recommendedAssign = projection ? Math.max(projection.falta, projection.necessarioNoMes) : 0;
   const progressPercent = projection ? Math.min(100, Math.round((projection.progresso ?? 0) * 100)) : 0;
 
-  const summaryItems: Array<{ label: string; value: string }> = [
-    { label: "Saldo que sobrou do mês passado", value: fmtBRL(prevAvailable) },
+  const summaryHighlights: Array<{ label: string; value: string }> = [
     { label: `Atribuído em ${monthLabel}`, value: fmtBRL(assigned) },
-    { label: `Atividade em ${monthLabel}`, value: fmtBRL(activity) },
-    { label: `Atividade em ${previousMonthLabel}`, value: fmtBRL(prevActivity) }
-  ];
-
-  const autoAssignStats: Array<{ label: string; value: string }> = [
-    { label: "Atribuído no último mês", value: fmtBRL(prevAssigned) },
-    { label: "Gasto no último mês", value: fmtBRL(prevActivity) },
-    { label: "Atribuído este mês", value: fmtBRL(assigned) },
-    { label: "Gasto este mês", value: fmtBRL(activity) },
-    { label: "Disponível", value: fmtBRL(available) },
-    { label: "Sugerido para a meta", value: fmtBRL(Math.max(recommendedAssign, 0)) }
+    { label: `Gasto em ${monthLabel}`, value: fmtBRL(activity) },
+    { label: `Saldo que sobrou de ${previousMonthLabel}`, value: fmtBRL(prevAvailable) }
   ];
 
   const startEditingGoal = () => {
@@ -657,46 +621,6 @@ function CategoryInspector({
   const handleCancelGoal = () => {
     setForm(getInitialGoalForm(goal));
     setIsEditingGoal(false);
-  };
-
-  const handleAssign = () => {
-    setAssignModalOpen(true);
-  };
-
-  const handleMoveMoney = () => {
-    setMoveModalOpen(true);
-  };
-
-  const handleAssignConfirm = async (value: number) => {
-    setAssignSubmitting(true);
-    try {
-      await Promise.resolve(onAssign(value));
-      setAssignModalOpen(false);
-      definirToast({ type: "success", message: "Valor atribuído atualizado." });
-    } catch (error) {
-      console.error(error);
-      definirToast({ type: "error", message: "Não foi possível atualizar a atribuição." });
-    } finally {
-      setAssignSubmitting(false);
-    }
-  };
-
-  const handleMoveConfirm = async (value: number) => {
-    if (value <= 0) {
-      definirToast({ type: "error", message: "Informe um valor maior que zero." });
-      return;
-    }
-    setMoveSubmitting(true);
-    try {
-      await Promise.resolve(onMove(value));
-      setMoveModalOpen(false);
-      definirToast({ type: "success", message: "Valor movido para Pronto para atribuir." });
-    } catch (error) {
-      console.error(error);
-      definirToast({ type: "error", message: "Não foi possível mover o valor." });
-    } finally {
-      setMoveSubmitting(false);
-    }
   };
 
   const handleSubmitGoal = async (event: FormEvent<HTMLFormElement>) => {
@@ -771,6 +695,17 @@ function CategoryInspector({
     if (isEditingGoal) {
       return (
         <form className="space-y-5" onSubmit={handleSubmitGoal}>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-[var(--cc-text)]">
+              {goal ? "Editar meta" : "Criar meta"}
+            </h3>
+            <p className="text-sm text-[var(--cc-text-muted)]">
+              {goal
+                ? "Ajuste o valor e a frequência para manter esta categoria em dia."
+                : `Defina um objetivo para ${category.name} e acompanhe quanto falta para alcançar.`}
+            </p>
+          </div>
+
           <div className="flex flex-wrap gap-2" role="tablist">
             {GOAL_FREQUENCY_OPTIONS.map((option) => (
               <button
@@ -860,10 +795,13 @@ function CategoryInspector({
 
     if (!goal) {
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-[var(--cc-text-muted)]">
-            Quando você cria uma meta, nós te avisamos quanto reservar todo mês para manter {category.name} sob controle.
-          </p>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-[var(--cc-text)]">Planeje uma meta</h3>
+            <p className="text-sm text-[var(--cc-text-muted)]">
+              Crie um objetivo para {category.name} e saiba exatamente quanto separar a cada mês.
+            </p>
+          </div>
           <button
             type="button"
             className="w-full rounded-full bg-[var(--cc-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 sm:w-auto"
@@ -878,11 +816,18 @@ function CategoryInspector({
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-600">{GOAL_TYPE_LABELS[goal.type]}</p>
-            <p className="mt-1 text-sm text-[var(--cc-text-muted)]">{goalDescription(goal)}</p>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-600">{GOAL_TYPE_LABELS[goal.type]}</p>
+            <h3 className="text-xl font-semibold text-[var(--cc-text)]">{fmtBRL(goal.amount_cents)}</h3>
+            <p className="text-sm text-[var(--cc-text-muted)]">{goalDescription(goal)}</p>
           </div>
-          <p className="text-xl font-semibold text-[var(--cc-text)]">{fmtBRL(goal.amount_cents)}</p>
+          <button
+            type="button"
+            className="rounded-full border border-[var(--cc-border)] px-4 py-2 text-xs font-semibold text-[var(--cc-text)] transition hover:bg-[var(--cc-bg-elev)]"
+            onClick={startEditingGoal}
+          >
+            Ajustar meta
+          </button>
         </div>
 
         {projection ? (
@@ -945,14 +890,7 @@ function CategoryInspector({
           <p className="text-sm text-[var(--cc-text-muted)]">Nenhuma projeção disponível para esta meta.</p>
         )}
 
-        <div className="flex flex-wrap justify-between gap-3 border-t border-[var(--cc-border)] pt-4">
-          <button
-            type="button"
-            className="text-sm font-semibold text-[var(--cc-text)] underline-offset-4 hover:underline"
-            onClick={startEditingGoal}
-          >
-            Editar meta
-          </button>
+        <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
             className="text-sm font-semibold text-[var(--state-danger)] underline-offset-4 hover:underline"
@@ -967,156 +905,92 @@ function CategoryInspector({
   })();
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-6">
       <header className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-base font-semibold text-[var(--cc-text)]">
-            <span aria-hidden className="text-lg">
-              {emoji}
-            </span>
-            <span>{category.name}</span>
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="text-2xl">
+            {emoji}
+          </span>
+          <div className="space-y-0.5">
+            <p className="text-base font-semibold text-[var(--cc-text)]">{category.name}</p>
+            <p className="text-xs text-[var(--cc-text-muted)]">{category.group_name}</p>
           </div>
-          <p className="text-xs text-[var(--cc-text-muted)]">{category.group_name}</p>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" className="text-sm font-semibold text-[var(--cc-text-muted)] hover:underline" onClick={onClose}>
             Limpar seleção
           </button>
-          <button
-            type="button"
-            className="rounded-full border border-transparent p-2 text-[var(--cc-text-muted)] transition hover:bg-[var(--cc-bg-elev)]"
-            aria-label="Renomear categoria"
-            onClick={onRename}
-          >
-            <MoreVertical size={16} />
-          </button>
+          <details ref={actionsRef} className="relative">
+            <summary
+              className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full border border-transparent text-[var(--cc-text-muted)] transition hover:bg-[var(--cc-bg-elev)]"
+              aria-label="Mais ações"
+            >
+              <MoreVertical size={16} />
+            </summary>
+            <div className="absolute right-0 z-10 mt-2 w-44 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-2 shadow-[var(--shadow-1)]">
+              <button
+                type="button"
+                className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[var(--cc-text)] hover:bg-[var(--cc-bg)]"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  actionsRef.current?.removeAttribute("open");
+                  onRename();
+                }}
+              >
+                Renomear categoria
+              </button>
+              <button
+                type="button"
+                className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-[var(--state-danger)] hover:bg-[var(--cc-bg)]"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  actionsRef.current?.removeAttribute("open");
+                  onArchive();
+                }}
+              >
+                Arquivar categoria
+              </button>
+            </div>
+          </details>
         </div>
       </header>
 
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-[var(--cc-text)]">Saldo disponível</h3>
-            <p className="text-xs text-[var(--cc-text-muted)]">Inclui {fmtBRL(prevAvailable)} de {previousMonthLabel}</p>
+      <section className="rounded-3xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-6 shadow-[var(--shadow-1)]">
+        <div className="space-y-6">
+          <div className="rounded-2xl bg-[var(--cc-bg)] p-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">Disponível</p>
+                <p className="text-xs text-[var(--cc-text-muted)]">Inclui {fmtBRL(prevAvailable)} de {previousMonthLabel}</p>
+              </div>
+              <p
+                className={`text-2xl font-semibold ${
+                  available < 0 ? "text-[var(--state-danger)]" : "text-[var(--cc-text)]"
+                }`}
+              >
+                {fmtBRL(available)}
+              </p>
+            </div>
+            <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
+              {summaryHighlights.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex flex-col gap-1 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] px-4 py-3 shadow-[var(--shadow-1)]"
+                >
+                  <dt className="text-[var(--cc-text-muted)]">{item.label}</dt>
+                  <dd className="text-sm font-semibold text-[var(--cc-text)]">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
-          <p
-            className={`text-2xl font-semibold text-[var(--cc-text)] ${
-              available < 0 ? "text-[var(--state-danger)]" : ""
-            }`}
-          >
-            {fmtBRL(available)}
-          </p>
-        </div>
-        <dl className="mt-4 space-y-3 text-sm">
-          {summaryItems.map((item) => (
-            <div key={item.label} className="flex items-center justify-between gap-3">
-              <dt className="text-[var(--cc-text-muted)]">{item.label}</dt>
-              <dd className="font-semibold text-[var(--cc-text)]">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
 
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
-        <header className="mb-4">
-          <h3 className="text-sm font-semibold text-[var(--cc-text)]">Meta da categoria</h3>
-        </header>
-        {goalContent}
-      </section>
+          <div className="h-px w-full bg-[var(--cc-border)]" />
 
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
-        <h3 className="text-sm font-semibold text-[var(--cc-text)]">Auto-atribuição</h3>
-        <p className="mt-1 text-xs text-[var(--cc-text-muted)]">
-          Use esses números para planejar distribuições rápidas nesta categoria.
-        </p>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-          {autoAssignStats.map((item) => (
-            <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl bg-[var(--cc-bg-elev)] px-4 py-3">
-              <dt className="text-[var(--cc-text-muted)]">{item.label}</dt>
-              <dd className="font-semibold text-[var(--cc-text)]">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
-        <h3 className="text-sm font-semibold text-[var(--cc-text)]">Ações rápidas</h3>
-        <p className="mt-1 text-xs text-[var(--cc-text-muted)]">Atualize os valores desta categoria sem sair da tela.</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="rounded-full bg-[var(--cc-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-105"
-            onClick={handleAssign}
-          >
-            Atribuir valor
-          </button>
-          <button
-            type="button"
-            className="rounded-full border border-[var(--cc-border)] px-4 py-2 text-sm font-semibold text-[var(--cc-text)] transition hover:bg-[var(--cc-bg-elev)]"
-            onClick={handleMoveMoney}
-          >
-            Mover para pronto para atribuir
-          </button>
-          <button
-            type="button"
-            className="rounded-full border border-transparent px-4 py-2 text-sm font-semibold text-[var(--cc-text-muted)] underline-offset-4 hover:underline"
-            onClick={onReset}
-          >
-            Zerar categoria
-          </button>
+          <div className="space-y-6">{goalContent}</div>
         </div>
       </section>
-
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
-        <h3 className="text-sm font-semibold text-[var(--cc-text)]">Organizar categoria</h3>
-        <div className="mt-4 flex flex-col gap-2">
-          <button
-            type="button"
-            className="text-left text-sm font-semibold text-[var(--cc-text)] underline-offset-4 hover:underline"
-            onClick={onRename}
-          >
-            Renomear categoria
-          </button>
-          <button
-            type="button"
-            className="text-left text-sm font-semibold text-[var(--cc-text)] underline-offset-4 hover:underline"
-            onClick={onArchive}
-          >
-            Arquivar categoria
-          </button>
-        </div>
-      </section>
-
-      <AmountDialog
-        open={assignModalOpen}
-        title="Atribuir valor"
-        description={`Defina um valor para ${category.name}.`}
-        confirmLabel="Atualizar"
-        initialValue={assigned}
-        onClose={() => {
-          if (!assignSubmitting) {
-            setAssignModalOpen(false);
-          }
-        }}
-        onConfirm={handleAssignConfirm}
-        isSubmitting={assignSubmitting}
-      />
-
-      <AmountDialog
-        open={moveModalOpen}
-        title="Mover para pronto para atribuir"
-        description="Informe quanto deseja devolver ao saldo pronto para atribuir."
-        confirmLabel="Mover"
-        initialValue={0}
-        minValue={1}
-        onClose={() => {
-          if (!moveSubmitting) {
-            setMoveModalOpen(false);
-          }
-        }}
-        onConfirm={handleMoveConfirm}
-        isSubmitting={moveSubmitting}
-      />
 
       <ConfirmDialog
         open={confirmRemoveOpen}
@@ -1142,9 +1016,6 @@ function InspectorPanel({
   readyToAssign,
   totals,
   onClose,
-  onAssign,
-  onMove,
-  onReset,
   onArchive,
   onRename,
   onSaveGoal,
@@ -1158,9 +1029,6 @@ function InspectorPanel({
           data={selected}
           month={month}
           onClose={onClose}
-          onAssign={onAssign}
-          onMove={onMove}
-          onReset={onReset}
           onArchive={onArchive}
           onRename={onRename}
           onSaveGoal={onSaveGoal}
@@ -1171,108 +1039,6 @@ function InspectorPanel({
         <SummaryInspector month={month} readyToAssign={readyToAssign} totals={totals} />
       )}
     </aside>
-  );
-}
-
-function AmountDialog({
-  open,
-  title,
-  description,
-  confirmLabel,
-  initialValue,
-  minValue = 0,
-  onClose,
-  onConfirm,
-  isSubmitting
-}: AmountDialogProps) {
-  const [value, setValue] = useState(() => formatarInputMonetario(initialValue));
-  const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      setValue(formatarInputMonetario(initialValue));
-      setError(null);
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
-    }
-  }, [initialValue, open]);
-
-  if (!open) return null;
-
-  const handleConfirm = async () => {
-    if (isSubmitting) return;
-    const cents = normalizarValorMonetario(value);
-    if (cents < minValue) {
-      setError(
-        minValue > 0
-          ? `Informe um valor mínimo de ${fmtBRL(minValue)}.`
-          : "Informe um valor válido."
-      );
-      inputRef.current?.focus();
-      return;
-    }
-    setError(null);
-    await onConfirm(cents);
-  };
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
-      onClick={() => {
-        if (!isSubmitting) onClose();
-      }}
-    >
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void handleConfirm();
-        }}
-        className="w-full max-w-md rounded-[var(--radius)] border border-[var(--cc-border)] bg-white p-6 text-[var(--cc-text)] shadow-[var(--shadow-2)]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="mb-4">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          {description ? (
-            <p className="mt-1 text-sm text-[var(--cc-text-muted)]">{description}</p>
-          ) : null}
-        </header>
-
-        <label className="mb-4 block text-sm font-semibold">
-          Valor
-          <input
-            ref={inputRef}
-            value={value}
-            onChange={(event) => {
-              const formatted = formatarInputMonetario(
-                normalizarValorMonetario(event.target.value)
-              );
-              if (error) {
-                setError(null);
-              }
-              setValue(formatted);
-            }}
-            className="mt-1 w-full rounded-lg border border-[var(--cc-border)] px-3 py-2 text-sm font-semibold text-[var(--cc-text)] shadow-sm focus:border-[var(--ring)] focus:outline-none"
-            inputMode="numeric"
-          />
-        </label>
-
-        {error ? <p className="mb-4 text-sm text-[var(--state-danger)]">{error}</p> : null}
-
-        <div className="flex justify-end gap-3">
-          <button type="button" className="btn-link" onClick={onClose} disabled={isSubmitting}>
-            Cancelar
-          </button>
-          <button type="submit" className="btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? "Confirmando…" : confirmLabel}
-          </button>
-        </div>
-      </form>
-    </div>
   );
 }
 
@@ -1819,20 +1585,6 @@ export default function BudgetMonthPage() {
             readyToAssign={readyToAssign}
             totals={totals}
             onClose={closeSelection}
-            onAssign={(value) => {
-              if (!selectedData) return;
-              void handleAssign(selectedData.category.id, value);
-            }}
-            onMove={(amount) => {
-              if (!selectedData) return;
-              const currentAssigned = selectedData.allocation?.assigned_cents ?? 0;
-              const nextValue = Math.max(currentAssigned - amount, 0);
-              void handleAssign(selectedData.category.id, nextValue);
-            }}
-            onReset={() => {
-              if (!selectedData) return;
-              void handleAssign(selectedData.category.id, 0);
-            }}
             onArchive={() => {
               if (!selectedData) return;
               void ocultarCategoria(selectedData.category.id);
