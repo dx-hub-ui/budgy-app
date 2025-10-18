@@ -448,8 +448,21 @@ function CategoryInspector({
   onApplyGoal,
   onRemoveGoal
 }: CategoryInspectorProps) {
+  const goal = data?.goal;
+  const [isEditingGoal, setIsEditingGoal] = useState(() => !goal);
+  const [form, setForm] = useState<GoalFormState>(() => getInitialGoalForm(goal));
+  const [savingGoal, setSavingGoal] = useState(false);
+  const [applyingGoal, setApplyingGoal] = useState(false);
+  const [removingGoal, setRemovingGoal] = useState(false);
+
+  useEffect(() => {
+    setForm(getInitialGoalForm(goal));
+    setIsEditingGoal(!goal);
+  }, [goal]);
+
   if (!data) return null;
-  const { category, allocation, goal, previousAllocation } = data;
+
+  const { category, allocation, previousAllocation } = data;
   const assigned = allocation?.assigned_cents ?? 0;
   const activity = allocation?.activity_cents ?? 0;
   const available = allocation?.available_cents ?? 0;
@@ -461,16 +474,6 @@ function CategoryInspector({
   const monthLabel = formatMonthLabel(month);
   const previousMonthKey = shiftMonth(month, -1);
   const previousMonthLabel = formatMonthLabel(previousMonthKey);
-  const [isEditingGoal, setIsEditingGoal] = useState(() => !goal);
-  const [form, setForm] = useState<GoalFormState>(() => getInitialGoalForm(goal));
-  const [savingGoal, setSavingGoal] = useState(false);
-  const [applyingGoal, setApplyingGoal] = useState(false);
-  const [removingGoal, setRemovingGoal] = useState(false);
-
-  useEffect(() => {
-    setForm(getInitialGoalForm(goal));
-    setIsEditingGoal(!goal);
-  }, [goal]);
 
   const amountCents = normalizarValorMonetario(form.amountInput);
   const recommendedAssign = projection ? Math.max(projection.falta, projection.necessarioNoMes) : 0;

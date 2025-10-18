@@ -60,6 +60,7 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
 6. **Painel lateral da categoria** – inspirado no inspector do YNAB, substitui o antigo drawer multi-etapas. Ao selecionar uma linha do grid:
    - Um card de **Saldo disponível** mostra o valor atual, destaca o rollover do mês anterior (`prev_available_cents`) e lista rapidamente atribuição e atividade do mês corrente e anterior.
    - A seção **Meta da categoria** concentra criação, edição e remoção do alvo financeiro. As tabs Semanal/Mensal/Anual/Personalizado continuam disponíveis, mas agora ficam inline, com formulário compacto e botão único de "Salvar meta".
+   - O formulário mantém estado inicial mesmo quando a categoria é alternada rapidamente, garantindo que a UI nunca quebre as regras de hooks do React ao montar/desmontar o painel.
    - Quando existe meta ativa, o painel exibe progress bar, resumo "Necessário este mês / Já atribuído / Saldo disponível" e CTA "Atribuir" que dispara `POST /goal/:id/apply` usando `calcularProjecaoMeta` para sugerir o valor restante.
    - A parte inferior agrupa ações administrativas (renomear, arquivar) e mantém os atalhos rápidos de atribuir, mover dinheiro e zerar a categoria diretamente no card principal.
 7. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store.
