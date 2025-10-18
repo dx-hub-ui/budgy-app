@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
+import { mesAtual } from "@/domain/budgeting";
 
 function extractTokensFromHash(hash: string) {
   const params = new URLSearchParams(hash.replace(/^#/, ""));
@@ -20,6 +21,7 @@ function extractTokensFromHash(hash: string) {
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const defaultBudgetPath = useMemo(() => `/budgets/${mesAtual()}`, []);
 
   useEffect(() => {
     let active = true;
@@ -41,7 +43,7 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          router.replace("/dashboard");
+          router.replace(defaultBudgetPath);
           return;
         }
 
@@ -57,7 +59,7 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          router.replace("/dashboard");
+          router.replace(defaultBudgetPath);
           return;
         }
 
@@ -76,7 +78,7 @@ export default function AuthCallbackPage() {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [defaultBudgetPath, router]);
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">

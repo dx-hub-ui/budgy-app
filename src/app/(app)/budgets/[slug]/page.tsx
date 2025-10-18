@@ -954,6 +954,7 @@ export default function BudgetMonthPage() {
   const initialMonthRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!pathname?.startsWith("/budgets")) return;
     if (didInitRef.current) return;
     didInitRef.current = true;
 
@@ -969,7 +970,7 @@ export default function BudgetMonthPage() {
 
     if (typeof window !== "undefined" && queryMonth) {
       const desiredPath = `/budgets/${initial}`;
-      if (window.location.pathname !== desiredPath) {
+      if (pathname !== desiredPath) {
         syncingUrlRef.current = true;
         router.replace(desiredPath, { scroll: false });
         queueMicrotask(() => {
@@ -977,21 +978,22 @@ export default function BudgetMonthPage() {
         });
       }
     }
-  }, [initializeMonth, params?.slug, router]);
+  }, [initializeMonth, params?.slug, pathname, router]);
 
   useEffect(() => {
     if (!monthSelected) return;
+    if (!pathname?.startsWith("/budgets")) return;
     if (syncingUrlRef.current) return;
 
     const desiredPath = `/budgets/${monthSelected}`;
-    if (typeof window !== "undefined" && window.location.pathname !== desiredPath) {
+    if (pathname !== desiredPath) {
       syncingUrlRef.current = true;
       router.replace(desiredPath, { scroll: false });
       queueMicrotask(() => {
         syncingUrlRef.current = false;
       });
     }
-  }, [monthSelected, router]);
+  }, [monthSelected, pathname, router]);
 
   useEffect(() => {
     if (!toast) return;

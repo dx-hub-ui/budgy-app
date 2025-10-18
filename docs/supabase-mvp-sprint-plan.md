@@ -1,6 +1,6 @@
 # Supabase MVP Delivery Plan
 
-ContaCerta will ship a Supabase-backed MVP in three focused sprints. Each sprint is one week long and produces a shippable increment aligned with Auth, Categorias, Despesas, Exportar CSV, and Dashboard requirements.
+ContaCerta will ship a Supabase-backed MVP in three focused sprints. Each sprint is one week long and produces a shippable increment aligned with Auth, Categorias, Despesas, Exportar CSV, and Orçamento requirements.
 
 ## Sprint 1 – Supabase foundation & Auth
 **Objectives**
@@ -30,20 +30,20 @@ ContaCerta will ship a Supabase-backed MVP in three focused sprints. Each sprint
 - Implement `/categories` management UI wired to Supabase CRUD endpoints.
 - Implement `/new` expense creation page with validation, category selection, and navigation.
 - Add navigation links in Sidebar and ensure mobile accessibility.
-  - Ensure Sidebar links map to implemented screens (`/dashboard`, `/new`, `/categories`, `/export`).
+  - Ensure Sidebar links map to implemented screens (`/budgets/<ano-mes>`, `/new`, `/categories`, `/export`).
 
 **Deliverables**
 - Fully functional category and expense creation flows against Supabase backend.
 - Empty-state messaging and error handling consistent with UX guidelines.
 - Updated docs describing CRUD flows and testing notes.
 
-## Sprint 3 – Dashboard, Export, QA & Hardening
+## Sprint 3 – Orçamento, Export, QA & Hardening
 **Objectives**
 - Surface key dashboards, CSV export, and ensure end-to-end quality.
 - Harden session handling, loading states, and documentation.
 
 **Key Work Items**
-- Build client dashboard page (`/`) summarizing totals and recent expenses with month picker.
+- Build orçamento landing page (`/`) que redireciona para o mês atual, garantindo visão consolidada e pronta para atribuições.
 - Implement `/export` CSV generator reusing repository layer, ensuring proper encoding.
 - Review Topbar/Sidebar integration for navigation & sign-out visibility.
 - Execute full first-run flow QA (login, categories, expenses, dashboard, export) and capture findings.
