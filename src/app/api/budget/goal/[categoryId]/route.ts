@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+
+import type { BudgetGoal } from "@/domain/budgeting";
 import { ensureBudgetSchema, getContext, handleError, toMonthDate } from "../../utils";
 
 const GOAL_TYPES = new Set(["TB", "TBD", "MFG", "CUSTOM"]);
 const CADENCES = new Set(["weekly", "monthly", "yearly", "custom"]);
 
-async function withFetchRetry<T>(operation: () => Promise<T>, attempts = 3, backoffMs = 120): Promise<T> {
+async function withFetchRetry<T>(
+  operation: () => PromiseLike<T>,
+  attempts = 3,
+  backoffMs = 120
+): Promise<T> {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
@@ -73,7 +80,7 @@ export async function PUT(
       payload.due_day_of_month = null;
     }
 
-    const { data, error } = await withFetchRetry(() =>
+    const { data, error } = await withFetchRetry<PostgrestSingleResponse<BudgetGoal>>(() =>
       supabase
         .from("budget_goal")
         .upsert(payload, { onConflict: "org_id,category_id" })
@@ -82,6 +89,9 @@ export async function PUT(
     );
 
     if (error) throw error;
+    if (!data) {
+      return NextResponse.json({ message: "Não foi possível salvar a meta" }, { status: 500 });
+    }
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     return handleError(error);
@@ -95,7 +105,7 @@ export async function DELETE(
   try {
     const { supabase, orgId } = await getContext();
     await ensureBudgetSchema(supabase);
-    const { error } = await withFetchRetry(() =>
+    const { error } = await withFetchRetry<PostgrestSingleResponse<null>>(() =>
       supabase
         .from("budget_goal")
         .delete()
