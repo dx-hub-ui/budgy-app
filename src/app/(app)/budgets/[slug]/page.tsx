@@ -1554,6 +1554,9 @@ export default function BudgetMonthPage() {
   const select = useCallback(
     (id: string | null) => {
       setSelectedId(id);
+      if (!pathname?.startsWith("/budgets")) {
+        return;
+      }
       const paramsObj = new URLSearchParams(searchParamsString);
       if (!id) paramsObj.delete("cat");
       else paramsObj.set("cat", id);
