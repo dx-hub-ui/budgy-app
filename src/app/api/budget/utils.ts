@@ -100,6 +100,28 @@ export async function ensureBudgetSchema(client: SupabaseClient) {
   }
 }
 
+export async function withFetchRetry<T>(
+  operation: () => PromiseLike<T>,
+  attempts = 3,
+  backoffMs = 120
+): Promise<T> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const message = typeof (error as any)?.message === "string" ? (error as any).message : "";
+      const isFetchFailed = error instanceof TypeError && message.includes("fetch failed");
+      if (!isFetchFailed || attempt === attempts - 1) {
+        throw error;
+      }
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, backoffMs * (attempt + 1)));
+    }
+  }
+  throw lastError ?? new Error("fetch failed");
+}
+
 export async function ensureSeedCategories(
   client: SupabaseClient,
   orgId: string,
