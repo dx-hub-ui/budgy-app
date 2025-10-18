@@ -4,15 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import {
-  PiggyBank,
-  Receipt,
-  FileDown,
-  Wallet2,
-  ChevronLeft,
-  ChevronRight,
-  type LucideIcon
-} from "lucide-react";
+import { PiggyBank, Wallet2, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
 import IconButton from "@/components/ui/IconButton";
 import Tooltip from "@/components/ui/Tooltip";
@@ -105,9 +97,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         label: "Contas",
         icon: Wallet2,
         isActive: (path) => path.startsWith("/contas")
-      },
-      { href: "/new", label: "Nova despesa", icon: Receipt },
-      { href: "/export", label: "Exportar dados", icon: FileDown }
+      }
     ],
     [accountsHref, currentMonth]
   );
