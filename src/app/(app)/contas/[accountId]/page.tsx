@@ -90,6 +90,20 @@ export default function AccountPage() {
     return accounts.length > 0 ? accounts[0] : null;
   }, [accountIdParam, accountMap, accounts]);
 
+  const selectedAccountId = selectedAccount?.id ?? null;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (selectedAccountId) {
+      window.localStorage.setItem("cc_last_account", selectedAccountId);
+    } else {
+      window.localStorage.removeItem("cc_last_account");
+    }
+  }, [selectedAccountId]);
+
   useEffect(() => {
     if (!loadingInitial && accounts.length > 0) {
       if (!accountIdParam || !accountMap.has(accountIdParam)) {

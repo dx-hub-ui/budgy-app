@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
   PiggyBank,
@@ -32,23 +33,87 @@ type SidebarItem = {
   isActive?: (pathname: string) => boolean;
 };
 
+function resolveStoredAccountHref(accountId: string | null | undefined) {
+  if (!accountId || accountId.trim().length === 0) {
+    return "/contas";
+  }
+  return `/contas/${accountId}`;
+}
+
 export default function Sidebar({ collapsed, onToggle }: Props) {
   const pathname = usePathname();
   const currentMonth = mesAtual();
+  const [accountsHref, setAccountsHref] = useState<string>("/contas");
 
-  const items: SidebarItem[] = [
-    { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
-    { href: "/contas", label: "Contas", icon: Wallet2, isActive: (path) => path.startsWith("/contas") },
-    {
-      href: `/budgets/${currentMonth}`,
-      label: "Orçamento",
-      icon: PiggyBank,
-      isActive: (path) => path.startsWith("/budgets")
-    },
-    { href: "/new", label: "Nova despesa", icon: Receipt },
-    { href: "/export", label: "Exportar dados", icon: FileDown },
-    { href: "/como-usar", label: "Como usar", icon: BookOpenCheck }
-  ];
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const applyStoredAccount = () => {
+      const stored = window.localStorage.getItem("cc_last_account");
+      setAccountsHref(resolveStoredAccountHref(stored));
+    };
+
+    applyStoredAccount();
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "cc_last_account") {
+        setAccountsHref(resolveStoredAccountHref(event.newValue));
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !pathname) {
+      return;
+    }
+
+    if (pathname.startsWith("/contas/")) {
+      const [, , accountId] = pathname.split("/");
+      if (accountId && accountId !== "nova") {
+        window.localStorage.setItem("cc_last_account", accountId);
+        setAccountsHref(`/contas/${accountId}`);
+        return;
+      }
+
+      if (accountId === "nova") {
+        const stored = window.localStorage.getItem("cc_last_account");
+        setAccountsHref(resolveStoredAccountHref(stored));
+        return;
+      }
+    }
+
+    if (pathname === "/contas") {
+      const stored = window.localStorage.getItem("cc_last_account");
+      setAccountsHref(resolveStoredAccountHref(stored));
+    }
+  }, [pathname]);
+
+  const items: SidebarItem[] = useMemo(
+    () => [
+      { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
+      {
+        href: accountsHref,
+        label: "Contas",
+        icon: Wallet2,
+        isActive: (path) => path.startsWith("/contas")
+      },
+      {
+        href: `/budgets/${currentMonth}`,
+        label: "Orçamento",
+        icon: PiggyBank,
+        isActive: (path) => path.startsWith("/budgets")
+      },
+      { href: "/new", label: "Nova despesa", icon: Receipt },
+      { href: "/export", label: "Exportar dados", icon: FileDown },
+      { href: "/como-usar", label: "Como usar", icon: BookOpenCheck }
+    ],
+    [accountsHref, currentMonth]
+  );
 
   const headerClass = cn(
     "border-b px-3 py-4",
