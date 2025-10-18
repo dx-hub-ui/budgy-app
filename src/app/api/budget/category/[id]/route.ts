@@ -30,6 +30,14 @@ export async function PATCH(
       updates.deleted_at = body.deleted_at ? new Date(body.deleted_at).toISOString() : null;
     }
 
+    if ("note" in body) {
+      if (body.note !== null && typeof body.note !== "string") {
+        return NextResponse.json({ message: "Nota inválida" }, { status: 400 });
+      }
+      const noteValue = typeof body.note === "string" ? body.note.trim().slice(0, 500) : null;
+      updates.note = noteValue?.length ? noteValue : null;
+    }
+
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ message: "Nenhum campo para atualizar" }, { status: 400 });
     }
