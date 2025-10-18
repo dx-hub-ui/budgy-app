@@ -123,6 +123,30 @@ type AddCategoryModalProps = {
   groups: string[];
 };
 
+type AmountDialogProps = {
+  open: boolean;
+  title: string;
+  description?: string;
+  confirmLabel: string;
+  initialValue: number;
+  minValue?: number;
+  onClose: () => void;
+  onConfirm: (value: number) => Promise<void> | void;
+  isSubmitting?: boolean;
+};
+
+type ConfirmDialogProps = {
+  open: boolean;
+  title: string;
+  description?: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  onClose: () => void;
+  onConfirm: () => Promise<void> | void;
+  isSubmitting?: boolean;
+  tone?: "default" | "danger";
+};
+
 type GroupRowProps = {
   group: { id: string; name: string };
   collapsed: boolean;
@@ -579,6 +603,12 @@ function CategoryInspector({
   const [savingGoal, setSavingGoal] = useState(false);
   const [applyingGoal, setApplyingGoal] = useState(false);
   const [removingGoal, setRemovingGoal] = useState(false);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [moveModalOpen, setMoveModalOpen] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [assignSubmitting, setAssignSubmitting] = useState(false);
+  const [moveSubmitting, setMoveSubmitting] = useState(false);
+  const definirToast = useBudgetPlannerStore((s) => s.definirToast);
 
   useEffect(() => {
     setForm(getInitialGoalForm(goal));
@@ -604,29 +634,54 @@ function CategoryInspector({
   const recommendedAssign = projection ? Math.max(projection.falta, projection.necessarioNoMes) : 0;
 
   const handleAssign = () => {
-    const input = window.prompt("Atribuir valor", fmtBRL(assigned));
-    if (!input) return;
-    const cents = normalizarValorMonetario(input);
-    onAssign(cents);
+    setAssignModalOpen(true);
   };
 
   const handleMoveMoney = () => {
-    const input = window.prompt("Mover para pronto para atribuir", fmtBRL(0));
-    if (!input) return;
-    const cents = normalizarValorMonetario(input);
-    if (cents <= 0) return;
-    onMove(cents);
+    setMoveModalOpen(true);
+  };
+
+  const handleAssignConfirm = async (value: number) => {
+    setAssignSubmitting(true);
+    try {
+      await Promise.resolve(onAssign(value));
+      setAssignModalOpen(false);
+      definirToast({ type: "success", message: "Valor atribuído atualizado." });
+    } catch (error) {
+      console.error(error);
+      definirToast({ type: "error", message: "Não foi possível atualizar a atribuição." });
+    } finally {
+      setAssignSubmitting(false);
+    }
+  };
+
+  const handleMoveConfirm = async (value: number) => {
+    if (value <= 0) {
+      definirToast({ type: "error", message: "Informe um valor maior que zero." });
+      return;
+    }
+    setMoveSubmitting(true);
+    try {
+      await Promise.resolve(onMove(value));
+      setMoveModalOpen(false);
+      definirToast({ type: "success", message: "Valor movido para Pronto para atribuir." });
+    } catch (error) {
+      console.error(error);
+      definirToast({ type: "error", message: "Não foi possível mover o valor." });
+    } finally {
+      setMoveSubmitting(false);
+    }
   };
 
   const handleSubmitGoal = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const value = normalizarValorMonetario(form.amountInput);
     if (value <= 0) {
-      window.alert("Informe um valor maior que zero para a meta.");
+      definirToast({ type: "error", message: "Informe um valor maior que zero para a meta." });
       return;
     }
     if (form.type === "TBD" && !form.targetMonth) {
-      window.alert("Defina um mês-alvo para esta meta.");
+      definirToast({ type: "error", message: "Defina um mês-alvo para esta meta." });
       return;
     }
     setSavingGoal(true);
@@ -653,14 +708,25 @@ function CategoryInspector({
     }
   };
 
-  const handleRemoveGoal = async () => {
+  const handleRemoveGoal = () => {
     if (!goal) return;
-    const confirmed = window.confirm("Remover meta desta categoria?");
-    if (!confirmed) return;
+    setConfirmRemoveOpen(true);
+  };
+
+  const confirmRemoveGoal = async () => {
+    if (!goal) {
+      setConfirmRemoveOpen(false);
+      return;
+    }
     setRemovingGoal(true);
     try {
       await onRemoveGoal();
       setIsEditingGoal(true);
+      setConfirmRemoveOpen(false);
+      definirToast({ type: "info", message: "Meta removida." });
+    } catch (error) {
+      console.error(error);
+      definirToast({ type: "error", message: "Não foi possível remover a meta." });
     } finally {
       setRemovingGoal(false);
     }
@@ -903,6 +969,52 @@ function CategoryInspector({
           </button>
         </div>
       </section>
+
+      <AmountDialog
+        open={assignModalOpen}
+        title="Atribuir valor"
+        description={`Defina um valor para ${category.name}.`}
+        confirmLabel="Atualizar"
+        initialValue={assigned}
+        onClose={() => {
+          if (!assignSubmitting) {
+            setAssignModalOpen(false);
+          }
+        }}
+        onConfirm={handleAssignConfirm}
+        isSubmitting={assignSubmitting}
+      />
+
+      <AmountDialog
+        open={moveModalOpen}
+        title="Mover para pronto para atribuir"
+        description="Informe quanto deseja devolver ao saldo pronto para atribuir."
+        confirmLabel="Mover"
+        initialValue={0}
+        minValue={1}
+        onClose={() => {
+          if (!moveSubmitting) {
+            setMoveModalOpen(false);
+          }
+        }}
+        onConfirm={handleMoveConfirm}
+        isSubmitting={moveSubmitting}
+      />
+
+      <ConfirmDialog
+        open={confirmRemoveOpen}
+        title="Remover meta"
+        description="Essa ação removerá a meta atual desta categoria. Você poderá definir outra meta depois."
+        confirmLabel="Remover"
+        tone="danger"
+        onClose={() => {
+          if (!removingGoal) {
+            setConfirmRemoveOpen(false);
+          }
+        }}
+        onConfirm={confirmRemoveGoal}
+        isSubmitting={removingGoal}
+      />
     </div>
   );
 }
@@ -945,19 +1057,191 @@ function InspectorPanel({
   );
 }
 
+function AmountDialog({
+  open,
+  title,
+  description,
+  confirmLabel,
+  initialValue,
+  minValue = 0,
+  onClose,
+  onConfirm,
+  isSubmitting
+}: AmountDialogProps) {
+  const [value, setValue] = useState(() => formatarInputMonetario(initialValue));
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setValue(formatarInputMonetario(initialValue));
+      setError(null);
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    }
+  }, [initialValue, open]);
+
+  if (!open) return null;
+
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    const cents = normalizarValorMonetario(value);
+    if (cents < minValue) {
+      setError(
+        minValue > 0
+          ? `Informe um valor mínimo de ${fmtBRL(minValue)}.`
+          : "Informe um valor válido."
+      );
+      inputRef.current?.focus();
+      return;
+    }
+    setError(null);
+    await onConfirm(cents);
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+      onClick={() => {
+        if (!isSubmitting) onClose();
+      }}
+    >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleConfirm();
+        }}
+        className="w-full max-w-md rounded-[var(--radius)] border border-[var(--cc-border)] bg-white p-6 text-[var(--cc-text)] shadow-[var(--shadow-2)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="mb-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {description ? (
+            <p className="mt-1 text-sm text-[var(--cc-text-muted)]">{description}</p>
+          ) : null}
+        </header>
+
+        <label className="mb-4 block text-sm font-semibold">
+          Valor
+          <input
+            ref={inputRef}
+            value={value}
+            onChange={(event) => {
+              const formatted = formatarInputMonetario(
+                normalizarValorMonetario(event.target.value)
+              );
+              if (error) {
+                setError(null);
+              }
+              setValue(formatted);
+            }}
+            className="mt-1 w-full rounded-lg border border-[var(--cc-border)] px-3 py-2 text-sm font-semibold text-[var(--cc-text)] shadow-sm focus:border-[var(--ring)] focus:outline-none"
+            inputMode="numeric"
+          />
+        </label>
+
+        {error ? <p className="mb-4 text-sm text-[var(--state-danger)]">{error}</p> : null}
+
+        <div className="flex justify-end gap-3">
+          <button type="button" className="btn-link" onClick={onClose} disabled={isSubmitting}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? "Confirmando…" : confirmLabel}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function ConfirmDialog({
+  open,
+  title,
+  description,
+  confirmLabel,
+  cancelLabel = "Cancelar",
+  onClose,
+  onConfirm,
+  isSubmitting,
+  tone = "default"
+}: ConfirmDialogProps) {
+  if (!open) return null;
+
+  const confirmClassName =
+    tone === "danger"
+      ? "rounded-lg bg-[var(--state-danger)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-70"
+      : "btn-primary";
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+      onClick={() => {
+        if (!isSubmitting) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-md rounded-[var(--radius)] border border-[var(--cc-border)] bg-white p-6 text-[var(--cc-text)] shadow-[var(--shadow-2)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="mb-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {description ? (
+            <p className="mt-1 text-sm text-[var(--cc-text-muted)]">{description}</p>
+          ) : null}
+        </header>
+        <div className="flex justify-end gap-3">
+          <button type="button" className="btn-link" onClick={onClose} disabled={isSubmitting}>
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            className={confirmClassName}
+            onClick={() => {
+              if (!isSubmitting) {
+                void onConfirm();
+              }
+            }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Confirmando…" : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddCategoryModal({ state, onClose, onSubmit, groups }: AddCategoryModalProps) {
   const [name, setName] = useState("");
   const [group, setGroup] = useState<string>(groups[0] ?? "");
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    if (state.open) {
+    const wasOpen = wasOpenRef.current;
+    if (state.open && !wasOpen) {
       setName("");
+    }
+    if (state.open) {
       if (state.groupId && groups.includes(state.groupId)) {
         setGroup(state.groupId);
-      } else if (groups[0]) {
-        setGroup(groups[0]);
+      } else if (!groups.includes(group)) {
+        setGroup(groups[0] ?? "");
+      } else if (!wasOpen) {
+        setGroup(groups[0] ?? "");
       }
     }
-  }, [state.open, state.groupId, groups]);
+    if (!state.open && wasOpen) {
+      setName("");
+    }
+    wasOpenRef.current = state.open;
+  }, [group, groups, state.groupId, state.open]);
 
   if (!state.open) return null;
 
@@ -1200,12 +1484,15 @@ export default function BudgetMonthPage() {
         setAutoAssignOpen(false);
       } catch (error) {
         console.error(error);
-        window.alert("Não foi possível distribuir automaticamente. Tente novamente.");
+        definirToast({
+          type: "error",
+          message: "Não foi possível distribuir automaticamente. Tente novamente."
+        });
       } finally {
         setAutoAssignSubmitting(false);
       }
     },
-    [editarAtribuido]
+    [definirToast, editarAtribuido]
   );
 
   const openActivityModal = useCallback(
