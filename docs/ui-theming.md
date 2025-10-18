@@ -27,6 +27,7 @@
 ## Layout principal
 - A Topbar foi removida: o conteúdo principal ocupa agora toda a altura disponível, reduzindo o ruído visual e privilegiando os painéis.
 - O branding e o menu da conta ficaram concentrados na cabeça da barra lateral, mantendo fácil acesso mesmo quando a barra está recolhida.
+- O atalho "Contas" na barra lateral agora consulta o `localStorage` (`cc_last_account`) para reabrir a última conta visitada quando disponível, ou volta ao índice `/contas` quando não há histórico, evitando cliques que não produzem navegação.
 - A largura da barra lateral é controlada pelo token `--dynamic-sidebar-w`, que alterna entre `--cc-sidebar-w` e `--cc-sidebar-w-collapsed`; o próprio `<nav class="cc-sidebar">` fixa `width`, `min-width` e `max-width` com transição suave para que o colapso funcione mesmo antes do carregamento completo do React.
 
 ## Painel financeiro
