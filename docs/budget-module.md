@@ -52,7 +52,7 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
 ## Fluxo de UI/UX
 
 1. **Inicialização** – `useBudgetPlannerStore.initializeMonth` carrega snapshot, popula Zustand e zera histórico (máx. 50 passos).
-2. **Cabeçalho do orçamento** – ocupa toda a largura útil dentro do conteúdo principal (sem topbar global), concentrando as setas de navegação do mês, o acesso rápido aos grupos de categorias e o card-resumo verde de "Pronto para atribuir" ao lado do seletor mensal, juntamente com os botões `Desfazer`/`Refazer` (atalhos `⌘/Ctrl+Z` e `Shift+⌘/Ctrl+Z`).
+2. **Cabeçalho do orçamento** – ocupa toda a largura útil dentro do conteúdo principal (sem topbar global) e agora usa um cartão branco (#FFFFFF) com tipografia em cinza-escuro (#1E1E1E). As setas de navegação permanecem em ícones cinza (#6E6E6E) e ganham hover azul (#5865F2), enquanto o card central "Pronto para atribuir" assume fundo #D6F5C6, tipografia #1F6B2D e expõe o CTA "Atribuir" em verde (#4CAF50/#3E8E41 no hover). O bloco também mantém o acesso rápido aos grupos de categorias e os botões `Desfazer`/`Refazer` (atalhos `⌘/Ctrl+Z` e `Shift+⌘/Ctrl+Z`).
 3. **Painel lateral de insights** – à direita, mostra o mês corrente, o card de "Pronto para atribuir" e os totais de "Atribuído", "Atividade" e "Disponível", além de dicas de próximos passos. É oculto em telas menores que `xl` para priorizar o grid.
 4. **Grid de categorias** – accordions por grupo, célula "Atribuído" mostra o valor formatado em BRL e, ao clicar, revela um campo inline para edição. A pill de "Disponível" permanece colorida (`cc-pill-positive`, `cc-pill-zero`, `cc-pill-negative`). Clicar em qualquer linha seleciona a categoria e abre seus detalhes no painel lateral.
    - Toda a linha responde ao clique para carregar o painel lateral, enquanto apenas o texto do nome da categoria abre o modal de edição, evitando acionar a renomeação ao tocar nos espaços vazios da linha.
@@ -65,6 +65,7 @@ evitando que valores `undefined` cheguem ao `createClient` em builds ou requests
    - Quando existe meta ativa, o painel exibe progress bar, resumo "Necessário este mês / Já atribuído / Saldo disponível" e CTA "Atribuir" que dispara `POST /goal/:id/apply` usando `calcularProjecaoMeta` para sugerir o valor restante.
    - A parte inferior agrupa ações administrativas (renomear, arquivar) e mantém os atalhos rápidos de atribuir, mover dinheiro e zerar a categoria diretamente no card principal.
 7. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store.
+8. **Distribuição automática** – o botão "Atribuir" do cabeçalho abre um modal que distribui automaticamente o saldo `Pronto para atribuir` entre as categorias selecionadas. O modal lista todas as categorias com checkboxes, permite selecionar/limpar em massa e antecipa quanto cada categoria receberá e qual será o novo total antes de confirmar.
 
 ## Fórmulas e regras financeiras
 
