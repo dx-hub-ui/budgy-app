@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, LogOut, Moon, Sun, SunMoon, UserCog } from "lucide-react";
+import { BookOpenCheck, ChevronDown, LogOut, Moon, Sun, SunMoon, UserCog } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthGate";
 import { useTheme } from "@/components/theme/ThemeProvider";
@@ -80,6 +80,20 @@ function UserMenuContent({
             >
               <UserCog size={16} />
               <span>Meu Perfil</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/como-usar"
+              className={cn(
+                baseMenuItemClass,
+                "text-[var(--cc-text)] hover:bg-[var(--cc-bg)]"
+              )}
+              onClick={onClose}
+              role="menuitem"
+            >
+              <BookOpenCheck size={16} />
+              <span>Como usar</span>
             </Link>
           </li>
           <li>

@@ -31,8 +31,8 @@
 - A largura da barra lateral é controlada pelo token `--dynamic-sidebar-w`, que alterna entre `--cc-sidebar-w` e `--cc-sidebar-w-collapsed`; o próprio `<nav class="cc-sidebar">` fixa `width`, `min-width` e `max-width` com transição suave para que o colapso funcione mesmo antes do carregamento completo do React.
 
 ## Painel financeiro
-- A nova rota `/dashboard` reúne o gráfico de saldo, cartões de métricas e uma tabela responsiva de transações recentes seguindo a composição de colunas 2fr/1fr em telas grandes.
-- A rota raiz `/` agora redireciona imediatamente para `/dashboard`, evitando conflitos de build entre páginas do grupo `(app)` e garantindo que o painel seja sempre exibido primeiro.
+- A visão de dashboard foi aposentada em favor do orçamento como tela inicial; os componentes aqui documentados servem como referência caso a área volte em futuras iterações.
+- A rota raiz `/` agora redireciona imediatamente para `/budgets/<ano-mes>`, evitando conflitos de build entre páginas do grupo `(app)` e garantindo que a experiência do orçamento seja exibida primeiro.
 - O tema inclui novos tokens globais para cartões e widgets (`--card-bg-light`, `--card-bg-dark`, `--muted`, `--ring`, `--shadow`, `--radius`, `--sidebar-dark`, `--sidebar-foreground`, `--sidebar-hover`, `--sidebar-border` e `--brand`) que podem ser reutilizados em futuros componentes.
 - Tokens adicionais para o painel (`--brand-rgb`, `--brand-soft-bg`, `--brand-soft-fill`, `--brand-soft-fill-strong`, `--chart-grid` e `--chart-point-border`) mantêm o contraste adequado do gráfico e dos ícones em ambos os temas.
 - O gráfico utiliza Chart.js com carregamento dinâmico no cliente, respeitando a preferência de movimento reduzido do sistema.

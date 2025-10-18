@@ -5,14 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
-  LayoutDashboard,
   PiggyBank,
   Receipt,
   FileDown,
-  BookOpenCheck,
   Wallet2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  type LucideIcon
 } from "lucide-react";
 
 import IconButton from "@/components/ui/IconButton";
@@ -29,7 +28,7 @@ type Props = { collapsed: boolean; onToggle: () => void };
 type SidebarItem = {
   href: string;
   label: string;
-  icon: typeof LayoutDashboard;
+  icon: LucideIcon;
   isActive?: (pathname: string) => boolean;
 };
 
@@ -95,22 +94,20 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
 
   const items: SidebarItem[] = useMemo(
     () => [
-      { href: "/dashboard", label: "Visão geral", icon: LayoutDashboard },
-      {
-        href: accountsHref,
-        label: "Contas",
-        icon: Wallet2,
-        isActive: (path) => path.startsWith("/contas")
-      },
       {
         href: `/budgets/${currentMonth}`,
         label: "Orçamento",
         icon: PiggyBank,
         isActive: (path) => path.startsWith("/budgets")
       },
+      {
+        href: accountsHref,
+        label: "Contas",
+        icon: Wallet2,
+        isActive: (path) => path.startsWith("/contas")
+      },
       { href: "/new", label: "Nova despesa", icon: Receipt },
-      { href: "/export", label: "Exportar dados", icon: FileDown },
-      { href: "/como-usar", label: "Como usar", icon: BookOpenCheck }
+      { href: "/export", label: "Exportar dados", icon: FileDown }
     ],
     [accountsHref, currentMonth]
   );
