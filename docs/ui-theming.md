@@ -47,3 +47,4 @@
 - Linhas de categoria aplicam o atributo `data-selected="true"` para destacar a seleção atual (`.row[data-selected]`).
 - Barras de progresso dentro das células usam a classe `.progress` com modificadores (`.progress--funded`, `.progress--under`, `.progress--over`, `.progress--neg`) para indicar o estado da meta.
 - O painel lateral reutiliza os estilos `.card`, `.btn-link` e `.btn-primary` para manter consistência com o restante da interface.
+- A topbar do orçamento posiciona o seletor de mês à esquerda e o cartão "Pronto para atribuir" centralizado em destaque mint (`#bff2d5`), inspirado na paleta do YNAB, enquanto os controles de desfazer/refazer e o atalho de grupos ficam agrupados à direita.
