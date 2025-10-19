@@ -11,6 +11,7 @@ import {
   Wallet2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   type LucideIcon
 } from "lucide-react";
 
@@ -70,6 +71,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
   const [loadingAccounts, setLoadingAccounts] = useState<boolean>(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [accountsExpanded, setAccountsExpanded] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -126,15 +128,9 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         label: "Orçamento",
         icon: PiggyBank,
         isActive: (path) => path.startsWith("/budgets")
-      },
-      {
-        href: accountsHref,
-        label: "Contas",
-        icon: Wallet2,
-        isActive: (path) => path.startsWith("/contas")
       }
     ],
-    [accountsHref, currentMonth]
+    [currentMonth]
   );
 
   const currencyFormatter = useMemo(
@@ -215,9 +211,21 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
     return accountId ?? null;
   }, [pathname]);
 
+  useEffect(() => {
+    if (pathname?.startsWith("/contas")) {
+      setAccountsExpanded(true);
+    }
+  }, [pathname]);
+
+  const toggleAccountsExpanded = useCallback(() => {
+    setAccountsExpanded((prev) => !prev);
+  }, []);
+
   const handleModalClose = () => {
     setIsModalOpen(false);
   };
+
+  const isAccountsActive = pathname?.startsWith("/contas");
 
   const handleAccountCreated = useCallback(
     async (account: { id: string; name: string }) => {
@@ -254,21 +262,21 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
           <SidebarUserMenu collapsed={collapsed} />
         </div>
 
-        <ul className="flex-1 overflow-y-auto py-2">
+        <ul className="flex-1 overflow-y-auto py-4">
           {items.map((it) => {
             const Icon = it.icon;
             const isActive = it.isActive ? it.isActive(pathname ?? "") : pathname?.startsWith(it.href);
             return (
-              <li key={it.href}>
+              <li key={it.href} className="px-2">
                 <Link
                   href={it.href}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "cc-nav-item group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    "cc-nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]",
                     isActive
-                      ? "text-[var(--sidebar-foreground)]"
-                      : "text-[var(--sidebar-muted)] hover:text-[var(--sidebar-foreground)]"
+                      ? "bg-[var(--sidebar-hover)] text-[var(--sidebar-foreground)]"
+                      : "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-foreground)]"
                   )}
                 >
                   <Icon
@@ -291,19 +299,67 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
             );
           })}
 
-          {!collapsed && (
-            <li className="mt-4 border-t border-dashed border-[var(--sidebar-border)] pt-4">
-              <div className="flex items-center justify-between gap-2 px-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--sidebar-foreground)]">
-                  <Wallet2 size={18} />
-                  <span>Contas</span>
-                </div>
-                <span className="text-xs font-semibold text-[var(--sidebar-muted)]">
-                  {currencyFormatter.format(totalBalance / 100)}
-                </span>
-              </div>
+          <li className="mt-6 px-2">
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-2 py-1.5 transition",
+                isAccountsActive
+                  ? "bg-[var(--sidebar-hover)] text-[var(--sidebar-foreground)]"
+                  : "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-foreground)]"
+              )}
+            >
+              <Link
+                href={accountsHref}
+                aria-current={isAccountsActive ? "page" : undefined}
+                className="flex flex-1 items-center gap-3 rounded-md px-1 py-1 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]"
+              >
+                <Wallet2
+                  size={18}
+                  className={cn(
+                    "transition-transform",
+                    isAccountsActive
+                      ? "text-[var(--sidebar-foreground)]"
+                      : "text-[var(--sidebar-muted)]"
+                  )}
+                />
+                {!collapsed && (
+                  <span className="truncate">Contas</span>
+                )}
+                {collapsed && (
+                  <Tooltip content="Contas">
+                    <span className="sr-only">Contas</span>
+                  </Tooltip>
+                )}
+                {!collapsed && (
+                  <span className="ml-auto text-xs font-semibold text-[var(--sidebar-muted-strong)]">
+                    {currencyFormatter.format(totalBalance / 100)}
+                  </span>
+                )}
+              </Link>
+              {!collapsed && (
+                <button
+                  type="button"
+                  onClick={toggleAccountsExpanded}
+                  className="rounded-md p-1 text-[var(--sidebar-muted)] transition hover:text-[var(--sidebar-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]"
+                  aria-expanded={accountsExpanded}
+                  aria-controls="sidebar-accounts"
+                >
+                  <ChevronDown
+                    size={16}
+                    className={cn(
+                      "transition-transform",
+                      accountsExpanded ? "rotate-180" : "rotate-0"
+                    )}
+                  />
+                  <span className="sr-only">
+                    {accountsExpanded ? "Recolher contas" : "Expandir contas"}
+                  </span>
+                </button>
+              )}
+            </div>
 
-              <div className="mt-3 space-y-3 px-3 text-sm">
+            {!collapsed && accountsExpanded && (
+              <div id="sidebar-accounts" className="mt-3 space-y-4 text-sm">
                 {loadingAccounts && <p className="text-xs text-[var(--sidebar-muted)]">Carregando contas…</p>}
                 {accountsError && (
                   <p className="text-xs text-red-400" role="alert">
@@ -331,8 +387,8 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                               className={cn(
                                 "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition",
                                 isActive
-                                  ? "bg-[var(--sidebar-hover)] text-[var(--sidebar-foreground)]"
-                                  : "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-foreground)]",
+                                  ? "bg-[var(--sidebar-active)] text-[var(--sidebar-foreground)]"
+                                  : "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-foreground)]"
                               )}
                               aria-current={isActive ? "page" : undefined}
                             >
@@ -347,9 +403,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                     </ul>
                   </div>
                 ))}
-              </div>
 
-              <div className="mt-4 px-3">
                 <button
                   type="button"
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--sidebar-border)] px-3 py-2 text-sm font-semibold text-[var(--sidebar-foreground)] transition hover:border-[var(--ring)] hover:text-[var(--sidebar-foreground)]"
@@ -358,8 +412,8 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                   + Criar conta
                 </button>
               </div>
-            </li>
-          )}
+            )}
+          </li>
         </ul>
 
         <div className="border-t px-2 py-2" style={{ borderColor: "var(--sidebar-border)" }}>

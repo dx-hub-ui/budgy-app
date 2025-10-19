@@ -9,7 +9,7 @@
 ## Esquema de cores do painel
 - O painel financeiro replica o visual navy + mint da referência: fundo claro `--cc-bg` (`#f5f7fb`), superfícies elevadas `--cc-bg-elev` (`#ffffff`) e destaque principal em verde `--brand` (`#c2f680`). Tokens derivados (`--ring`, `--brand-soft-*`, `--chart-grid`) foram ajustados para manter brilho controlado e contraste alto.
 - O tema escuro usa contrapartes azul-marinho profundas (`--cc-bg` `#0b1220`, `--cc-bg-elev` `#0f172a`, `--cc-surface` `#111827`) com o mesmo verde de destaque suave, preservando a hierarquia luminosa do layout.
-- A barra lateral permanece com fundo marinho fixo `#0b1220` em ambos os temas e aplica foregrounds semitransparentes (`--sidebar-foreground`, `--sidebar-muted`) para maximizar o contraste de texto e ícones, além de bordas suaves (`--sidebar-border`).
+- A barra lateral permanece com fundo marinho fixo (`#101754`) em ambos os temas e agora expõe tokens adicionais para estados (`--sidebar-active`, `--sidebar-hover`) e informações financeiras (`--sidebar-muted-strong`), mantendo contraste elevado para texto, ícones e totais mesmo com o agrupamento de contas.
 - Estados positivos dos componentes (ex.: métricas, transações concluídas) continuam a reaproveitar os tokens suaves `--brand-soft-*`, agora com opacidades revisadas para que badges e gráficos tenham presença visual semelhante nos dois temas.
 
 ## Proteção de acesso
@@ -27,7 +27,8 @@
 ## Layout principal
 - A Topbar foi removida: o conteúdo principal ocupa agora toda a altura disponível, reduzindo o ruído visual e privilegiando os painéis.
 - O branding e o menu da conta ficaram concentrados na cabeça da barra lateral, mantendo fácil acesso mesmo quando a barra está recolhida.
-- O atalho "Contas" na barra lateral agora consulta o `localStorage` (`cc_last_account`) para reabrir a última conta visitada quando disponível, ou volta ao índice `/contas` quando não há histórico, evitando cliques que não produzem navegação.
+- O atalho "Contas" na barra lateral consulta o `localStorage` (`cc_last_account`) para reabrir a última conta visitada quando disponível, ou volta ao índice `/contas` quando não há histórico, evitando cliques que não produzem navegação. O item passou a ser um painel recolhível inspirado no YNAB: o cabeçalho mostra o total consolidado e um botão seta alterna entre expandir e recolher os subitens.
+- Os subitens de contas são agrupados pelo `group_label` retornado do Supabase (ex.: "Contas à vista", "Contas de crédito"), preservando o mesmo agrupamento usado no modal de criação para que o usuário consiga localizar rapidamente cada categoria.
 - Identificadores inválidos armazenados no `localStorage` são ignorados e limpados automaticamente: o link volta a apontar para a primeira conta carregada (quando existir) ou para `/contas`, garantindo que a navegação funcione mesmo após exclusões ou dados corrompidos no navegador.
 - A largura da barra lateral é controlada pelo token `--dynamic-sidebar-w`, que alterna entre `--cc-sidebar-w` e `--cc-sidebar-w-collapsed`; o próprio `<nav class="cc-sidebar">` fixa `width`, `min-width` e `max-width` com transição suave para que o colapso funcione mesmo antes do carregamento completo do React.
 
