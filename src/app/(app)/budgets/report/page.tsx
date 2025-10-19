@@ -1,11 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Activity, PiggyBank, PieChart, Timer, TrendingDown, Wallet } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, PiggyBank, PieChart, Timer, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import Stat from "@/components/ui/Stat";
 import { fmtBRL } from "@/domain/format";
 import { listAccounts, listBudgetCategories } from "@/domain/repo";
 import {
@@ -28,8 +27,6 @@ const NetWorthChart = dynamic(() => import("@/components/reports/NetWorthChart")
 type Option = { value: string; label: string };
 
 type TabId = "breakdown" | "trends" | "net" | "income" | "age";
-
-type KpiItem = { id: string; node: ReactNode };
 
 const tabs: Array<{ id: TabId; label: string; description: string; icon: LucideIcon }> = [
   { id: "breakdown", label: "Distribuição", description: "Categorias com maior peso nos gastos", icon: PieChart },
@@ -135,239 +132,75 @@ export default function BudgetReportPage() {
     };
   }, [selectedMonth, selectedCategory, selectedAccount]);
 
-  const selectedMonthLabel = useMemo(
-    () => monthOptions.find((option) => option.value === selectedMonth)?.label ?? "",
-    [monthOptions, selectedMonth]
-  );
-
-  const monthlyComparison = useMemo(() => {
-    if (!report) return null;
-    const totals = report.trends.totals;
-    if (!totals.length) return null;
-    const current = totals[totals.length - 1] ?? 0;
-    const previous = totals.length > 1 ? totals[totals.length - 2] ?? 0 : null;
-    return { current, previous };
-  }, [report]);
-
-  const kpis = useMemo((): KpiItem[] => {
-    if (!report) return [];
-    const { current, previous } = monthlyComparison ?? { current: report.totalSpending, previous: null };
-    const spendingDelta =
-      previous !== null
-        ? {
-            value: `${fmtBRL(current - previous)} vs mês anterior`,
-            positive: current <= previous
-          }
-        : undefined;
-
-    const effectiveCurrent = current ?? report.totalSpending;
-    const trendAverageDelta = {
-      value: `${fmtBRL(effectiveCurrent)} atual vs ${fmtBRL(Math.round(report.trends.average))} média`,
-      positive: effectiveCurrent <= report.trends.average
-    };
-
-    return [
-      {
-        id: "spending",
-        node: (
-          <Stat
-            icon={<Wallet className="h-5 w-5" aria-hidden />}
-            label="Gasto monitorado"
-            value={fmtBRL(report.totalSpending)}
-            delta={spendingDelta}
-          />
-        )
-      },
-      {
-        id: "average",
-        node: (
-          <Stat
-            icon={<Activity className="h-5 w-5" aria-hidden />}
-            label="Média de 6 meses"
-            value={fmtBRL(Math.round(report.trends.average))}
-            delta={trendAverageDelta}
-          />
-        )
-      },
-      {
-        id: "net",
-        node: (
-          <Stat
-            icon={<TrendingDown className="h-5 w-5" aria-hidden />}
-            label="Receita menos despesa"
-            value={fmtBRL(report.incomeExpense.net)}
-            delta={{
-              value: `${fmtBRL(report.incomeExpense.income)} receitas / ${fmtBRL(report.incomeExpense.expense)} despesas`,
-              positive: report.incomeExpense.net >= 0
-            }}
-          />
-        )
-      },
-      {
-        id: "net-worth",
-        node: (
-          <Stat
-            icon={<PiggyBank className="h-5 w-5" aria-hidden />}
-            label="Patrimônio líquido"
-            value={fmtBRL(report.netWorth.net)}
-            delta={{
-              value: `${fmtBRL(report.netWorth.assets)} ativos / ${fmtBRL(Math.abs(report.netWorth.debts))} dívidas`,
-              positive: report.netWorth.net >= 0
-            }}
-          />
-        )
-      }
-    ];
-  }, [monthlyComparison, report]);
-
   return (
     <div className="mx-auto w-full max-w-[var(--cc-content-maxw)]">
-      <div className="cc-stack-32">
-        <header className="relative overflow-hidden rounded-3xl border border-[var(--cc-border)] bg-gradient-to-r from-[var(--brand-soft-bg)] via-white to-white p-8 shadow-sm dark:via-[var(--cc-surface)] dark:to-[var(--cc-surface)]">
-          <div className="pointer-events-none absolute -left-16 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-[var(--brand-soft-bg)] opacity-60 blur-3xl" />
-          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[var(--brand-soft-bg)] opacity-50 blur-3xl" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="cc-stack-16">
-              <span className="inline-flex w-fit items-center rounded-full border border-[var(--cc-border)] bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)] shadow-sm">
-                Relatórios de orçamento
-              </span>
-              <div className="cc-stack-8">
-                <h1 className="text-3xl font-semibold text-[var(--cc-text-strong)]">Visão consolidada de {selectedMonthLabel}</h1>
-                <p className="max-w-2xl text-sm text-[var(--cc-text-muted)]">
-                  Ajuste os filtros para navegar entre contas e categorias. Todos os gráficos, indicadores e listas são atualizados imediatamente a partir dos dados do Supabase.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="month-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
-                  Mês
-                </label>
-                <select
-                  id="month-filter"
-                  value={selectedMonth}
-                  onChange={(event) => setSelectedMonth(event.target.value)}
-                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
-                >
-                  {monthOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="category-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
-                  Categoria
-                </label>
-                <select
-                  id="category-filter"
-                  value={selectedCategory}
-                  onChange={(event) => setSelectedCategory(event.target.value)}
-                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
-                >
-                  {categoryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="account-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
-                  Conta
-                </label>
-                <select
-                  id="account-filter"
-                  value={selectedAccount}
-                  onChange={(event) => setSelectedAccount(event.target.value)}
-                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
-                >
-                  {accountOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+      <div className="cc-stack-24">
+        <section aria-label="Filtros do relatório" className="cc-card flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="month-filter" className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+              Mês
+            </label>
+            <select
+              id="month-filter"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+              className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            >
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
+
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="category-filter"
+              className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
+            >
+              Categoria
+            </label>
+            <select
+              id="category-filter"
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+              className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            >
+              {categoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="account-filter"
+              className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
+            >
+              Conta
+            </label>
+            <select
+              id="account-filter"
+              value={selectedAccount}
+              onChange={(event) => setSelectedAccount(event.target.value)}
+              className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            >
+              {accountOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {filtersError && (
-            <p className="relative mt-4 text-sm text-red-600" role="alert">
+            <p className="mt-2 w-full text-sm text-red-600" role="alert">
               {filtersError}
             </p>
           )}
-        </header>
-
-        <section className="md:col-span-12">
-          <div className="cc-card flex flex-wrap items-end gap-4">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="month-filter" className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-                Mês
-              </label>
-              <select
-                id="month-filter"
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
-                className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-              >
-                {monthOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="category-filter"
-                className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
-              >
-                Categoria
-              </label>
-              <select
-                id="category-filter"
-                value={selectedCategory}
-                onChange={(event) => setSelectedCategory(event.target.value)}
-                className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-              >
-                {categoryOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="account-filter"
-                className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
-              >
-                Conta
-              </label>
-              <select
-                id="account-filter"
-                value={selectedAccount}
-                onChange={(event) => setSelectedAccount(event.target.value)}
-                className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-              >
-                {accountOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {filtersError && (
-              <p className="mt-2 w-full text-sm text-red-600" role="alert">
-                {filtersError}
-              </p>
-            )}
-          </div>
         </section>
 
         {error && (
@@ -377,27 +210,13 @@ export default function BudgetReportPage() {
         )}
 
         {loading && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-live="polite">
-            {[0, 1, 2, 3].map((item) => (
-              <div
-                // eslint-disable-next-line react/no-array-index-key
-                key={item}
-                className="h-32 animate-pulse rounded-2xl border border-dashed border-[var(--cc-border)] bg-[color-mix(in_oklab,var(--cc-surface) 94%,white)]"
-              />
-            ))}
+          <div className="cc-card h-32 animate-pulse border border-dashed border-[var(--cc-border)] bg-[color-mix(in_oklab,var(--cc-surface) 94%,white)]" aria-live="polite">
+            <span className="sr-only">Carregando relatório</span>
           </div>
         )}
 
         {report ? (
-          <div className="cc-stack-32">
-            <section>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {kpis.map((item) => (
-                  <div key={item.id}>{item.node}</div>
-                ))}
-              </div>
-            </section>
-
+          <div className="cc-stack-24">
             <section className="cc-stack-16">
               <nav className="flex flex-wrap gap-3" aria-label="Seções do relatório">
                 {tabs.map((tab) => {
