@@ -78,7 +78,8 @@ A rota `PUT /api/budget/goal/:categoryId` agora encapsula as operações do Supa
 ## Painel de relatórios (`/budgets/report`)
 
 - O dashboard é aberto pelo item **Relatórios** no menu lateral e compartilha os mesmos filtros básicos do orçamento (mês, categoria e conta). Os filtros são carregados via Supabase com `listBudgetCategories()` e `listAccounts()` e permanecem disponíveis mesmo se o usuário navegar entre as abas.
-- O topo da página traz um cartão compacto apenas com os selects de filtros (mês, categoria e conta), priorizando o conteúdo principal. A experiência foi simplificada para remover o hero com gradiente e os KPIs, abrindo espaço para que os gráficos e tabelas nas abas ocupem mais da área útil.
+- A página agora ocupa toda a largura útil do conteúdo principal, sem cartões de moldura: os filtros ficam em linha no topo e os gráficos/tabelas são renderizados diretamente na página, replicando o respiro visual da tela de **Contas**.
+- As abas foram redesenhadas como um controle de tabs convencional com indicadores na borda inferior e descrição contextual logo abaixo, substituindo os cartões clicáveis anteriores.
 - As consultas de indicadores são centralizadas em `fetchDashboardReport()`, que agrega dados de `account_transactions`. A função monta o período selecionado (`YYYY-MM`), busca também os cinco meses anteriores para calcular tendências e deriva:
   - **Resumo de gastos** – distribuição mensal por categoria (doughnut chart) e lista ordenada por valor gasto. Cada item mostra a porcentagem acumulada e utiliza uma paleta determinística (hash do id/nome/grupo) para manter cores consistentes mesmo quando o Supabase não retorna `color` em `budget_categories`.
   - **Tendências** – gráfico de barras com a soma das saídas dos últimos seis meses, acompanhado da média mensal formatada em BRL.
