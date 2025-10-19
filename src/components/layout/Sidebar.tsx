@@ -125,9 +125,15 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
     () => [
       {
         href: `/budgets/${currentMonth}`,
-        label: "Orçamento",
+        label: "Orçamentos",
         icon: PiggyBank,
-        isActive: (path) => path.startsWith("/budgets")
+        isActive: (path) => path.startsWith("/budgets/") && !path.startsWith("/budgets/report")
+      },
+      {
+        href: "/budgets/report",
+        label: "Relatórios",
+        icon: FileDown,
+        isActive: (path) => path.startsWith("/budgets/report")
       }
     ],
     [currentMonth]
