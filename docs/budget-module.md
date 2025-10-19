@@ -5,6 +5,7 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 ## Navegação
 
 - A entrada continua como **Orçamento** no menu lateral; o atalho antigo **Categorias** foi removido porque o CRUD agora acontece dentro do próprio orçamento.
+- O submenu **Relatórios** surge logo abaixo de Orçamentos e abre o dashboard `/budgets/report`, onde os indicadores de desempenho do mês são exibidos.
 - Cada mês é carregado diretamente em `/budgets/[slug]` (slug `YYYY-MM`). O link "Orçamento" da sidebar já aponta para o mês atual, garantindo entrada imediata no planejador.
 - A query `?cat=` só é sincronizada enquanto o usuário estiver em `/budgets/*`, evitando que a URL do orçamento sobrescreva navegações para outras rotas.
 - O mês atual é calculado com base no fuso horário local do usuário (métodos `getFullYear()`/`getMonth()`), evitando regressões para o mês anterior quando o navegador ainda estiver no final do dia 1º em UTC.
@@ -71,6 +72,18 @@ A rota `PUT /api/budget/goal/:categoryId` agora encapsula as operações do Supa
    O cabeçalho mostra o ícone da categoria, o botão de edição (pencil) e o atalho "Arquivar" reutilizando o fluxo de ocultar categoria. Um botão "×" limpa a seleção. O painel foi alargado para **460 px** dentro do grid principal, oferecendo mais espaço para o conteúdo traduzido.
 7. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store. Todos os alertas/erros dos fluxos de orçamento passam a usar toasts ou mensagens inline, sem diálogos nativos do navegador.
 8. **Distribuição automática** – o botão "Atribuir" do cabeçalho abre um modal que distribui automaticamente o saldo `Pronto para atribuir` entre as categorias selecionadas. O modal lista todas as categorias com checkboxes, permite selecionar/limpar em massa e antecipa quanto cada categoria receberá e qual será o novo total antes de confirmar.
+
+## Painel de relatórios (`/budgets/report`)
+
+- O dashboard é aberto pelo item **Relatórios** no menu lateral e compartilha os mesmos filtros básicos do orçamento (mês, categoria e conta). Os filtros são carregados via Supabase com `listBudgetCategories()` e `listAccounts()` e permanecem disponíveis mesmo se o usuário navegar entre as abas.
+- As consultas de indicadores são centralizadas em `fetchDashboardReport()`, que agrega dados de `account_transactions`. A função monta o período selecionado (`YYYY-MM`), busca também os cinco meses anteriores para calcular tendências e deriva:
+  - **Resumo de gastos** – distribuição mensal por categoria (doughnut chart) e lista ordenada por valor gasto. Cada item mostra a porcentagem acumulada e respeita o `color` definido na categoria do orçamento.
+  - **Tendências** – gráfico de barras com a soma das saídas dos últimos seis meses, acompanhado da média mensal formatada em BRL.
+  - **Patrimônio** – consolidação dos saldos por conta até o fim do mês (`inflow − outflow`). O snapshot separa ativos (valores positivos), dívidas (valores negativos) e o patrimônio líquido. A tabela lateral exibe tipo, grupo e saldo de cada conta.
+  - **Receitas x Despesas** – tabela enxuta comparando total de entradas, saídas e o saldo do mês, com badge de status no resumo principal.
+  - **Idade do dinheiro** – estimativa em dias (`caixa disponível ÷ gasto médio diário`). O caixa considera ativos menos dívidas negativas, enquanto a média diária usa as saídas do período dividido pelo número de dias do mês.
+- O carregamento das abas é totalmente client-side e usa componentes React ChartJS (via `dynamic` import) para evitar problemas de SSR com o canvas.
+- Estados de carregamento e erros são tratados de forma independente: erros ao puxar filtros não bloqueiam o dashboard, e falhas ao montar o relatório exibem mensagem inline mantendo os selects ativos para nova tentativa.
 
 ## Fórmulas e regras financeiras
 
