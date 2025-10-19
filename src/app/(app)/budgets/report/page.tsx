@@ -300,6 +300,76 @@ export default function BudgetReportPage() {
           )}
         </header>
 
+        <section className="md:col-span-12">
+          <div className="cc-card flex flex-wrap items-end gap-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="month-filter" className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+                Mês
+              </label>
+              <select
+                id="month-filter"
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+                className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              >
+                {monthOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="category-filter"
+                className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
+              >
+                Categoria
+              </label>
+              <select
+                id="category-filter"
+                value={selectedCategory}
+                onChange={(event) => setSelectedCategory(event.target.value)}
+                className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              >
+                {categoryOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="account-filter"
+                className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
+              >
+                Conta
+              </label>
+              <select
+                id="account-filter"
+                value={selectedAccount}
+                onChange={(event) => setSelectedAccount(event.target.value)}
+                className="rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm text-[var(--cc-text-strong)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+              >
+                {accountOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {filtersError && (
+              <p className="mt-2 w-full text-sm text-red-600" role="alert">
+                {filtersError}
+              </p>
+            )}
+          </div>
+        </section>
+
         {error && (
           <p className="text-sm text-red-600" role="alert">
             {error}
