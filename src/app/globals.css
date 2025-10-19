@@ -37,6 +37,8 @@
   --state-neutral: #9ca3af;
   --chart-grid: rgba(13, 27, 76, 0.18);
   --chart-point-border: #ffffff;
+  --inspector-w: 33.3333%;
+  --inspector-min: 300px;
 }
 
 :root[data-theme="dark"] {
@@ -316,7 +318,7 @@ main.cc-main::-webkit-scrollbar-thumb {
 /* compact text */
 .tabular{font-variant-numeric:tabular-nums;}
 /* table grid */
-.budget-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,20%);gap:16px;align-items:stretch;}
+.budget-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(var(--inspector-min),var(--inspector-w));gap:16px;align-items:stretch;}
 .left-wide{min-width:860px;height:calc(100vh - 140px);display:flex;flex-direction:column;overflow:hidden;}
 .budget-categories-scroll{flex:1;overflow:auto;padding-right:8px;}
 /* header */
