@@ -45,9 +45,9 @@
 - Quando não há transações no período selecionado, apresentamos um estado vazio textual acessível em vez de exibir a tabela vazia.
 
 ## Orçamento mensal compacto
-- O layout da página de orçamento utiliza a grade `.budget-grid`, dividindo o espaço entre a tabela de categorias (coluna flexível) e o painel inspector fixo de 380 px.
+- O layout da página de orçamento utiliza a grade `.budget-grid`, agora balanceada para aproximar a proporção da referência do YNAB: a lista de categorias ocupa ~55 % da largura enquanto o inspector cresce até 45 % (mínimo de 420 px), priorizando a leitura dos detalhes.
 - As alturas das linhas são controladas pelos tokens `--row-h` e `--row-h-group` definidos em `globals.css`, garantindo densidade compacta em telas médias e grandes.
 - Linhas de categoria aplicam o atributo `data-selected="true"` para destacar a seleção atual (`.row[data-selected]`).
 - Barras de progresso dentro das células usam a classe `.progress` com modificadores (`.progress--funded`, `.progress--under`, `.progress--over`, `.progress--neg`) para indicar o estado da meta.
-- O painel lateral reutiliza os estilos `.card`, `.btn-link` e `.btn-primary` para manter consistência com o restante da interface.
-- A topbar do orçamento posiciona o seletor de mês à esquerda e o cartão "Pronto para atribuir" centralizado em destaque mint (`#bff2d5`), inspirado na paleta do YNAB, enquanto os controles de desfazer/refazer e o atalho de grupos ficam agrupados à direita.
+- O painel lateral reutiliza os estilos `.card`, `.btn-link` e `.ghost-button` para manter consistência com o restante da interface. A `.ghost-button` ganhou tokens `--labelAction` e `--labelSecondary`, permitindo comandos leves (links, desfazer/refazer, alternar ocultas) sem blocos sólidos.
+- A topbar do orçamento posiciona o seletor de mês à esquerda e o cartão "Pronto para atribuir" centralizado em destaque mint (`#bff2d5`), com ações transformadas em botões fantasma para reduzir peso visual, enquanto os controles de desfazer/refazer e o atalho de grupos ficam agrupados à direita.
