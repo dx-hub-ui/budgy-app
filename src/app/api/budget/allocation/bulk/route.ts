@@ -9,7 +9,7 @@ import {
   previousMonth,
   toMonthDate,
   withFetchRetry
-} from "../utils";
+} from "../../utils";
 
 type AllocationRow = {
   category_id: string;
@@ -69,6 +69,10 @@ export async function POST(request: NextRequest) {
     }
 
     const categoryIds = Array.from(new Set(assignments.map((item) => item.categoryId)));
+
+    if (categoryIds.length === 0) {
+      return NextResponse.json<BulkResponse>({ allocations: [] });
+    }
     const { supabase, orgId } = await getContext();
     await ensureBudgetSchema(supabase);
 
@@ -77,26 +81,22 @@ export async function POST(request: NextRequest) {
     const prevMonthDate = toMonthDate(prevMonthKey);
 
     const [current, previous] = await Promise.all([
-      categoryIds.length === 0
-        ? Promise.resolve({ data: [], error: null } as PostgrestResponse<AllocationRow>)
-        : withFetchRetry<PostgrestResponse<AllocationRow>>(() =>
-            supabase
-              .from("budget_allocation")
-              .select("category_id,month,assigned_cents,activity_cents,available_cents")
-              .eq("org_id", orgId)
-              .eq("month", monthDate)
-              .in("category_id", categoryIds)
-          ),
-      categoryIds.length === 0
-        ? Promise.resolve({ data: [], error: null } as PostgrestResponse<PreviousAllocationRow>)
-        : withFetchRetry<PostgrestResponse<PreviousAllocationRow>>(() =>
-            supabase
-              .from("budget_allocation")
-              .select("category_id,available_cents")
-              .eq("org_id", orgId)
-              .eq("month", prevMonthDate)
-              .in("category_id", categoryIds)
-          )
+      withFetchRetry<PostgrestResponse<AllocationRow>>(() =>
+        supabase
+          .from("budget_allocation")
+          .select("category_id,month,assigned_cents,activity_cents,available_cents")
+          .eq("org_id", orgId)
+          .eq("month", monthDate)
+          .in("category_id", categoryIds)
+      ),
+      withFetchRetry<PostgrestResponse<PreviousAllocationRow>>(() =>
+        supabase
+          .from("budget_allocation")
+          .select("category_id,available_cents")
+          .eq("org_id", orgId)
+          .eq("month", prevMonthDate)
+          .in("category_id", categoryIds)
+      )
     ]);
 
     if (current.error) throw current.error;

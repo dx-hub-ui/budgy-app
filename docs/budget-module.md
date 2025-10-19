@@ -47,6 +47,7 @@ O aplicativo segue o modelo de um orçamento compartilhado (estilo YNAB), mas pe
 | `DELETE` | `/api/budget/goal/:categoryId` | Remove meta. |
 | `POST` | `/api/budget/goal/:categoryId/apply` | Calcula diferença para a meta do mês e atualiza `budget_allocation`. |
 | `PUT` | `/api/budget/allocation` | Edição inline de atribuído (debounce de 300 ms no front). |
+| `POST` | `/api/budget/allocation/bulk` | Distribui múltiplas categorias em lote reutilizando os mesmos utilitários de cálculo/retry das demais rotas, evitando falhas sequenciais no Supabase. |
 
 Todas as rotas usam o client server-side (`createServerSupabaseClient`) e herdam os triggers de auditoria. Para builds e testes
 locais funcionarem, é obrigatório definir `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; sem estas variáveis a
