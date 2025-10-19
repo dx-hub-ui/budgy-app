@@ -199,7 +199,7 @@ function GroupRow({ group, collapsed, onToggle, onAddCategory }: GroupRowProps) 
       <div className="name-cell">
         <button
           type="button"
-          className="flex items-center gap-1 text-left text-sm font-semibold"
+          className="flex items-center gap-1 text-left text-sm font-medium"
           onClick={onToggle}
           aria-expanded={!collapsed}
           aria-label={`Alternar grupo ${group.name}`}
@@ -340,14 +340,14 @@ function CategoryRow({
               handleInputKeyDown(event);
             }}
             onClick={(event) => event.stopPropagation()}
-            className="w-full min-w-[7rem] rounded-lg border border-[var(--ring)] bg-white px-2 py-1 text-right text-sm font-semibold text-[var(--cc-text)] shadow-sm focus:outline-none"
+            className="w-full min-w-[7rem] rounded-lg border border-[var(--ring)] bg-white px-2 py-1 text-right text-sm font-medium text-[var(--cc-text)] shadow-sm focus:outline-none"
             inputMode="numeric"
             aria-label={`Editar atribuição de ${category.name}`}
           />
         ) : (
           <button
             type="button"
-            className="min-w-[7rem] rounded-lg border border-transparent px-2 py-1 text-right text-sm font-semibold text-[var(--cc-text)] transition hover:border-[var(--cc-border)] hover:bg-[var(--tbl-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+            className="min-w-[7rem] rounded-lg border border-transparent px-2 py-1 text-right text-sm font-medium text-[var(--cc-text)] transition hover:border-[var(--cc-border)] hover:bg-[var(--tbl-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
             onClick={(event) => {
               event.stopPropagation();
               openEditor();
@@ -360,7 +360,7 @@ function CategoryRow({
       <div className="text-right pr-2">
         <button
           type="button"
-          className="min-w-[6.5rem] rounded-lg border border-transparent px-2 py-1 text-sm font-semibold text-[var(--cc-text-muted)] transition hover:border-[var(--cc-border)] hover:bg-[var(--tbl-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+          className="min-w-[6.5rem] rounded-lg border border-transparent px-2 py-1 text-sm font-medium text-[var(--cc-text-muted)] transition hover:border-[var(--cc-border)] hover:bg-[var(--tbl-row-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
           onClick={(event) => {
             event.stopPropagation();
             onShowActivity();
@@ -377,8 +377,8 @@ function CategoryRow({
 function SummaryCard({ title, value, description }: { title: string; value: string; description?: string }) {
   return (
     <div className="card">
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">{title}</p>
-      <p className="mt-1 text-xl font-semibold text-[var(--cc-text)]">{value}</p>
+      <p className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">{title}</p>
+      <p className="mt-1 text-xl font-medium text-[var(--cc-text)]">{value}</p>
       {description ? <p className="mt-1 text-xs text-[var(--cc-text-muted)]">{description}</p> : null}
     </div>
   );
@@ -400,7 +400,7 @@ function CategoryActivityModal({ state, onClose }: { state: ActivityModalState; 
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--tbl-border)] px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--cc-text)]">Atividades da categoria</h2>
+            <h2 className="text-lg font-medium text-[var(--cc-text)]">Atividades da categoria</h2>
             <p className="text-sm text-[var(--cc-text-muted)]">
               {state.categoryName} · {state.monthLabel}
             </p>
@@ -441,7 +441,7 @@ function CategoryActivityModal({ state, onClose }: { state: ActivityModalState; 
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-[var(--cc-text)]">
+                        <p className="text-sm font-medium text-[var(--cc-text)]">
                           {item.description || "Sem descrição"}
                         </p>
                         <p className="text-xs text-[var(--cc-text-muted)]">
@@ -452,7 +452,7 @@ function CategoryActivityModal({ state, onClose }: { state: ActivityModalState; 
                           <p className="text-xs text-[var(--cc-text-muted)]">{item.memo}</p>
                         ) : null}
                       </div>
-                      <span className={`text-sm font-semibold ${tone}`}>{fmtBRL(signed)}</span>
+                      <span className={`text-sm font-medium ${tone}`}>{fmtBRL(signed)}</span>
                     </div>
                   </li>
                 );
@@ -478,8 +478,8 @@ function SummaryInspector({ month, readyToAssign, totals }: { month: string; rea
   return (
     <div>
       <div className="card">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-[var(--cc-text-muted)]">Resumo do mês</p>
-        <h2 className="mt-2 text-xl font-semibold leading-tight text-[var(--cc-text)]">{monthLabel}</h2>
+        <p className="text-[0.65rem] font-medium uppercase tracking-[0.32em] text-[var(--cc-text-muted)]">Resumo do mês</p>
+        <h2 className="mt-2 text-xl font-medium leading-tight text-[var(--cc-text)]">{monthLabel}</h2>
         <p className="mt-3 text-xs text-[var(--cc-text-muted)]">
           Distribua o orçamento disponível para alcançar suas metas financeiras.
         </p>
@@ -577,13 +577,13 @@ function AddCategoryModal({ state, onClose, onSubmit, groups }: AddCategoryModal
         onClick={(event) => event.stopPropagation()}
       >
         <header className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--cc-text)]">Adicionar categoria</h2>
+          <h2 className="text-lg font-medium text-[var(--cc-text)]">Adicionar categoria</h2>
           <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-1 text-[var(--cc-text-muted)] hover:bg-[var(--tbl-row-hover)]">
             <X size={18} />
           </button>
         </header>
         <div className="space-y-4">
-          <label className="block text-sm font-semibold text-[var(--cc-text)]">
+          <label className="block text-sm font-medium text-[var(--cc-text)]">
             Nome
             <input
               required
@@ -592,7 +592,7 @@ function AddCategoryModal({ state, onClose, onSubmit, groups }: AddCategoryModal
               onChange={(event) => setName(event.target.value)}
             />
           </label>
-          <label className="block text-sm font-semibold text-[var(--cc-text)]">
+          <label className="block text-sm font-medium text-[var(--cc-text)]">
             Grupo
             <select
               required
@@ -1071,7 +1071,7 @@ export default function BudgetMonthPage() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 rounded-lg px-4 py-3 text-sm font-semibold text-white shadow-lg ${
+          className={`fixed bottom-6 right-6 z-50 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg ${
             toast.type === "success"
               ? "bg-emerald-500"
               : toast.type === "error"
