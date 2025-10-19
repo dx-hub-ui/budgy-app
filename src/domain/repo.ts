@@ -26,6 +26,53 @@ export async function listBudgetCategories() {
   return data;
 }
 
+export async function listPayees() {
+  const { data, error } = await supabase
+    .from("payees")
+    .select("id, name, created_at, updated_at, deleted_at")
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function createPayee(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error("Informe um nome válido para o beneficiário.");
+  }
+  const { data, error } = await supabase
+    .from("payees")
+    .insert({ name: trimmed })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePayee(id: string, name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error("Informe um nome válido para o beneficiário.");
+  }
+  const { data, error } = await supabase
+    .from("payees")
+    .update({ name: trimmed })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deletePayee(id: string) {
+  const { error } = await supabase
+    .from("payees")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function listAccounts() {
   const { data, error } = await supabase.from("accounts").select("*").order("group_label").order("sort");
   if (error) throw error;
@@ -129,7 +176,7 @@ type ExpenseRow = Awaited<ReturnType<typeof listExpensesByMonth>>[number];
 export async function listExpenses(options?: { methods?: ExpenseRow["method"][] }) {
   let query = supabase
     .from("account_transactions")
-    .select("*")
+    .select("*, payee:payees(id,name)")
     .is("deleted_at", null)
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false });

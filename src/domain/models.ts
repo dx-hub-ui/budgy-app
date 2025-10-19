@@ -32,6 +32,7 @@ export const ExpenseSchema = z.object({
   amount_cents: z.number().int().positive(),
   occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   category_id: z.string().uuid().nullable(),
+  payee_id: z.string().uuid().nullable().optional(),
   account_id: z.string().uuid().nullable().optional(),
   method: z.enum(["pix", "debito", "credito", "dinheiro"]),
   description: z.string().max(140).nullable().optional(),
@@ -45,6 +46,7 @@ export const UpdateExpenseSchema = z
     amount_cents: z.number().int().positive().optional(),
     occurred_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     category_id: z.string().uuid().nullable().optional(),
+    payee_id: z.string().uuid().nullable().optional(),
     account_id: z.string().uuid().nullable().optional(),
     method: z.enum(["pix", "debito", "credito", "dinheiro"]).optional(),
     description: z.string().max(140).nullable().optional(),
@@ -55,3 +57,10 @@ export const UpdateExpenseSchema = z
     message: "Informe ao menos um campo para atualizar"
   });
 export type UpdateExpenseInput = z.infer<typeof UpdateExpenseSchema>;
+
+export const PayeeSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1).max(120),
+  deleted_at: z.string().nullable().optional()
+});
+export type PayeeInput = z.infer<typeof PayeeSchema>;
