@@ -29,10 +29,13 @@ export function createServerSupabaseClient(options: { orgId?: string } = {}) {
   const supabaseUrl = resolveSupabaseUrl();
   const serviceKey: string = resolveServiceRoleKey();
   const forwardedHeaders = Object.fromEntries(headers().entries());
-  const orgId = resolveOrgId();
+  const resolvedOrgId =
+    typeof options.orgId === "string" && options.orgId.trim().length > 0
+      ? options.orgId.trim()
+      : resolveOrgId();
 
-  if (!forwardedHeaders["x-cc-org-id"] && orgId) {
-    forwardedHeaders["x-cc-org-id"] = orgId;
+  if (resolvedOrgId) {
+    forwardedHeaders["x-cc-org-id"] = resolvedOrgId;
   }
 
   const forwardedAuthorization =
