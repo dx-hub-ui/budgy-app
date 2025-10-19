@@ -3,10 +3,22 @@
 import { useEffect, useState } from "react";
 import { listCategories, upsertCategory, deleteCategory } from "@/domain/repo";
 
+const CATEGORY_COLOR_VARIABLE = "--category-default-color";
+const CATEGORY_COLOR_FALLBACK = "#6ea8fe";
+
+function readDefaultCategoryColor() {
+  if (typeof window === "undefined") {
+    return CATEGORY_COLOR_FALLBACK;
+  }
+  const styles = window.getComputedStyle(window.document.documentElement);
+  const value = styles.getPropertyValue(CATEGORY_COLOR_VARIABLE);
+  return value.trim() || CATEGORY_COLOR_FALLBACK;
+}
+
 export default function CategoriesPage() {
   const [items, setItems] = useState<any[]>([]);
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#6ea8fe");
+  const [color, setColor] = useState(() => readDefaultCategoryColor());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +37,7 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     refresh();
+    setColor(readDefaultCategoryColor());
   }, []);
 
   async function add(e: React.FormEvent) {
@@ -33,7 +46,7 @@ export default function CategoriesPage() {
     try {
       await upsertCategory({ name, color });
       setName("");
-      setColor("#6ea8fe");
+      setColor(readDefaultCategoryColor());
       await refresh();
     } catch (err: any) {
       alert(err.message ?? "Erro ao salvar categoria");

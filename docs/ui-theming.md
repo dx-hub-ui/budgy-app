@@ -12,6 +12,12 @@
 - A barra lateral permanece com fundo marinho fixo (`#101754`) em ambos os temas e agora expõe tokens adicionais para estados (`--sidebar-active`, `--sidebar-hover`) e informações financeiras (`--sidebar-muted-strong`), mantendo contraste elevado para texto, ícones e totais mesmo com o agrupamento de contas.
 - Estados positivos dos componentes (ex.: métricas, transações concluídas) continuam a reaproveitar os tokens suaves `--brand-soft-*`, agora com opacidades revisadas para que badges e gráficos tenham presença visual semelhante nos dois temas.
 
+## Tokens centralizados no `globals.css`
+- Todos os valores personalizados de cor, espaçamento arbitrário e letter-spacing agora vivem em variáveis CSS com prefixo `--budget-*`, `--chart-*` e `--btn-*`, evitando hardcodes espalhados pelos componentes.
+- A paleta de gráficos (`--chart-palette-1` a `--chart-palette-12`) alimenta tanto os relatórios de pizza/listas quanto os componentes Chart.js; as leituras acontecem em tempo de execução e caem em valores de fallback quando o DOM ainda não está disponível.
+- O cartão “Pronto para atribuir” usa o conjunto `--budget-ready-*` para bordas, fundo, sombra e CTA, permitindo ajustes visuais globais sem alterar o JSX.
+- O input de cores de categorias consome `--category-default-color`, garantindo consistência entre o valor exibido ao usuário e o padrão persistido no banco.
+
 ## Proteção de acesso
 - Todas as rotas internas dependem de autenticação. Usuários não autenticados são redirecionados para `/login` antes de qualquer conteúdo do app ser renderizado.
 - Durante a checagem da sessão é exibido apenas um estado de carregamento, evitando o vazamento de conteúdo sensível.
@@ -51,4 +57,4 @@
 - Linhas de categoria aplicam o atributo `data-selected="true"` para destacar a seleção atual (`.row[data-selected]`).
 - Barras de progresso dentro das células usam a classe `.progress` com modificadores (`.progress--funded`, `.progress--under`, `.progress--over`, `.progress--neg`) para indicar o estado da meta.
 - O painel lateral reutiliza os estilos `.card`, `.btn-link` e `.ghost-button` para manter consistência com o restante da interface. A `.ghost-button` ganhou tokens `--labelAction` e `--labelSecondary`, permitindo comandos leves (links, desfazer/refazer, alternar ocultas) sem blocos sólidos.
-- A topbar do orçamento posiciona o seletor de mês à esquerda e o cartão "Pronto para atribuir" centralizado em destaque mint (`#bff2d5`), com ações transformadas em botões fantasma para reduzir peso visual, enquanto os controles de desfazer/refazer e o atalho de grupos ficam agrupados à direita.
+- A topbar do orçamento posiciona o seletor de mês à esquerda e o cartão "Pronto para atribuir" centralizado com as cores definidas pelos tokens `--budget-ready-*`, mantendo contraste e alinhamento com o restante da paleta; os botões continuam no estilo fantasma (`.ghost-button`) para reduzir peso visual enquanto controles de desfazer/refazer e o atalho de grupos ficam agrupados à direita.

@@ -112,7 +112,22 @@ function getDaysInMonth(start: Date, end: Date) {
   return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
-const COLOR_PALETTE = [
+const CSS_COLOR_PALETTE = [
+  "--chart-palette-1",
+  "--chart-palette-2",
+  "--chart-palette-3",
+  "--chart-palette-4",
+  "--chart-palette-5",
+  "--chart-palette-6",
+  "--chart-palette-7",
+  "--chart-palette-8",
+  "--chart-palette-9",
+  "--chart-palette-10",
+  "--chart-palette-11",
+  "--chart-palette-12"
+] as const;
+
+const FALLBACK_COLOR_PALETTE = [
   "#6366f1",
   "#22c55e",
   "#f97316",
@@ -125,14 +140,26 @@ const COLOR_PALETTE = [
   "#0d9488",
   "#facc15",
   "#4f46e5"
-];
+] as const;
+
+function readPalette() {
+  if (typeof window === "undefined") {
+    return [...FALLBACK_COLOR_PALETTE];
+  }
+  const styles = window.getComputedStyle(window.document.documentElement);
+  return CSS_COLOR_PALETTE.map((variable, index) => {
+    const value = styles.getPropertyValue(variable).trim();
+    return value || FALLBACK_COLOR_PALETTE[index];
+  });
+}
 
 function colorFromKey(key: string) {
   let hash = 7;
   for (let i = 0; i < key.length; i += 1) {
     hash = (hash * 31 + key.charCodeAt(i)) % 0xfffffff;
   }
-  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
+  const palette = readPalette();
+  return palette[Math.abs(hash) % palette.length];
 }
 
 export async function fetchDashboardReport(filters: DashboardFilters): Promise<DashboardReport> {
