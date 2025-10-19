@@ -83,21 +83,30 @@ export async function ensureBudgetSchema(client: SupabaseClient) {
   const t0 = Date.now();
 
   const tryOnce = async () => {
-    const { error } = await client.rpc("ensure_budget_category_schema");
-    if (error) {
-      const message = String(error.message ?? "");
-      if (message.includes('record "new" has no field "category_id"')) {
-        log({ event: "ensure_schema_known_warning", message, ms: Date.now() - t0 });
-        return true;
-      }
-      if (message.includes("fetch failed")) {
-        log({ event: "ensure_schema_fetch_failed_soft", message, ms: Date.now() - t0 });
+    try {
+      const { error } = await withFetchRetry(() => client.rpc("ensure_budget_category_schema"));
+      if (error) {
+        const message = String(error.message ?? "");
+        if (message.includes('record "new" has no field "category_id"')) {
+          log({ event: "ensure_schema_known_warning", message, ms: Date.now() - t0 });
+          return true;
+        }
+        if (message.includes("fetch failed")) {
+          log({ event: "ensure_schema_fetch_failed_soft", message, ms: Date.now() - t0 });
+          return false;
+        }
+        log({ event: "ensure_schema_error_soft", message, ms: Date.now() - t0 });
         return false;
       }
-      log({ event: "ensure_schema_error_soft", message, ms: Date.now() - t0 });
-      return false;
+      return true;
+    } catch (error) {
+      if (isFetchFailedError(error)) {
+        log({ event: "ensure_schema_fetch_failed_exception", ms: Date.now() - t0 });
+        return false;
+      }
+      log({ event: "ensure_schema_exception", message: String((error as Error)?.message ?? error) });
+      throw error;
     }
-    return true;
   };
 
   let ok = await tryOnce();
