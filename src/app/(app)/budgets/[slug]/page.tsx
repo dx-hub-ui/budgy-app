@@ -949,45 +949,47 @@ export default function BudgetMonthPage() {
               <div className="cell justify-end">DISPONÍVEL</div>
             </div>
 
-            {loading ? (
-              <div className="mt-6 rounded-lg border border-[var(--tbl-border)] bg-white px-4 py-8 text-center text-sm text-[var(--cc-text-muted)]">
-                Carregando orçamento…
-              </div>
-            ) : (
-              groupsWithAllocations.map((group) => (
-                <Fragment key={group.id}>
-                  <GroupRow
-                    group={{ id: group.id, name: group.name }}
-                    collapsed={collapsed[group.id] ?? false}
-                    onToggle={() =>
-                      setCollapsed((prev) => ({
-                        ...prev,
-                        [group.id]: !prev[group.id]
-                      }))
-                    }
-                    onAddCategory={() => setAddCategory({ open: true, groupId: group.name })}
-                  />
-                  {(collapsed[group.id] ?? false)
-                    ? null
-                    : group.categories.map((item) => (
-                        <CategoryRow
-                          key={item.category.id}
-                          category={item.category}
-                          allocation={item.allocation}
-                          goal={item.goal}
-                          selected={selectedId === item.category.id}
-                          onSelect={() => select(item.category.id)}
-                          onClear={closeSelection}
-                          onRename={() => abrirModalNome(item.category.id)}
-                          onAssign={(value) => handleAssign(item.category.id, value)}
-                          onShowActivity={() =>
-                            openActivityModal(item.category.id, item.category.name)
-                          }
-                        />
-                      ))}
-                </Fragment>
-              ))
-            )}
+            <div className="budget-categories-scroll">
+              {loading ? (
+                <div className="mt-6 rounded-lg border border-[var(--tbl-border)] bg-white px-4 py-8 text-center text-sm text-[var(--cc-text-muted)]">
+                  Carregando orçamento…
+                </div>
+              ) : (
+                groupsWithAllocations.map((group) => (
+                  <Fragment key={group.id}>
+                    <GroupRow
+                      group={{ id: group.id, name: group.name }}
+                      collapsed={collapsed[group.id] ?? false}
+                      onToggle={() =>
+                        setCollapsed((prev) => ({
+                          ...prev,
+                          [group.id]: !prev[group.id]
+                        }))
+                      }
+                      onAddCategory={() => setAddCategory({ open: true, groupId: group.name })}
+                    />
+                    {(collapsed[group.id] ?? false)
+                      ? null
+                      : group.categories.map((item) => (
+                          <CategoryRow
+                            key={item.category.id}
+                            category={item.category}
+                            allocation={item.allocation}
+                            goal={item.goal}
+                            selected={selectedId === item.category.id}
+                            onSelect={() => select(item.category.id)}
+                            onClear={closeSelection}
+                            onRename={() => abrirModalNome(item.category.id)}
+                            onAssign={(value) => handleAssign(item.category.id, value)}
+                            onShowActivity={() =>
+                              openActivityModal(item.category.id, item.category.name)
+                            }
+                          />
+                        ))}
+                  </Fragment>
+                ))
+              )}
+            </div>
           </div>
 
           <InspectorPanel
