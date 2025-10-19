@@ -9,10 +9,13 @@ BEGIN
   END IF;
 
   DELETE FROM public.budget_goal bg
-  USING public.budget_goal other
-  WHERE bg.org_id = other.org_id
-    AND bg.category_id = other.category_id
-    AND bg.ctid > other.ctid;
+  USING public.budget_goal newer
+  WHERE bg.org_id = newer.org_id
+    AND bg.category_id = newer.category_id
+    AND (
+      bg.created_at < newer.created_at
+      OR (bg.created_at = newer.created_at AND bg.ctid < newer.ctid)
+    );
 
   IF NOT EXISTS (
     SELECT 1
