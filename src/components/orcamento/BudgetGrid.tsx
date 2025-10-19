@@ -126,7 +126,7 @@ export function BudgetGrid({
 
   return (
     <div className="rounded-[var(--radius)] border border-[var(--cc-border)] bg-[var(--cc-surface)] shadow-[var(--shadow-1)]">
-      <div className="grid grid-cols-[minmax(200px,2.4fr)_minmax(140px,1fr)_minmax(140px,1fr)_minmax(160px,1fr)] border-b border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--cc-text-muted)]">
+      <div className="grid grid-cols-[minmax(200px,2.4fr)_minmax(140px,1fr)_minmax(140px,1fr)_minmax(160px,1fr)] border-b border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[var(--cc-text-muted)]">
         <span>Categoria</span>
         <span className="text-right">Atribuído</span>
         <span className="text-right">Atividade</span>
