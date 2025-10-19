@@ -46,6 +46,7 @@
 
 ## Orçamento mensal compacto
 - O layout da página de orçamento utiliza a grade `.budget-grid`, agora balanceada para aproximar a proporção da referência do YNAB: a lista de categorias ocupa ~55 % da largura enquanto o inspector cresce até 45 % (mínimo de 420 px), priorizando a leitura dos detalhes.
+- A grade principal recebeu um ajuste recente para privilegiar a coluna de categorias: o template `grid-cols-[minmax(200px,2.4fr)_...]` amplia em 20 % a fração destinada aos nomes, reduzindo o risco de truncamento em listas extensas.
 - As alturas das linhas são controladas pelos tokens `--row-h` e `--row-h-group` definidos em `globals.css`, garantindo densidade compacta em telas médias e grandes.
 - Linhas de categoria aplicam o atributo `data-selected="true"` para destacar a seleção atual (`.row[data-selected]`).
 - Barras de progresso dentro das células usam a classe `.progress` com modificadores (`.progress--funded`, `.progress--under`, `.progress--over`, `.progress--neg`) para indicar o estado da meta.
