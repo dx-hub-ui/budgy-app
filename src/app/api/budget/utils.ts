@@ -13,6 +13,17 @@ const LOG_SCOPE = "budget.categories.utils";
 const log = (info: Record<string, unknown>) =>
   console.log(JSON.stringify({ scope: LOG_SCOPE, ...info }));
 
+export function isFetchFailedError(error: unknown): boolean {
+  if (!error) return false;
+  const message = typeof (error as any)?.message === "string" ? (error as any).message : "";
+  const normalized = message.toLowerCase();
+  if (normalized.includes("fetch failed") || normalized.includes("failed to fetch")) {
+    return true;
+  }
+  const code = typeof (error as any)?.code === "string" ? (error as any).code.toLowerCase() : "";
+  return code === "fetch_failed" || code === "fetch_error";
+}
+
 let SCHEMA_OK = false;
 
 export type ApiContext = {
@@ -110,9 +121,7 @@ export async function withFetchRetry<T>(
     try {
       return await operation();
     } catch (error) {
-      const message = typeof (error as any)?.message === "string" ? (error as any).message : "";
-      const isFetchFailed = error instanceof TypeError && message.includes("fetch failed");
-      if (!isFetchFailed || attempt === attempts - 1) {
+      if (!isFetchFailedError(error) || attempt === attempts - 1) {
         throw error;
       }
       lastError = error;
@@ -206,7 +215,7 @@ export function calcularAAtribuir(entradas: number, totalAtribuido: number) {
 export function handleError(error: any) {
   console.error(error);
 
-  if (error instanceof TypeError && typeof error.message === "string" && error.message.includes("fetch failed")) {
+  if (isFetchFailedError(error)) {
     return NextResponse.json(
       {
         message:
