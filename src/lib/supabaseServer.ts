@@ -25,31 +25,48 @@ function resolveServiceRoleKey(): string {
   return key as string;
 }
 
+function pickForwardedHeaders() {
+  const incoming = headers();
+  const forwarded: Record<string, string> = {};
+  let authorization: string | null = null;
+
+  for (const [key, value] of incoming.entries()) {
+    const lower = key.toLowerCase();
+    if (lower === "authorization") {
+      authorization = value;
+      continue;
+    }
+    if (lower.startsWith("x-cc-")) {
+      forwarded[key] = value;
+    }
+    if (lower.startsWith("x-supabase-")) {
+      forwarded[key] = value;
+    }
+  }
+
+  return { forwarded, authorization };
+}
+
 export function createServerSupabaseClient(options: { orgId?: string } = {}) {
   const supabaseUrl = resolveSupabaseUrl();
   const serviceKey: string = resolveServiceRoleKey();
-  const forwardedHeaders = Object.fromEntries(headers().entries());
+  const { forwarded, authorization } = pickForwardedHeaders();
   const resolvedOrgId =
     typeof options.orgId === "string" && options.orgId.trim().length > 0
       ? options.orgId.trim()
       : resolveOrgId();
 
   if (resolvedOrgId) {
-    forwardedHeaders["x-cc-org-id"] = resolvedOrgId;
+    forwarded["x-cc-org-id"] = resolvedOrgId;
   }
 
-  const forwardedAuthorization =
-    forwardedHeaders.Authorization ?? forwardedHeaders.authorization;
-
   const globalHeaders: Record<string, string> = {
-    ...forwardedHeaders,
+    ...forwarded,
     apikey: serviceKey
   };
 
-  delete globalHeaders.authorization;
-
-  if (forwardedAuthorization) {
-    globalHeaders.Authorization = forwardedAuthorization;
+  if (authorization) {
+    globalHeaders.Authorization = authorization;
   } else {
     globalHeaders.Authorization = `Bearer ${serviceKey}`;
   }
