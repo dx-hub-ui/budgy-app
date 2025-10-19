@@ -48,6 +48,8 @@ O aplicativo segue o modelo de um orçamento compartilhado (estilo YNAB), mas pe
 | `POST` | `/api/budget/goal/:categoryId/apply` | Calcula diferença para a meta do mês e atualiza `budget_allocation`. |
 | `PUT` | `/api/budget/allocation` | Edição inline de atribuído (debounce de 300 ms no front). |
 
+> ℹ️ **Cabeçalho `x-cc-org-id` garantido** — a criação do client server-side agora prioriza explicitamente o `orgId` resolvido no contexto (`createServerSupabaseClient({ orgId })`). Sem isso, requisições disparadas por usuários recém-onboarded ficavam sem o cookie `cc_org_id`, fazendo o Supabase assumir `DEFAULT_ORG_ID` nos cabeçalhos. As políticas RLS rejeitavam o `upsert` de metas (org diferente do cabeçalho) e o SDK devolvia `TypeError: fetch failed`, exatamente o erro visto ao salvar metas no painel direito.
+
 Todas as rotas usam o client server-side (`createServerSupabaseClient`) e herdam os triggers de auditoria. Para builds e testes
 locais funcionarem, é obrigatório definir `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; sem estas variáveis a
 criação do client falha deliberadamente com mensagem em PT-BR. O helper valida ambas a cada chamada antes de instanciar o SDK,
