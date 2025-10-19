@@ -924,12 +924,14 @@ export default function BudgetMonthPage() {
             if (!currentMonth) return;
             void goToMonth(shiftMonth(currentMonth, 1));
           }}
-          onOpenGroups={alternarOcultas}
+          onAddCategory={() => setAddCategory({ open: true, groupId: groups[0]?.name ?? null })}
           onOpenAutoAssign={() => setAutoAssignOpen(true)}
           onUndo={desfazer}
           onRedo={refazer}
           canUndo={history.past.length > 0}
           canRedo={history.future.length > 0}
+          showHidden={ui.showHidden}
+          onToggleHidden={alternarOcultas}
           autoAssignDisabled={autoAssignCategories.length === 0 || readyToAssign <= 0}
         />
 
@@ -941,19 +943,6 @@ export default function BudgetMonthPage() {
 
         <section className="budget-grid">
           <div className="left-wide">
-            <div className="mb-2 flex items-center gap-2">
-              <button className="btn-link" type="button" onClick={alternarOcultas}>
-                Grupos de categorias
-              </button>
-              <button
-                className="btn-primary"
-                type="button"
-                onClick={() => setAddCategory({ open: true, groupId: groups[0]?.name ?? null })}
-              >
-                ＋ Adicionar categoria
-              </button>
-            </div>
-
             <div className="tbl-head row tabular">
               <div className="cell">CATEGORIA</div>
               <div className="cell justify-end">ATRIBUÍDO</div>
