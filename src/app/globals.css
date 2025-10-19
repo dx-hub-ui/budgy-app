@@ -131,6 +131,7 @@ body {
 body {
   background: var(--cc-bg);
   color: var(--cc-text);
+  font-family: "Figtree", "Helvetica Neue", Helvetica, Arial, sans-serif;
   margin: 0;
   overflow: hidden;
   transition: background 0.2s ease, color 0.2s ease;
@@ -315,8 +316,9 @@ main.cc-main::-webkit-scrollbar-thumb {
 /* compact text */
 .tabular{font-variant-numeric:tabular-nums;}
 /* table grid */
-.budget-grid{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:16px;align-items:start;}
-.left-wide{min-width:860px;}
+.budget-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,20%);gap:16px;align-items:stretch;}
+.left-wide{min-width:860px;height:calc(100vh - 140px);display:flex;flex-direction:column;overflow:hidden;}
+.budget-categories-scroll{flex:1;overflow:auto;padding-right:8px;}
 /* header */
 .tbl-head{background:var(--tbl-header);border-bottom:1px solid var(--tbl-border);height:40px;}
 .tbl-head .cell{padding:0 var(--cell-px);display:flex;align-items:center;font-weight:600;}
