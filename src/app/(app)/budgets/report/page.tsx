@@ -1,11 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Activity, PiggyBank, PieChart, Timer, TrendingDown, Wallet } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import Stat from "@/components/ui/Stat";
 import { fmtBRL } from "@/domain/format";
 import { listAccounts, listBudgetCategories } from "@/domain/repo";
 import {
@@ -29,14 +26,12 @@ type Option = { value: string; label: string };
 
 type TabId = "breakdown" | "trends" | "net" | "income" | "age";
 
-type KpiItem = { id: string; node: ReactNode };
-
-const tabs: Array<{ id: TabId; label: string; description: string; icon: LucideIcon }> = [
-  { id: "breakdown", label: "Distribuição", description: "Categorias com maior peso nos gastos", icon: PieChart },
-  { id: "trends", label: "Tendências", description: "Evolução mensal consolidada", icon: Activity },
-  { id: "net", label: "Patrimônio", description: "Contas e saldos consolidados", icon: PiggyBank },
-  { id: "income", label: "Receita vs. despesa", description: "Entrada, saída e saldo", icon: Wallet },
-  { id: "age", label: "Idade do dinheiro", description: "Sustentação do caixa", icon: Timer }
+const tabs: Array<{ id: TabId; label: string; description: string }> = [
+  { id: "breakdown", label: "Distribuição", description: "Categorias com maior peso nos gastos" },
+  { id: "trends", label: "Tendências", description: "Evolução mensal consolidada" },
+  { id: "net", label: "Patrimônio", description: "Contas e saldos consolidados" },
+  { id: "income", label: "Receita vs. despesa", description: "Entrada, saída e saldo" },
+  { id: "age", label: "Idade do dinheiro", description: "Sustentação do caixa" }
 ];
 
 function formatPercentage(value: number) {
@@ -135,174 +130,14 @@ export default function BudgetReportPage() {
     };
   }, [selectedMonth, selectedCategory, selectedAccount]);
 
-  const selectedMonthLabel = useMemo(
-    () => monthOptions.find((option) => option.value === selectedMonth)?.label ?? "",
-    [monthOptions, selectedMonth]
-  );
-
-  const monthlyComparison = useMemo(() => {
-    if (!report) return null;
-    const totals = report.trends.totals;
-    if (!totals.length) return null;
-    const current = totals[totals.length - 1] ?? 0;
-    const previous = totals.length > 1 ? totals[totals.length - 2] ?? 0 : null;
-    return { current, previous };
-  }, [report]);
-
-  const kpis = useMemo((): KpiItem[] => {
-    if (!report) return [];
-    const { current, previous } = monthlyComparison ?? { current: report.totalSpending, previous: null };
-    const spendingDelta =
-      previous !== null
-        ? {
-            value: `${fmtBRL(current - previous)} vs mês anterior`,
-            positive: current <= previous
-          }
-        : undefined;
-
-    const effectiveCurrent = current ?? report.totalSpending;
-    const trendAverageDelta = {
-      value: `${fmtBRL(effectiveCurrent)} atual vs ${fmtBRL(Math.round(report.trends.average))} média`,
-      positive: effectiveCurrent <= report.trends.average
-    };
-
-    return [
-      {
-        id: "spending",
-        node: (
-          <Stat
-            icon={<Wallet className="h-5 w-5" aria-hidden />}
-            label="Gasto monitorado"
-            value={fmtBRL(report.totalSpending)}
-            delta={spendingDelta}
-          />
-        )
-      },
-      {
-        id: "average",
-        node: (
-          <Stat
-            icon={<Activity className="h-5 w-5" aria-hidden />}
-            label="Média de 6 meses"
-            value={fmtBRL(Math.round(report.trends.average))}
-            delta={trendAverageDelta}
-          />
-        )
-      },
-      {
-        id: "net",
-        node: (
-          <Stat
-            icon={<TrendingDown className="h-5 w-5" aria-hidden />}
-            label="Receita menos despesa"
-            value={fmtBRL(report.incomeExpense.net)}
-            delta={{
-              value: `${fmtBRL(report.incomeExpense.income)} receitas / ${fmtBRL(report.incomeExpense.expense)} despesas`,
-              positive: report.incomeExpense.net >= 0
-            }}
-          />
-        )
-      },
-      {
-        id: "net-worth",
-        node: (
-          <Stat
-            icon={<PiggyBank className="h-5 w-5" aria-hidden />}
-            label="Patrimônio líquido"
-            value={fmtBRL(report.netWorth.net)}
-            delta={{
-              value: `${fmtBRL(report.netWorth.assets)} ativos / ${fmtBRL(Math.abs(report.netWorth.debts))} dívidas`,
-              positive: report.netWorth.net >= 0
-            }}
-          />
-        )
-      }
-    ];
-  }, [monthlyComparison, report]);
+  const activeTabMeta = tabs.find((tab) => tab.id === activeTab);
 
   return (
-    <div className="mx-auto w-full max-w-[var(--cc-content-maxw)]">
-      <div className="cc-stack-32">
-        <header className="relative overflow-hidden rounded-3xl border border-[var(--cc-border)] bg-gradient-to-r from-[var(--brand-soft-bg)] via-white to-white p-8 shadow-sm dark:via-[var(--cc-surface)] dark:to-[var(--cc-surface)]">
-          <div className="pointer-events-none absolute -left-16 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-[var(--brand-soft-bg)] opacity-60 blur-3xl" />
-          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[var(--brand-soft-bg)] opacity-50 blur-3xl" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="cc-stack-16">
-              <span className="inline-flex w-fit items-center rounded-full border border-[var(--cc-border)] bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)] shadow-sm">
-                Relatórios de orçamento
-              </span>
-              <div className="cc-stack-8">
-                <h1 className="text-3xl font-semibold text-[var(--cc-text-strong)]">Visão consolidada de {selectedMonthLabel}</h1>
-                <p className="max-w-2xl text-sm text-[var(--cc-text-muted)]">
-                  Ajuste os filtros para navegar entre contas e categorias. Todos os gráficos, indicadores e listas são atualizados imediatamente a partir dos dados do Supabase.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="month-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
-                  Mês
-                </label>
-                <select
-                  id="month-filter"
-                  value={selectedMonth}
-                  onChange={(event) => setSelectedMonth(event.target.value)}
-                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
-                >
-                  {monthOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="category-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
-                  Categoria
-                </label>
-                <select
-                  id="category-filter"
-                  value={selectedCategory}
-                  onChange={(event) => setSelectedCategory(event.target.value)}
-                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
-                >
-                  {categoryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="account-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
-                  Conta
-                </label>
-                <select
-                  id="account-filter"
-                  value={selectedAccount}
-                  onChange={(event) => setSelectedAccount(event.target.value)}
-                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
-                >
-                  {accountOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-          {filtersError && (
-            <p className="relative mt-4 text-sm text-red-600" role="alert">
-              {filtersError}
-            </p>
-          )}
-        </header>
-
-        <section className="md:col-span-12">
-          <div className="cc-card flex flex-wrap items-end gap-4">
-            <div className="flex flex-col gap-1">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto px-6 pb-10 pt-8 sm:px-8 lg:px-12">
+        <div className="flex flex-col gap-10">
+          <section aria-label="Filtros do relatório" className="flex flex-wrap items-end gap-6">
+            <div className="flex min-w-[160px] flex-col gap-2">
               <label htmlFor="month-filter" className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                 Mês
               </label>
@@ -320,7 +155,7 @@ export default function BudgetReportPage() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-[220px] flex-col gap-2">
               <label
                 htmlFor="category-filter"
                 className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
@@ -341,7 +176,7 @@ export default function BudgetReportPage() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-[220px] flex-col gap-2">
               <label
                 htmlFor="account-filter"
                 className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
@@ -367,71 +202,68 @@ export default function BudgetReportPage() {
                 {filtersError}
               </p>
             )}
-          </div>
-        </section>
+          </section>
 
-        {error && (
-          <p className="text-sm text-red-600" role="alert">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
-        {loading && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-live="polite">
-            {[0, 1, 2, 3].map((item) => (
-              <div
-                // eslint-disable-next-line react/no-array-index-key
-                key={item}
-                className="h-32 animate-pulse rounded-2xl border border-dashed border-[var(--cc-border)] bg-[color-mix(in_oklab,var(--cc-surface) 94%,white)]"
-              />
-            ))}
-          </div>
-        )}
+          {loading && (
+            <div
+              className="h-32 animate-pulse rounded-2xl border border-dashed border-[var(--cc-border)] bg-[color-mix(in_oklab,var(--cc-surface) 94%,white)]"
+              aria-live="polite"
+            >
+              <span className="sr-only">Carregando relatório</span>
+            </div>
+          )}
 
-        {report ? (
-          <div className="cc-stack-32">
-            <section>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {kpis.map((item) => (
-                  <div key={item.id}>{item.node}</div>
-                ))}
-              </div>
-            </section>
-
-            <section className="cc-stack-16">
-              <nav className="flex flex-wrap gap-3" aria-label="Seções do relatório">
-                {tabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`group relative overflow-hidden rounded-2xl border px-4 py-3 text-left transition-colors ${
-                        isActive
-                          ? "border-[var(--brand)] bg-[var(--brand-soft-bg)] shadow-sm"
-                          : "border-[var(--cc-border)] bg-[var(--cc-surface)] hover:border-[var(--brand)] hover:bg-[var(--brand-soft-bg)]"
-                      }`}
-                      aria-current={isActive ? "page" : undefined}
-                    >
-                      <span className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/70 text-[var(--brand)] shadow-sm">
-                          <Icon className="h-5 w-5" aria-hidden />
-                        </span>
-                        <span className="flex flex-col">
-                          <span className="font-medium text-[var(--cc-text-strong)]">{tab.label}</span>
-                          <span className="text-xs text-[var(--cc-text-muted)]">{tab.description}</span>
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
+          {report ? (
+            <section className="flex flex-col gap-8">
+              <nav className="border-b border-[var(--cc-border)]" aria-label="Seções do relatório" role="tablist">
+                <div className="flex flex-wrap gap-6">
+                  {tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    const tabButtonId = `report-tab-${tab.id}`;
+                    return (
+                      <button
+                        key={tab.id}
+                        id={tabButtonId}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        aria-controls="report-tabpanel"
+                        tabIndex={isActive ? 0 : -1}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`relative pb-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--cc-bg)] ${
+                          isActive
+                            ? "text-[var(--cc-text-strong)]"
+                            : "text-[var(--cc-text-muted)] hover:text-[var(--cc-text-strong)]"
+                        }`}
+                      >
+                        {tab.label}
+                        <span
+                          className={`absolute inset-x-0 bottom-0 h-0.5 transition-opacity ${
+                            isActive
+                              ? "bg-[var(--brand)] opacity-100"
+                              : "bg-[var(--cc-border)] opacity-0"
+                          }`}
+                          aria-hidden
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
               </nav>
 
-              <div className="cc-card">
+              {activeTabMeta && (
+                <p className="text-sm text-[var(--cc-text-muted)]">{activeTabMeta.description}</p>
+              )}
+
+              <div role="tabpanel" id="report-tabpanel" aria-labelledby={activeTab ? `report-tab-${activeTab}` : undefined}>
                 {activeTab === "breakdown" && (
-                  <div className="grid gap-6 lg:grid-cols-12">
+                  <div className="grid gap-10 lg:grid-cols-12">
                     <div className="lg:col-span-7">
                       <h2 className="text-lg font-semibold text-[var(--cc-text-strong)]">Distribuição de gastos</h2>
                       <p className="text-sm text-[var(--cc-text-muted)]">
@@ -456,7 +288,7 @@ export default function BudgetReportPage() {
                           <li className="text-sm text-[var(--cc-text-muted)]">Nenhuma categoria com gastos registrados.</li>
                         )}
                         {report.breakdown.map((item) => (
-                          <li key={item.id ?? item.name} className="rounded-lg border border-[var(--cc-border)] p-3">
+                          <li key={item.id ?? item.name} className="rounded-xl border border-[var(--cc-border)] bg-white/60 p-4 backdrop-blur-sm">
                             <div className="flex items-center justify-between text-sm font-medium">
                               <span className="flex items-center gap-2">
                                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
@@ -464,7 +296,7 @@ export default function BudgetReportPage() {
                               </span>
                               <span>{fmtBRL(item.amount)}</span>
                             </div>
-                            <div className="mt-2 h-2 w-full rounded-full bg-[var(--cc-border)]">
+                            <div className="mt-3 h-2 w-full rounded-full bg-[var(--cc-border)]">
                               <span
                                 className="block h-2 rounded-full"
                                 style={{
@@ -473,7 +305,7 @@ export default function BudgetReportPage() {
                                 }}
                               />
                             </div>
-                            <p className="mt-1 text-xs text-[var(--cc-text-muted)]">
+                            <p className="mt-2 text-xs text-[var(--cc-text-muted)]">
                               {formatPercentage(item.percentage)} do total do mês.
                             </p>
                           </li>
@@ -484,7 +316,7 @@ export default function BudgetReportPage() {
                 )}
 
                 {activeTab === "trends" && (
-                  <div className="cc-stack-24">
+                  <div className="flex flex-col gap-6">
                     <div>
                       <h2 className="text-lg font-semibold text-[var(--cc-text-strong)]">Tendência de gastos</h2>
                       <p className="text-sm text-[var(--cc-text-muted)]">
@@ -501,7 +333,7 @@ export default function BudgetReportPage() {
                 )}
 
                 {activeTab === "net" && (
-                  <div className="grid gap-6 lg:grid-cols-12">
+                  <div className="grid gap-10 lg:grid-cols-12">
                     <div className="lg:col-span-7">
                       <h2 className="text-lg font-semibold text-[var(--cc-text-strong)]">Patrimônio líquido</h2>
                       <p className="text-sm text-[var(--cc-text-muted)]">
@@ -522,7 +354,7 @@ export default function BudgetReportPage() {
                           Nenhuma movimentação encontrada para estimar o patrimônio.
                         </p>
                       ) : (
-                        <div className="mt-4 max-h-72 overflow-auto rounded-lg border border-[var(--cc-border)]">
+                        <div className="mt-4 max-h-72 overflow-auto rounded-xl border border-[var(--cc-border)] bg-white/60 backdrop-blur-sm">
                           <table className="min-w-full text-sm">
                             <thead className="bg-[var(--table-header-bg)] text-left text-xs uppercase text-[var(--cc-text-muted)]">
                               <tr>
@@ -561,14 +393,14 @@ export default function BudgetReportPage() {
                 )}
 
                 {activeTab === "income" && (
-                  <div className="cc-stack-24">
+                  <div className="flex flex-col gap-6">
                     <div>
                       <h2 className="text-lg font-semibold text-[var(--cc-text-strong)]">Receitas x Despesas</h2>
                       <p className="text-sm text-[var(--cc-text-muted)]">
                         Balanceamento entre entradas e saídas no mês selecionado.
                       </p>
                     </div>
-                    <div className="overflow-hidden rounded-lg border border-[var(--cc-border)]">
+                    <div className="overflow-hidden rounded-xl border border-[var(--cc-border)] bg-white/60 backdrop-blur-sm">
                       <table className="min-w-full text-sm">
                         <thead className="bg-[var(--table-header-bg)] text-left text-xs uppercase text-[var(--cc-text-muted)]">
                           <tr>
@@ -599,39 +431,33 @@ export default function BudgetReportPage() {
                 )}
 
                 {activeTab === "age" && (
-                  <div className="cc-stack-24">
+                  <div className="flex flex-col gap-6">
                     <div>
                       <h2 className="text-lg font-semibold text-[var(--cc-text-strong)]">Idade do dinheiro</h2>
                       <p className="text-sm text-[var(--cc-text-muted)]">
                         Estimativa de quantos dias suas reservas atuais sustentam o nível de gastos do mês.
                       </p>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div className="cc-card cc-stack-12">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+                    <dl className="grid gap-6 md:grid-cols-3">
+                      <div className="rounded-xl border border-[var(--cc-border)] bg-white/60 p-5 text-[var(--cc-text-strong)] backdrop-blur-sm">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                           Dias estimados
-                        </p>
-                        <p className="text-2xl font-semibold text-[var(--cc-text-strong)]">
-                          {formatDays(report.ageOfMoney.days)}
-                        </p>
+                        </dt>
+                        <dd className="mt-2 text-2xl font-semibold">{formatDays(report.ageOfMoney.days)}</dd>
                       </div>
-                      <div className="cc-card cc-stack-12">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+                      <div className="rounded-xl border border-[var(--cc-border)] bg-white/60 p-5 text-[var(--cc-text-strong)] backdrop-blur-sm">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                           Caixa disponível
-                        </p>
-                        <p className="text-2xl font-semibold text-[var(--cc-text-strong)]">
-                          {fmtBRL(report.ageOfMoney.cashOnHand)}
-                        </p>
+                        </dt>
+                        <dd className="mt-2 text-2xl font-semibold">{fmtBRL(report.ageOfMoney.cashOnHand)}</dd>
                       </div>
-                      <div className="cc-card cc-stack-12">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+                      <div className="rounded-xl border border-[var(--cc-border)] bg-white/60 p-5 text-[var(--cc-text-strong)] backdrop-blur-sm">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                           Média diária de gastos
-                        </p>
-                        <p className="text-2xl font-semibold text-[var(--cc-text-strong)]">
-                          {fmtBRL(report.ageOfMoney.avgDailyOutflow)}
-                        </p>
+                        </dt>
+                        <dd className="mt-2 text-2xl font-semibold">{fmtBRL(report.ageOfMoney.avgDailyOutflow)}</dd>
                       </div>
-                    </div>
+                    </dl>
                     <p className="text-sm text-[var(--cc-text-muted)]">
                       {report.ageOfMoney.days
                         ? `Com o ritmo de gastos atual, suas reservas cobrem aproximadamente ${formatDays(
@@ -643,14 +469,14 @@ export default function BudgetReportPage() {
                 )}
               </div>
             </section>
-          </div>
-        ) : (
-          !loading && (
-            <p className="text-sm text-[var(--cc-text-muted)]">
-              Nenhum dado disponível para os filtros selecionados.
-            </p>
-          )
-        )}
+          ) : (
+            !loading && (
+              <p className="text-sm text-[var(--cc-text-muted)]">
+                Nenhum dado disponível para os filtros selecionados.
+              </p>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
