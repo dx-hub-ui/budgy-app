@@ -7,11 +7,11 @@ Este documento resume o comportamento do orçamento mensal após o rollout Navy 
 - A entrada continua como **Orçamento** no menu lateral; o atalho antigo **Categorias** foi removido porque o CRUD agora acontece dentro do próprio orçamento.
 - O submenu **Relatórios** surge logo abaixo de Orçamentos e abre o dashboard `/budgets/report`, onde os indicadores de desempenho do mês são exibidos.
 - Cada mês é carregado diretamente em `/budgets/[slug]` (slug `YYYY-MM`). O link "Orçamento" da sidebar já aponta para o mês atual, garantindo entrada imediata no planejador.
-- A query `?cat=` só é sincronizada enquanto o usuário estiver em `/budgets/*`, evitando que a URL do orçamento sobrescreva navegações para outras rotas.
+- A query `?cat=` só é sincronizada enquanto o usuário estiver em `/budgets/[slug]`, evitando que a URL do orçamento sobrescreva navegações para outras rotas (inclusive `/budgets/report`).
 - O mês atual é calculado com base no fuso horário local do usuário (métodos `getFullYear()`/`getMonth()`), evitando regressões para o mês anterior quando o navegador ainda estiver no final do dia 1º em UTC.
 - A label exibida no topo usa a data do dia 1º às 12h UTC ao formatar (`Intl.DateTimeFormat`), o que impede o recuo para o mês anterior ao aplicar o timezone `America/Sao_Paulo`.
 - Trocas de mês usam `router.replace`, evitando recarga da página e mantendo histórico do navegador.
-- A sincronização do slug mensal agora acontece somente durante ações explícitas no planejador (anterior/próximo), evitando que o orçamento reescreva a URL enquanto o usuário tenta navegar pela sidebar.
+- A sincronização do slug mensal agora acontece somente durante ações explícitas no planejador (anterior/próximo) quando o usuário está em `/budgets/[slug]`, evitando que o orçamento reescreva a URL enquanto ele navega pela sidebar ou abre `/budgets/report`.
 - A navegação mensal é feita pelas setas laterais na própria página do mês, carregando apenas o mês anterior e o posterior conforme o mock de referência.
 
 ## Estrutura de dados (Supabase)

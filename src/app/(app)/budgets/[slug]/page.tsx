@@ -682,8 +682,14 @@ export default function BudgetMonthPage() {
 
   const didInitRef = useRef(false);
 
+  const isBudgetMonthRoute = useMemo(() => {
+    if (!pathname) return false;
+    if (!pathname.startsWith("/budgets/")) return false;
+    return !pathname.startsWith("/budgets/report");
+  }, [pathname]);
+
   useEffect(() => {
-    if (!pathname?.startsWith("/budgets")) return;
+    if (!isBudgetMonthRoute) return;
     if (didInitRef.current) return;
     didInitRef.current = true;
 
@@ -697,11 +703,11 @@ export default function BudgetMonthPage() {
 
     if (typeof window !== "undefined" && queryMonth) {
       const desiredPath = `/budgets/${initial}`;
-      if (pathname !== desiredPath) {
+      if (isBudgetMonthRoute && pathname !== desiredPath) {
         router.replace(desiredPath, { scroll: false });
       }
     }
-  }, [initializeMonth, params?.slug, pathname, router]);
+  }, [initializeMonth, isBudgetMonthRoute, params?.slug, pathname, router]);
 
   useEffect(() => {
     if (!toast) return;
@@ -730,7 +736,7 @@ export default function BudgetMonthPage() {
   const goToMonth = useCallback(
     async (nextMonth: string) => {
       const normalized = nextMonth.slice(0, 7);
-      if (pathname?.startsWith("/budgets")) {
+      if (isBudgetMonthRoute) {
         const desiredPath = `/budgets/${normalized}`;
         if (pathname !== desiredPath) {
           router.replace(desiredPath, { scroll: false });
@@ -738,13 +744,13 @@ export default function BudgetMonthPage() {
       }
       await selecionarMes(normalized);
     },
-    [pathname, router, selecionarMes]
+    [isBudgetMonthRoute, pathname, router, selecionarMes]
   );
 
   const select = useCallback(
     (id: string | null) => {
       setSelectedId(id);
-      if (!pathname?.startsWith("/budgets")) {
+      if (!isBudgetMonthRoute) {
         return;
       }
       const paramsObj = new URLSearchParams(searchParamsString);
@@ -753,7 +759,7 @@ export default function BudgetMonthPage() {
       const query = paramsObj.toString();
       router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
     },
-    [pathname, router, searchParamsString]
+    [isBudgetMonthRoute, pathname, router, searchParamsString]
   );
 
   const closeSelection = useCallback(() => {
