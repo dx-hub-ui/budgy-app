@@ -37,6 +37,8 @@
   --state-neutral: #9ca3af;
   --chart-grid: rgba(13, 27, 76, 0.18);
   --chart-point-border: #ffffff;
+  --inspector-w: 33.3333%;
+  --inspector-min: 300px;
 }
 
 :root[data-theme="dark"] {
