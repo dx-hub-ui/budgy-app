@@ -74,21 +74,22 @@ export function BudgetTopbar({
               <ChevronRight size={18} />
             </button>
           </div>
-
-          <div className="w-full max-w-xl rounded-xl bg-[#C6FF7F] px-5 py-4 text-left text-[#1C3A0D] shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <p className="text-[22px] font-semibold leading-tight text-[#1C3A0D]">{fmtBRL(readyToAssignCents)}</p>
-                <p className="text-xs font-medium uppercase tracking-[0.32em] text-[#1C3A0D]/70">
+          <div className="flex w-full justify-center xl:w-auto">
+            <div className="inline-flex min-w-[240px] max-w-sm flex-col items-center gap-4 rounded-xl bg-[#C6FF7F] px-4 py-3 text-center text-[#1C3A0D] shadow-sm">
+              <div className="space-y-2">
+                <p className="text-[1.5rem] font-semibold leading-snug text-[#1C3A0D]">
+                  {fmtBRL(readyToAssignCents)}
+                </p>
+                <p className="text-[0.55rem] font-semibold uppercase tracking-[0.32em] text-[#1C3A0D]/70">
                   Pronto para atribuir
                 </p>
-                <p className="text-xs font-normal text-[#1C3A0D]/70">Saldo a distribuir neste mês</p>
+                <p className="text-[0.6875rem] text-[#1C3A0D]/70">Saldo a distribuir neste mês</p>
               </div>
               <button
                 type="button"
                 onClick={onOpenAutoAssign}
                 disabled={readyToAssignDisabled}
-                className={`ghost-button primary ${readyToAssignDisabled ? "" : "shadow-sm"}`}
+                className={`ghost-button primary w-full justify-center ${readyToAssignDisabled ? "" : "shadow-sm"}`}
               >
                 Atribuir
                 <ChevronDown size={14} aria-hidden />
