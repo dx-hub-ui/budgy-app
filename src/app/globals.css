@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: light;
-  --cc-sidebar-w: 232px;
+  --cc-sidebar-w: 260px;
   --cc-sidebar-w-collapsed: 72px;
   --cc-content-maxw: 1180px;
   --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06);
@@ -322,7 +322,7 @@ main.cc-main::-webkit-scrollbar-thumb {
 /* compact text */
 .tabular{font-variant-numeric:tabular-nums;}
 /* table grid */
-.budget-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(420px,1fr);gap:20px;align-items:stretch;}
+.budget-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:20px;align-items:stretch;}
 .left-wide{min-width:760px;height:calc(100vh - 140px);display:flex;flex-direction:column;overflow:hidden;}
 .budget-categories-scroll{flex:1;overflow:auto;padding-right:8px;}
 /* header */
