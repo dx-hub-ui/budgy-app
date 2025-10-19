@@ -4,7 +4,8 @@ import {
   aplicarEstouroEmDinheiro,
   calcularAAtribuir,
   calcularDisponivel,
-  calcularProjecaoMeta
+  calcularProjecaoMeta,
+  normalizarValorMonetario
 } from "../src/domain/budgeting";
 
 function testCalcularDisponivel() {
@@ -20,6 +21,13 @@ function testCalcularAAtribuir() {
 function testAplicarEstouro() {
   assert.equal(aplicarEstouroEmDinheiro(-5_00, 10_00), 5_00);
   assert.equal(aplicarEstouroEmDinheiro(2_00, 7_00), 7_00);
+}
+
+function testNormalizarValorMonetario() {
+  assert.equal(normalizarValorMonetario("-R$ 1.234,56"), -123456);
+  assert.equal(normalizarValorMonetario("+R$ 1.234,56"), 123456);
+  assert.equal(normalizarValorMonetario(" R$ 0,00 "), 0);
+  assert.equal(normalizarValorMonetario("R$ 12,34"), 1234);
 }
 
 function testProjecoesMetas() {
@@ -85,6 +93,7 @@ try {
   testCalcularDisponivel();
   testCalcularAAtribuir();
   testAplicarEstouro();
+  testNormalizarValorMonetario();
   testProjecoesMetas();
   console.log("Budget tests passed");
 } catch (error) {

@@ -274,9 +274,22 @@ export async function editarAtribuicao(
 }
 
 export function normalizarValorMonetario(value: string) {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length === 0) return 0;
-  return parseInt(digits, 10);
+  const trimmed = value.trim();
+  const firstDigitIndex = trimmed.search(/\d/);
+
+  if (firstDigitIndex === -1) {
+    return 0;
+  }
+
+  const signPrefix = trimmed.slice(0, firstDigitIndex);
+  const digits = trimmed.replace(/\D/g, "");
+
+  if (digits.length === 0) {
+    return 0;
+  }
+
+  const sign = signPrefix.includes("-") ? -1 : 1;
+  return sign * parseInt(digits, 10);
 }
 
 export function formatarInputMonetario(valorCentavos: number) {
