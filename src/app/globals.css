@@ -337,7 +337,7 @@ main.cc-main::-webkit-scrollbar-thumb {
 }
 /* header */
 .tbl-head{background:var(--tbl-header);border-bottom:1px solid var(--tbl-border);height:40px;}
-.tbl-head .cell{padding:0 var(--cell-px);display:flex;align-items:center;font-weight:500;}
+.tbl-head .cell{padding:0 var(--cell-px);display:flex;align-items:center;font-size: .75rem;font-weight:500;}
 /* row */
 .row{display:grid;grid-template-columns:minmax(0,1fr) 110px 110px 120px;align-items:center;height:var(--row-h);padding:0 var(--cell-px);background:var(--tbl-row);border-bottom:1px solid var(--tbl-border);}
 .row:hover{background:var(--tbl-row-hover);}
