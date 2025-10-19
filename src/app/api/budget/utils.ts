@@ -274,6 +274,50 @@ export async function loadBudgetSnapshot(
     throw goalError;
   }
 
+  const { data: ledgerRows, error: ledgerError } = await client
+    .from("account_transactions")
+    .select("category_id, amount_cents, direction")
+    .eq("org_id", orgId)
+    .gte("occurred_on", monthDate)
+    .lt("occurred_on", nextDate)
+    .is("deleted_at", null);
+
+  if (ledgerError) {
+    log({ event: "ledger_error", message: String(ledgerError.message) });
+    throw ledgerError;
+  }
+
+  const activityByCategory = new Map<string, number>();
+  let uncategorizedActivity = 0;
+  let inflowsFromLedger = 0;
+
+  (ledgerRows ?? []).forEach((row) => {
+    const raw = Number(row.amount_cents ?? 0);
+    const amount = Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0;
+    if (amount === 0) return;
+    if (row.direction === "outflow") {
+      if (row.category_id) {
+        activityByCategory.set(
+          row.category_id,
+          (activityByCategory.get(row.category_id) ?? 0) + amount
+        );
+      } else {
+        uncategorizedActivity += amount;
+      }
+      return;
+    }
+    if (row.direction === "inflow") {
+      if (row.category_id) {
+        activityByCategory.set(
+          row.category_id,
+          (activityByCategory.get(row.category_id) ?? 0) - amount
+        );
+      } else {
+        inflowsFromLedger += amount;
+      }
+    }
+  });
+
   const [
     { data: currentAllocations, error: allocError },
     { data: prevAllocations, error: prevError },
@@ -330,7 +374,7 @@ export async function loadBudgetSnapshot(
   });
 
   const allocations: BudgetSnapshotPayload["allocations"] = [];
-  const missingRows: Array<{
+  const rowsToSync: Array<{
     org_id: string;
     category_id: string;
     month: string;
@@ -347,8 +391,8 @@ export async function loadBudgetSnapshot(
     const existing = allocationsByCategory.get(category.id);
     const prevAvailable = prevAvailableMap.get(category.id) ?? 0;
     const assigned = existing?.assigned_cents ?? 0;
-    const activity = existing?.activity_cents ?? 0;
-    const available = existing?.available_cents ?? calcularDisponivel(prevAvailable, assigned, activity);
+    const activity = Math.round(activityByCategory.get(category.id) ?? 0);
+    const available = calcularDisponivel(prevAvailable, assigned, activity);
 
     allocations.push({
       category_id: category.id,
@@ -365,8 +409,10 @@ export async function loadBudgetSnapshot(
     totalActivity += activity;
     totalAvailable += available;
 
-    if (!existing) {
-      missingRows.push({
+    const existingActivity = Math.round(existing?.activity_cents ?? 0);
+    const existingAvailable = Math.round(existing?.available_cents ?? 0);
+    if (!existing || existingActivity !== activity || existingAvailable !== available) {
+      rowsToSync.push({
         org_id: orgId,
         category_id: category.id,
         month: monthDate,
@@ -377,22 +423,24 @@ export async function loadBudgetSnapshot(
     }
   });
 
+  totalActivity += uncategorizedActivity;
+
   log({
     event: "alloc_build",
     categories: categories.length,
-    toUpsertNow: missingRows.length,
+    toUpsertNow: rowsToSync.length,
     totals: { assigned: totalAssigned, activity: totalActivity, available: totalAvailable }
   });
 
-  if (missingRows.length > 0) {
+  if (rowsToSync.length > 0) {
     const { error: insertMissingError } = await client
       .from("budget_allocation")
-      .upsert(missingRows, { onConflict: "org_id,category_id,month" });
+      .upsert(rowsToSync, { onConflict: "org_id,category_id,month" });
     if (insertMissingError) {
       log({ event: "alloc_upsert_current_error", message: String(insertMissingError.message) });
       throw insertMissingError;
     }
-    log({ event: "alloc_upsert_current_ok", rows: missingRows.length });
+    log({ event: "alloc_upsert_current_ok", rows: rowsToSync.length });
   }
 
   const backgroundPromises: Promise<void>[] = [];
@@ -477,7 +525,7 @@ export async function loadBudgetSnapshot(
     await Promise.allSettled(backgroundPromises);
   }
 
-  const inflows = totalAssigned;
+  const inflows = inflowsFromLedger;
   const ready = calcularAAtribuir(inflows, totalAssigned);
 
   const snapshot = {
