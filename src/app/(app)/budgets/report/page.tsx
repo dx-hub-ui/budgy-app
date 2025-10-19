@@ -234,7 +234,6 @@ export default function BudgetReportPage() {
                         role="tab"
                         aria-selected={isActive}
                         aria-controls="report-tabpanel"
-                        tabIndex={isActive ? 0 : -1}
                         onClick={() => setActiveTab(tab.id)}
                         className={`relative pb-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--cc-bg)] ${
                           isActive
