@@ -323,7 +323,7 @@ main.cc-main::-webkit-scrollbar-thumb {
 .tabular{font-variant-numeric:tabular-nums;}
 /* table grid */
 .budget-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:20px;align-items:stretch;}
-.left-wide{min-width:760px;height:calc(100vh - 140px);display:flex;flex-direction:column;overflow:hidden;}
+.left-wide{min-width:840px;height:calc(100vh - 140px);display:flex;flex-direction:column;overflow:hidden;}
 .budget-categories-scroll{flex:1;overflow:auto;padding-right:8px;}
 /* header */
 .tbl-head{background:var(--tbl-header);border-bottom:1px solid var(--tbl-border);height:40px;}
