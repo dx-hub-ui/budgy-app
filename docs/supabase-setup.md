@@ -32,6 +32,8 @@ Then push the migration included in this repository:
 supabase db push
 ```
 
+> **Orçamento:** A partir da migration `0021_budget_goal_unique_constraint.sql` o Supabase cria uma restrição única em `public.budget_goal (org_id, category_id)` para compatibilizar os upserts usados pela API `/api/budget/goal/[categoryId]`. Execute novamente `supabase db push` após atualizar o repositório para garantir que a constraint esteja ativa e evitar o erro `there is no unique or exclusion constraint matching the ON CONFLICT specification` ao salvar metas.
+
 This command runs the SQL script at `supabase/migrations/0001_init.sql`, creating tables, indexes, triggers, and RLS policies required for the MVP.
 
 ## 3. Configure storage bucket
