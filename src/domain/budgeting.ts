@@ -273,6 +273,22 @@ export async function editarAtribuicao(
   });
 }
 
+export async function distribuirAtribuicoes(
+  month: string,
+  assignments: Array<{ categoryId: string; value: number }>
+) {
+  return fetchJson<{ allocations: BudgetAllocation[] }>(`${API_BASE}/allocation/bulk`, {
+    method: "POST",
+    body: JSON.stringify({
+      month,
+      assignments: assignments.map((assignment) => ({
+        categoryId: assignment.categoryId,
+        assigned_cents: assignment.value
+      }))
+    })
+  });
+}
+
 export function normalizarValorMonetario(value: string) {
   const trimmed = value.trim();
   const firstDigitIndex = trimmed.search(/\d/);

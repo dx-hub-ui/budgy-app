@@ -47,6 +47,7 @@ O aplicativo segue o modelo de um orçamento compartilhado (estilo YNAB), mas pe
 | `DELETE` | `/api/budget/goal/:categoryId` | Remove meta. |
 | `POST` | `/api/budget/goal/:categoryId/apply` | Calcula diferença para a meta do mês e atualiza `budget_allocation`. |
 | `PUT` | `/api/budget/allocation` | Edição inline de atribuído (debounce de 300 ms no front). |
+| `POST` | `/api/budget/allocation/bulk` | Distribui múltiplas categorias em lote reutilizando os mesmos utilitários de cálculo/retry das demais rotas, evitando falhas sequenciais no Supabase. |
 
 > ℹ️ **Cabeçalho `x-cc-org-id` garantido** — a criação do client server-side agora prioriza explicitamente o `orgId` resolvido no contexto (`createServerSupabaseClient({ orgId })`). Sem isso, requisições disparadas por usuários recém-onboarded ficavam sem o cookie `cc_org_id`, fazendo o Supabase assumir `DEFAULT_ORG_ID` nos cabeçalhos. As políticas RLS rejeitavam o `upsert` de metas (org diferente do cabeçalho) e o SDK devolvia `TypeError: fetch failed`, exatamente o erro visto ao salvar metas no painel direito.
 
@@ -73,7 +74,7 @@ A rota `PUT /api/budget/goal/:categoryId` agora encapsula as operações do Supa
    4. **Notas** – textarea "Escreva uma anotação…" persistido em `budget_categories.note` (limite 500 caracteres). O salvamento ocorre no `blur` chamando `PATCH /budget/category/:id` e apresenta feedback "Salvando…"/erro inline.
    O cabeçalho mostra o ícone da categoria, o botão de edição (pencil) e o atalho "Arquivar" reutilizando o fluxo de ocultar categoria. Um botão "×" limpa a seleção. O painel foi alargado para **460 px** dentro do grid principal, oferecendo mais espaço para o conteúdo traduzido.
 7. **Toasts** – mensagens PT-BR (`Salvo com sucesso`, `Erro ao salvar`, etc.) expiram em 4 s e podem ser disparadas pelo store. Todos os alertas/erros dos fluxos de orçamento passam a usar toasts ou mensagens inline, sem diálogos nativos do navegador.
-8. **Distribuição automática** – o botão "Atribuir" do cabeçalho abre um modal que distribui automaticamente o saldo `Pronto para atribuir` entre as categorias selecionadas. O modal lista todas as categorias com checkboxes, permite selecionar/limpar em massa e antecipa quanto cada categoria receberá e qual será o novo total antes de confirmar.
+8. **Distribuição automática** – o botão "Atribuir" do cabeçalho abre um modal que distribui automaticamente o saldo `Pronto para atribuir` entre as categorias selecionadas. O modal lista todas as categorias com checkboxes, permite selecionar/limpar em massa e antecipa quanto cada categoria receberá e qual será o novo total antes de confirmar. A confirmação dispara uma única chamada `POST /api/budget/allocation/bulk`, reduzindo as falhas de rede vistas quando vários `PUT /allocation` eram enviados em sequência.
 
 ## Painel de relatórios (`/budgets/report`)
 
