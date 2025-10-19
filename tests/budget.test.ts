@@ -78,7 +78,26 @@ function testProjecoesMetas() {
     allocation,
     "2025-05"
   );
-  assert(metaData && metaData.necessarioNoMes > 0);
+  assert.equal(metaData?.necessarioNoMes, 5_00);
+
+  const metaDataPassada = calcularProjecaoMeta(
+    {
+      id: "goal",
+      org_id: "org",
+      category_id: "cat",
+      type: "TBD",
+      amount_cents: 20_00,
+      target_month: "2025-07-01",
+      cadence: "monthly",
+      created_at: new Date().toISOString()
+    },
+    {
+      ...allocation,
+      month: "2025-08"
+    },
+    "2025-08"
+  );
+  assert.equal(metaDataPassada?.necessarioNoMes, 0);
 }
 
 try {

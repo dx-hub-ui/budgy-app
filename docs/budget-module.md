@@ -94,5 +94,5 @@ A rota `PUT /api/budget/goal/:categoryId` agora encapsula as operações do Supa
 - `tests/budget.test.ts` cobre:
   - `calcularDisponivel` e `calcularAAtribuir` (fórmulas base);
   - `aplicarEstouroEmDinheiro` (rollover de estouros);
-  - `calcularProjecaoMeta` para TB/TBD/MFG.
+  - `calcularProjecaoMeta` para TB/TBD/MFG, incluindo a validação do aporte exato em metas com data definida e o comportamento zerado quando o mês analisado já passou da data alvo.
 - As rotas Next.js retornam mensagens de erro em PT-BR, úteis para testes de API e feedback ao usuário.
