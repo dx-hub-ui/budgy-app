@@ -9,6 +9,7 @@ import {
   calcularDisponivel,
   calcularProjecaoMeta,
   editarAtribuicao,
+  distribuirAtribuicoes,
   excluirCategoria as apiExcluirCategoria,
   criarCategoria as apiCriarCategoria,
   mesAtual,
@@ -90,6 +91,9 @@ type BudgetPlannerState = {
   removerMeta: (categoryId: string) => Promise<void>;
   aplicarMeta: (categoryId: string) => Promise<void>;
   editarAtribuido: (categoryId: string, valor: number) => Promise<void>;
+  distribuirAutomaticamente: (
+    assignments: Array<{ categoryId: string; value: number }>
+  ) => Promise<void>;
   definirToast: (toast: ToastState) => void;
   desfazer: () => void;
   refazer: () => void;
@@ -492,6 +496,121 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
           draft.readyToAssignByMonth[month] = readyPrev;
           updateNextMonthPrevAvailable(draft, categoryId, month, previous?.available_cents ?? 0);
           draft.toast = { type: "error", message: "Erro ao salvar" };
+        });
+        throw error;
+      }
+    },
+    async distribuirAutomaticamente(assignments) {
+      if (assignments.length === 0) return;
+      const month = get().month.selected;
+      const state = get();
+      const historySnapshot = captureHistory(state as unknown as BudgetPlannerState);
+      const previousTotals = {
+        ...(state.totalsByMonth[month] ?? { assigned: 0, activity: 0, available: 0 }),
+      };
+      const previousReady = state.readyToAssignByMonth[month] ?? 0;
+      const previousAllocations = Object.fromEntries(
+        assignments.map((assignment) => {
+          const existing = state.allocations.byCategoryIdMonth[assignment.categoryId]?.[month];
+          return [assignment.categoryId, existing ? { ...existing } : undefined];
+        }),
+      ) as Record<string, BudgetAllocation | undefined>;
+
+      setImmer((draft) => {
+        draft.history.past.push(historySnapshot);
+        if (draft.history.past.length > MAX_HISTORY) {
+          draft.history.past.shift();
+        }
+        draft.history.future = [];
+        assignments.forEach((assignment) => {
+          updateAllocation(draft, assignment.categoryId, month, (allocation) => {
+            const prevAvailable = allocation.prev_available_cents;
+            allocation.assigned_cents = assignment.value;
+            allocation.available_cents = calcularDisponivel(
+              prevAvailable,
+              assignment.value,
+              allocation.activity_cents,
+            );
+          });
+        });
+        const totals = draft.totalsByMonth[month] ?? { assigned: 0, activity: 0, available: 0 };
+        totals.assigned = Object.values(draft.allocations.byCategoryIdMonth)
+          .map((months) => months[month]?.assigned_cents ?? 0)
+          .reduce((acc, value) => acc + value, 0);
+        totals.available = Object.values(draft.allocations.byCategoryIdMonth)
+          .map((months) => months[month]?.available_cents ?? 0)
+          .reduce((acc, value) => acc + value, 0);
+        draft.totalsByMonth[month] = totals;
+        const inflows = draft.inflowsByMonth[month] ?? 0;
+        draft.readyToAssignByMonth[month] = calcularAAtribuir(inflows, totals.assigned);
+        assignments.forEach((assignment) => {
+          const updated = draft.allocations.byCategoryIdMonth[assignment.categoryId]?.[month];
+          if (updated) {
+            updateNextMonthPrevAvailable(draft, assignment.categoryId, month, updated.available_cents);
+          }
+        });
+      });
+
+      try {
+        const response = await distribuirAtribuicoes(month, assignments);
+        setImmer((draft) => {
+          response.allocations.forEach((allocation) => {
+            updateAllocation(draft, allocation.category_id, month, (target) => {
+              target.assigned_cents = allocation.assigned_cents;
+              target.activity_cents = allocation.activity_cents;
+              target.available_cents = allocation.available_cents;
+              target.prev_available_cents = allocation.prev_available_cents;
+            });
+            updateNextMonthPrevAvailable(
+              draft,
+              allocation.category_id,
+              month,
+              allocation.available_cents,
+            );
+          });
+          const totals = draft.totalsByMonth[month] ?? { assigned: 0, activity: 0, available: 0 };
+          totals.assigned = Object.values(draft.allocations.byCategoryIdMonth)
+            .map((months) => months[month]?.assigned_cents ?? 0)
+            .reduce((acc, value) => acc + value, 0);
+          totals.available = Object.values(draft.allocations.byCategoryIdMonth)
+            .map((months) => months[month]?.available_cents ?? 0)
+            .reduce((acc, value) => acc + value, 0);
+          draft.totalsByMonth[month] = totals;
+          const inflows = draft.inflowsByMonth[month] ?? 0;
+          draft.readyToAssignByMonth[month] = calcularAAtribuir(inflows, totals.assigned);
+          draft.toast = { type: "success", message: "Distribuição aplicada" };
+        });
+      } catch (error) {
+        setImmer((draft) => {
+          assignments.forEach((assignment) => {
+            const previous = previousAllocations[assignment.categoryId];
+            if (previous) {
+              updateAllocation(draft, assignment.categoryId, month, (allocation) => {
+                allocation.assigned_cents = previous.assigned_cents;
+                allocation.activity_cents = previous.activity_cents;
+                allocation.available_cents = previous.available_cents;
+                allocation.prev_available_cents = previous.prev_available_cents;
+              });
+              updateNextMonthPrevAvailable(
+                draft,
+                assignment.categoryId,
+                month,
+                previous.available_cents,
+              );
+            } else {
+              const months = draft.allocations.byCategoryIdMonth[assignment.categoryId];
+              if (months) {
+                delete months[month];
+                if (Object.keys(months).length === 0) {
+                  delete draft.allocations.byCategoryIdMonth[assignment.categoryId];
+                }
+              }
+              updateNextMonthPrevAvailable(draft, assignment.categoryId, month, 0);
+            }
+          });
+          draft.totalsByMonth[month] = previousTotals;
+          draft.readyToAssignByMonth[month] = previousReady;
+          draft.toast = { type: "error", message: "Erro ao distribuir automaticamente" };
         });
         throw error;
       }

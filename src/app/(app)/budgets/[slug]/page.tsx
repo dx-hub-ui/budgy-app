@@ -637,6 +637,7 @@ export default function BudgetMonthPage() {
   const ocultarCategoria = useBudgetPlannerStore((s) => s.ocultarCategoria);
   const excluirCategoria = useBudgetPlannerStore((s) => s.excluirCategoria);
   const editarAtribuido = useBudgetPlannerStore((s) => s.editarAtribuido);
+  const distribuirAutomaticamente = useBudgetPlannerStore((s) => s.distribuirAutomaticamente);
   const salvarMeta = useBudgetPlannerStore((s) => s.salvarMeta);
   const aplicarMeta = useBudgetPlannerStore((s) => s.aplicarMeta);
   const removerMeta = useBudgetPlannerStore((s) => s.removerMeta);
@@ -787,9 +788,7 @@ export default function BudgetMonthPage() {
     async (assignments: Array<{ categoryId: string; value: number }>) => {
       setAutoAssignSubmitting(true);
       try {
-        for (const assignment of assignments) {
-          await editarAtribuido(assignment.categoryId, assignment.value);
-        }
+        await distribuirAutomaticamente(assignments);
         setAutoAssignOpen(false);
       } catch (error) {
         console.error(error);
@@ -801,7 +800,7 @@ export default function BudgetMonthPage() {
         setAutoAssignSubmitting(false);
       }
     },
-    [definirToast, editarAtribuido]
+    [definirToast, distribuirAutomaticamente]
   );
 
   const openActivityModal = useCallback(
