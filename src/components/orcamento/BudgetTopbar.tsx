@@ -47,9 +47,9 @@ export function BudgetTopbar({
   const readyToAssignDisabled = autoAssignDisabled ?? readyToAssignCents <= 0;
 
   return (
-    <header className="rounded-2xl bg-white px-6 py-6 text-[#1E1E1E] shadow-sm">
+    <header className="rounded-3xl bg-white px-6 py-6 text-[#1E1E1E] shadow-sm">
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="grid gap-5 xl:grid-cols-[auto_1fr_auto] xl:items-center">
           <div className="flex items-center justify-between gap-3 rounded-full bg-[#F5F5F7] px-4 py-2 shadow-sm sm:w-fit">
             <button
               type="button"
@@ -74,28 +74,26 @@ export function BudgetTopbar({
               <ChevronRight size={18} />
             </button>
           </div>
-          <div className="flex w-full justify-center xl:w-auto">
-            <div className="inline-flex min-w-[240px] max-w-sm flex-col items-center gap-4 rounded-xl bg-[#C6FF7F] px-4 py-3 text-center text-[#1C3A0D] shadow-sm">
-              <div className="space-y-2">
-                <p className="text-[1.5rem] font-semibold leading-snug text-[#1C3A0D]">
-                  {fmtBRL(readyToAssignCents)}
-                </p>
-                <p className="text-[0.55rem] font-semibold uppercase tracking-[0.32em] text-[#1C3A0D]/70">
-                  Pronto para atribuir
-                </p>
-                <p className="text-[0.6875rem] text-[#1C3A0D]/70">Saldo a distribuir neste mês</p>
-              </div>
+          <div className="flex justify-center">
+            <div className="inline-flex w-full max-w-[220px] flex-col items-center gap-3 rounded-2xl border border-[#AEE96F] bg-[#CBFF86] px-5 py-4 text-center text-[#1C3A0D] shadow-[0_14px_34px_rgba(33,102,16,0.22)]">
+              <p className="text-[0.5625rem] font-semibold uppercase tracking-[0.32em] text-[#1C3A0D]/80">
+                Pronto para atribuir
+              </p>
+              <p className="text-2xl font-semibold leading-tight text-[#1C3A0D]">
+                {fmtBRL(readyToAssignCents)}
+              </p>
               <button
                 type="button"
                 onClick={onOpenAutoAssign}
                 disabled={readyToAssignDisabled}
-                className={`ghost-button primary w-full justify-center ${readyToAssignDisabled ? "" : "shadow-sm"}`}
+                className="inline-flex w-full items-center justify-center gap-1 rounded-full bg-[#1C3A0D] px-3 py-2 text-[0.625rem] font-semibold uppercase tracking-[0.24em] text-white shadow-[0_8px_14px_rgba(33,102,16,0.35)] transition hover:bg-[#16300A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1C3A0D] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Atribuir
                 <ChevronDown size={14} aria-hidden />
               </button>
             </div>
           </div>
+          <div className="hidden xl:block" aria-hidden />
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" role="row">
