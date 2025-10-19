@@ -61,7 +61,7 @@ type TransactionRow = {
   occurred_on: string;
   amount_cents: number;
   direction: "outflow" | "inflow";
-  category: { id: string; name: string; color: string | null } | null;
+  category: { id: string; name: string; group_name: string | null } | null;
   account: { id: string; name: string; type: string; group_label: string } | null;
 };
 
@@ -112,18 +112,27 @@ function getDaysInMonth(start: Date, end: Date) {
   return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
-function defaultColorFromIndex(index: number) {
-  const palette = [
-    "#6366f1",
-    "#22c55e",
-    "#f97316",
-    "#f43f5e",
-    "#0ea5e9",
-    "#a855f7",
-    "#eab308",
-    "#14b8a6"
-  ];
-  return palette[index % palette.length];
+const COLOR_PALETTE = [
+  "#6366f1",
+  "#22c55e",
+  "#f97316",
+  "#f43f5e",
+  "#0ea5e9",
+  "#a855f7",
+  "#eab308",
+  "#14b8a6",
+  "#fb7185",
+  "#0d9488",
+  "#facc15",
+  "#4f46e5"
+];
+
+function colorFromKey(key: string) {
+  let hash = 7;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) % 0xfffffff;
+  }
+  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
 }
 
 export async function fetchDashboardReport(filters: DashboardFilters): Promise<DashboardReport> {
@@ -136,7 +145,7 @@ export async function fetchDashboardReport(filters: DashboardFilters): Promise<D
   let txQuery = supabase
     .from("account_transactions")
     .select(
-      "id, occurred_on, amount_cents, direction, category:budget_categories(id,name,color), account:accounts(id,name,type,group_label)"
+      "id, occurred_on, amount_cents, direction, category:budget_categories(id,name,group_name), account:accounts(id,name,type,group_label)"
     )
     .gte("occurred_on", trendStartIso)
     .lt("occurred_on", endIso)
@@ -164,10 +173,11 @@ export async function fetchDashboardReport(filters: DashboardFilters): Promise<D
     totalOutflow += amount;
     const key = row.category?.id ?? "uncategorized";
     if (!breakdownMap.has(key)) {
+      const colorKey = `${row.category?.id ?? row.category?.name ?? key}-${row.category?.group_name ?? ""}`;
       breakdownMap.set(key, {
         id: row.category?.id ?? null,
         name: row.category?.name ?? "Sem categoria",
-        color: row.category?.color ?? defaultColorFromIndex(breakdownMap.size + index),
+        color: colorFromKey(colorKey),
         amount: 0,
         percentage: 0
       });

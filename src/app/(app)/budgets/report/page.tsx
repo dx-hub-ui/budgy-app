@@ -1,9 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Activity, PiggyBank, PieChart, Timer, TrendingDown, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/Badge";
+import Stat from "@/components/ui/Stat";
 import { fmtBRL } from "@/domain/format";
 import { listAccounts, listBudgetCategories } from "@/domain/repo";
 import {
@@ -27,12 +29,14 @@ type Option = { value: string; label: string };
 
 type TabId = "breakdown" | "trends" | "net" | "income" | "age";
 
-const tabs: Array<{ id: TabId; label: string }> = [
-  { id: "breakdown", label: "Resumo de gastos" },
-  { id: "trends", label: "Tendências" },
-  { id: "net", label: "Patrimônio" },
-  { id: "income", label: "Receitas x Despesas" },
-  { id: "age", label: "Idade do dinheiro" }
+type KpiItem = { id: string; node: ReactNode };
+
+const tabs: Array<{ id: TabId; label: string; description: string; icon: LucideIcon }> = [
+  { id: "breakdown", label: "Distribuição", description: "Categorias com maior peso nos gastos", icon: PieChart },
+  { id: "trends", label: "Tendências", description: "Evolução mensal consolidada", icon: Activity },
+  { id: "net", label: "Patrimônio", description: "Contas e saldos consolidados", icon: PiggyBank },
+  { id: "income", label: "Receita vs. despesa", description: "Entrada, saída e saldo", icon: Wallet },
+  { id: "age", label: "Idade do dinheiro", description: "Sustentação do caixa", icon: Timer }
 ];
 
 function formatPercentage(value: number) {
@@ -77,7 +81,10 @@ export default function BudgetReportPage() {
         if (cancelled) return;
         const categoryItems: Option[] = [
           { value: "all", label: "Todas as categorias" },
-          ...categories.map((category) => ({ value: category.id, label: category.name }))
+          ...categories.map((category) => ({
+            value: category.id,
+            label: `${category.group_name ?? "Sem grupo"} · ${category.name}`
+          }))
         ];
         const accountItems: Option[] = [
           { value: "all", label: "Todas as contas" },
@@ -128,29 +135,169 @@ export default function BudgetReportPage() {
     };
   }, [selectedMonth, selectedCategory, selectedAccount]);
 
-  const netBadgeTone = useMemo(() => {
-    if (!report) return "info" as const;
-    if (report.incomeExpense.net === 0) return "info" as const;
-    return report.incomeExpense.net > 0 ? ("success" as const) : ("danger" as const);
+  const selectedMonthLabel = useMemo(
+    () => monthOptions.find((option) => option.value === selectedMonth)?.label ?? "",
+    [monthOptions, selectedMonth]
+  );
+
+  const monthlyComparison = useMemo(() => {
+    if (!report) return null;
+    const totals = report.trends.totals;
+    if (!totals.length) return null;
+    const current = totals[totals.length - 1] ?? 0;
+    const previous = totals.length > 1 ? totals[totals.length - 2] ?? 0 : null;
+    return { current, previous };
   }, [report]);
 
-  const netWorthTone = useMemo(() => {
-    if (!report) return "info" as const;
-    if (report.netWorth.net === 0) return "info" as const;
-    return report.netWorth.net > 0 ? ("success" as const) : ("danger" as const);
-  }, [report]);
+  const kpis = useMemo((): KpiItem[] => {
+    if (!report) return [];
+    const { current, previous } = monthlyComparison ?? { current: report.totalSpending, previous: null };
+    const spendingDelta =
+      previous !== null
+        ? {
+            value: `${fmtBRL(current - previous)} vs mês anterior`,
+            positive: current <= previous
+          }
+        : undefined;
+
+    const effectiveCurrent = current ?? report.totalSpending;
+    const trendAverageDelta = {
+      value: `${fmtBRL(effectiveCurrent)} atual vs ${fmtBRL(Math.round(report.trends.average))} média`,
+      positive: effectiveCurrent <= report.trends.average
+    };
+
+    return [
+      {
+        id: "spending",
+        node: (
+          <Stat
+            icon={<Wallet className="h-5 w-5" aria-hidden />}
+            label="Gasto monitorado"
+            value={fmtBRL(report.totalSpending)}
+            delta={spendingDelta}
+          />
+        )
+      },
+      {
+        id: "average",
+        node: (
+          <Stat
+            icon={<Activity className="h-5 w-5" aria-hidden />}
+            label="Média de 6 meses"
+            value={fmtBRL(Math.round(report.trends.average))}
+            delta={trendAverageDelta}
+          />
+        )
+      },
+      {
+        id: "net",
+        node: (
+          <Stat
+            icon={<TrendingDown className="h-5 w-5" aria-hidden />}
+            label="Receita menos despesa"
+            value={fmtBRL(report.incomeExpense.net)}
+            delta={{
+              value: `${fmtBRL(report.incomeExpense.income)} receitas / ${fmtBRL(report.incomeExpense.expense)} despesas`,
+              positive: report.incomeExpense.net >= 0
+            }}
+          />
+        )
+      },
+      {
+        id: "net-worth",
+        node: (
+          <Stat
+            icon={<PiggyBank className="h-5 w-5" aria-hidden />}
+            label="Patrimônio líquido"
+            value={fmtBRL(report.netWorth.net)}
+            delta={{
+              value: `${fmtBRL(report.netWorth.assets)} ativos / ${fmtBRL(Math.abs(report.netWorth.debts))} dívidas`,
+              positive: report.netWorth.net >= 0
+            }}
+          />
+        )
+      }
+    ];
+  }, [monthlyComparison, report]);
 
   return (
     <div className="mx-auto w-full max-w-[var(--cc-content-maxw)]">
-      <div className="grid gap-6 md:grid-cols-12">
-        <header className="md:col-span-12">
-          <div className="cc-stack-24">
-            <h1 className="text-2xl font-semibold text-[var(--cc-text-strong)]">Relatórios</h1>
-            <p className="cc-section-sub text-sm text-[var(--cc-text-muted)]">
-              Acompanhe indicadores chave do seu orçamento, analise tendências e identifique oportunidades de
-              ajustes.
-            </p>
+      <div className="cc-stack-32">
+        <header className="relative overflow-hidden rounded-3xl border border-[var(--cc-border)] bg-gradient-to-r from-[var(--brand-soft-bg)] via-white to-white p-8 shadow-sm dark:via-[var(--cc-surface)] dark:to-[var(--cc-surface)]">
+          <div className="pointer-events-none absolute -left-16 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-[var(--brand-soft-bg)] opacity-60 blur-3xl" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[var(--brand-soft-bg)] opacity-50 blur-3xl" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="cc-stack-16">
+              <span className="inline-flex w-fit items-center rounded-full border border-[var(--cc-border)] bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand)] shadow-sm">
+                Relatórios de orçamento
+              </span>
+              <div className="cc-stack-8">
+                <h1 className="text-3xl font-semibold text-[var(--cc-text-strong)]">Visão consolidada de {selectedMonthLabel}</h1>
+                <p className="max-w-2xl text-sm text-[var(--cc-text-muted)]">
+                  Ajuste os filtros para navegar entre contas e categorias. Todos os gráficos, indicadores e listas são atualizados imediatamente a partir dos dados do Supabase.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="month-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
+                  Mês
+                </label>
+                <select
+                  id="month-filter"
+                  value={selectedMonth}
+                  onChange={(event) => setSelectedMonth(event.target.value)}
+                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
+                >
+                  {monthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="category-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
+                  Categoria
+                </label>
+                <select
+                  id="category-filter"
+                  value={selectedCategory}
+                  onChange={(event) => setSelectedCategory(event.target.value)}
+                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
+                >
+                  {categoryOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="account-filter" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--cc-text-muted)]">
+                  Conta
+                </label>
+                <select
+                  id="account-filter"
+                  value={selectedAccount}
+                  onChange={(event) => setSelectedAccount(event.target.value)}
+                  className="rounded-xl border border-[var(--cc-border-strong)] bg-white/90 px-3 py-2 text-sm font-medium text-[var(--cc-text-strong)] shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-[var(--ring)] dark:bg-[var(--cc-surface-strong)]"
+                >
+                  {accountOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
+          {filtersError && (
+            <p className="relative mt-4 text-sm text-red-600" role="alert">
+              {filtersError}
+            </p>
+          )}
         </header>
 
         <section className="md:col-span-12">
@@ -224,78 +371,65 @@ export default function BudgetReportPage() {
         </section>
 
         {error && (
-          <p className="md:col-span-12 text-sm text-red-600" role="alert">
+          <p className="text-sm text-red-600" role="alert">
             {error}
           </p>
         )}
 
-        {loading ? (
-          <p className="md:col-span-12 text-sm text-[var(--cc-text-muted)]">Carregando indicadores…</p>
-        ) : report ? (
-          <>
-            <section className="md:col-span-12">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="cc-card cc-stack-12">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-                    Total gasto no período
-                  </p>
-                  <p className="text-2xl font-semibold text-[var(--cc-text-strong)]">
-                    {fmtBRL(report.totalSpending)}
-                  </p>
-                  <p className="text-xs text-[var(--cc-text-muted)]">
-                    Soma das saídas considerando os filtros selecionados.
-                  </p>
-                </div>
-                <div className="cc-card cc-stack-12">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-                      Receita menos despesa
-                    </p>
-                    <Badge tone={netBadgeTone}>{fmtBRL(report.incomeExpense.net)}</Badge>
-                  </div>
-                  <p className="text-xs text-[var(--cc-text-muted)]">
-                    Receitas totais: <strong>{fmtBRL(report.incomeExpense.income)}</strong>
-                  </p>
-                  <p className="text-xs text-[var(--cc-text-muted)]">
-                    Despesas totais: <strong>{fmtBRL(report.incomeExpense.expense)}</strong>
-                  </p>
-                </div>
-                <div className="cc-card cc-stack-12">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-                      Patrimônio líquido estimado
-                    </p>
-                    <Badge tone={netWorthTone}>{fmtBRL(report.netWorth.net)}</Badge>
-                  </div>
-                  <p className="text-xs text-[var(--cc-text-muted)]">
-                    Ativos: <strong>{fmtBRL(report.netWorth.assets)}</strong>
-                  </p>
-                  <p className="text-xs text-[var(--cc-text-muted)]">
-                    Dívidas: <strong>{fmtBRL(Math.abs(report.netWorth.debts))}</strong>
-                  </p>
-                </div>
+        {loading && (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-live="polite">
+            {[0, 1, 2, 3].map((item) => (
+              <div
+                // eslint-disable-next-line react/no-array-index-key
+                key={item}
+                className="h-32 animate-pulse rounded-2xl border border-dashed border-[var(--cc-border)] bg-[color-mix(in_oklab,var(--cc-surface) 94%,white)]"
+              />
+            ))}
+          </div>
+        )}
+
+        {report ? (
+          <div className="cc-stack-32">
+            <section>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {kpis.map((item) => (
+                  <div key={item.id}>{item.node}</div>
+                ))}
               </div>
             </section>
 
-            <section className="md:col-span-12">
-              <div className="flex flex-wrap gap-2 border-b border-[var(--cc-border)]">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`rounded-t-lg px-4 py-2 text-sm font-medium transition-colors ${
-                      activeTab === tab.id
-                        ? "bg-white text-[var(--cc-text-strong)] shadow"
-                        : "text-[var(--cc-text-muted)] hover:text-[var(--cc-text-strong)]"
-                    }`}
-                    aria-current={activeTab === tab.id ? "page" : undefined}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <div className="cc-card rounded-t-none">
+            <section className="cc-stack-16">
+              <nav className="flex flex-wrap gap-3" aria-label="Seções do relatório">
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`group relative overflow-hidden rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        isActive
+                          ? "border-[var(--brand)] bg-[var(--brand-soft-bg)] shadow-sm"
+                          : "border-[var(--cc-border)] bg-[var(--cc-surface)] hover:border-[var(--brand)] hover:bg-[var(--brand-soft-bg)]"
+                      }`}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/70 text-[var(--brand)] shadow-sm">
+                          <Icon className="h-5 w-5" aria-hidden />
+                        </span>
+                        <span className="flex flex-col">
+                          <span className="font-medium text-[var(--cc-text-strong)]">{tab.label}</span>
+                          <span className="text-xs text-[var(--cc-text-muted)]">{tab.description}</span>
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div className="cc-card">
                 {activeTab === "breakdown" && (
                   <div className="grid gap-6 lg:grid-cols-12">
                     <div className="lg:col-span-7">
@@ -332,9 +466,10 @@ export default function BudgetReportPage() {
                             </div>
                             <div className="mt-2 h-2 w-full rounded-full bg-[var(--cc-border)]">
                               <span
-                                className="block h-2 rounded-full bg-[var(--primary-500)]"
+                                className="block h-2 rounded-full"
                                 style={{
-                                  width: `${Math.min(100, Math.max(4, item.percentage * 100))}%`
+                                  width: `${Math.min(100, Math.max(4, item.percentage * 100))}%`,
+                                  backgroundColor: item.color
                                 }}
                               />
                             </div>
@@ -508,11 +643,13 @@ export default function BudgetReportPage() {
                 )}
               </div>
             </section>
-          </>
+          </div>
         ) : (
-          <p className="md:col-span-12 text-sm text-[var(--cc-text-muted)]">
-            Nenhum dado disponível para os filtros selecionados.
-          </p>
+          !loading && (
+            <p className="text-sm text-[var(--cc-text-muted)]">
+              Nenhum dado disponível para os filtros selecionados.
+            </p>
+          )
         )}
       </div>
     </div>

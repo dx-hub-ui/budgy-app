@@ -76,13 +76,15 @@ A rota `PUT /api/budget/goal/:categoryId` agora encapsula as operações do Supa
 ## Painel de relatórios (`/budgets/report`)
 
 - O dashboard é aberto pelo item **Relatórios** no menu lateral e compartilha os mesmos filtros básicos do orçamento (mês, categoria e conta). Os filtros são carregados via Supabase com `listBudgetCategories()` e `listAccounts()` e permanecem disponíveis mesmo se o usuário navegar entre as abas.
+- O cabeçalho da página foi redesenhado como um cartão amplo com gradiente suave, badge de identificação "Relatórios de orçamento" e os selects encapsulados em pills translúcidas. Os KPIs principais agora utilizam o componente `Stat` para apresentar números grandes com deltas contextuais (comparação com o mês anterior, média dos últimos seis meses, composição de receitas/despesas e fotografia do patrimônio).
 - As consultas de indicadores são centralizadas em `fetchDashboardReport()`, que agrega dados de `account_transactions`. A função monta o período selecionado (`YYYY-MM`), busca também os cinco meses anteriores para calcular tendências e deriva:
-  - **Resumo de gastos** – distribuição mensal por categoria (doughnut chart) e lista ordenada por valor gasto. Cada item mostra a porcentagem acumulada e respeita o `color` definido na categoria do orçamento.
+  - **Resumo de gastos** – distribuição mensal por categoria (doughnut chart) e lista ordenada por valor gasto. Cada item mostra a porcentagem acumulada e utiliza uma paleta determinística (hash do id/nome/grupo) para manter cores consistentes mesmo quando o Supabase não retorna `color` em `budget_categories`.
   - **Tendências** – gráfico de barras com a soma das saídas dos últimos seis meses, acompanhado da média mensal formatada em BRL.
   - **Patrimônio** – consolidação dos saldos por conta até o fim do mês (`inflow − outflow`). O snapshot separa ativos (valores positivos), dívidas (valores negativos) e o patrimônio líquido. A tabela lateral exibe tipo, grupo e saldo de cada conta.
   - **Receitas x Despesas** – tabela enxuta comparando total de entradas, saídas e o saldo do mês, com badge de status no resumo principal.
   - **Idade do dinheiro** – estimativa em dias (`caixa disponível ÷ gasto médio diário`). O caixa considera ativos menos dívidas negativas, enquanto a média diária usa as saídas do período dividido pelo número de dias do mês.
 - O carregamento das abas é totalmente client-side e usa componentes React ChartJS (via `dynamic` import) para evitar problemas de SSR com o canvas.
+- Para contornar ambientes onde `public.budget_categories` não possui coluna `color`, o relatório deriva as tonalidades diretamente no domínio (`colorFromKey`) em vez de esperar pelo campo inexistente, eliminando o erro `column budget_categories_1.color does not exist`.
 - Estados de carregamento e erros são tratados de forma independente: erros ao puxar filtros não bloqueiam o dashboard, e falhas ao montar o relatório exibem mensagem inline mantendo os selects ativos para nova tentativa.
 
 ## Fórmulas e regras financeiras
