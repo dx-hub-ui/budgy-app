@@ -28,7 +28,7 @@ ContaCerta will ship a Supabase-backed MVP in three focused sprints. Each sprint
 - Introduce domain schemas (`src/domain/models.ts`) and formatting helpers (`src/domain/format.ts`).
 - Add repository layer (`src/domain/repo.ts`) for authenticated data access with month filtering utilities.
 - Implement `/categories` management UI wired to Supabase CRUD endpoints.
-- Expand o ledger de `/contas/<id>` para permitir criação e categorização de transações inline, eliminando o fluxo dedicado de "Nova despesa".
+- Expandir o ledger de `/contas/<id>` para permitir a criação e categorização de transações inline, eliminando o fluxo dedicado de "Nova despesa".
 - Add navigation links in Sidebar and ensure mobile accessibility.
   - Ensure Sidebar links map to implemented screens (`/budgets/<ano-mes>`, `/contas`, `/categories`).
 
