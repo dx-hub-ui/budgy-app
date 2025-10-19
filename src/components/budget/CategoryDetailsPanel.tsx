@@ -630,7 +630,7 @@ export function CategoryDetailsPanel({
                     <div
                       className="absolute inset-0 rounded-full"
                       style={{
-                        background: `conic-gradient(#facc15 ${progressPercent * 3.6}deg, #fef08a 0deg)`
+                        background: `conic-gradient(var(--chart-progress-start) ${progressPercent * 3.6}deg, var(--chart-progress-end) 0deg)`
                       }}
                       aria-hidden
                     />

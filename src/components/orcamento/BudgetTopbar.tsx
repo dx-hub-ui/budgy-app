@@ -47,10 +47,10 @@ export function BudgetTopbar({
   const readyToAssignDisabled = autoAssignDisabled ?? readyToAssignCents <= 0;
 
   return (
-    <header className="rounded-3xl bg-white px-6 py-6 text-[#1E1E1E] shadow-sm">
+    <header className="rounded-3xl bg-[var(--cc-surface)] px-6 py-6 text-[var(--budget-topbar-text)] shadow-sm">
       <div className="flex flex-col gap-6">
         <div className="grid gap-5 xl:grid-cols-[auto_1fr_auto] xl:items-center">
-          <div className="flex items-center justify-between gap-3 rounded-full bg-[#F5F5F7] px-4 py-2 shadow-sm sm:w-fit">
+          <div className="flex items-center justify-between gap-3 rounded-full bg-[var(--budget-topbar-chip-bg)] px-4 py-2 shadow-sm sm:w-fit">
             <button
               type="button"
               onClick={onGoPrevious}
@@ -60,8 +60,8 @@ export function BudgetTopbar({
               <ChevronLeft size={18} />
             </button>
             <div className="min-w-[8rem] text-center lg:min-w-[9rem]">
-              <p className="text-[0.65rem] font-medium uppercase tracking-[0.28em] text-[#6E6E6E]">Orçamento de</p>
-              <p className="flex items-center justify-center gap-1 text-lg font-semibold text-[#1E1E1E]">
+              <p className="text-[var(--budget-period-size)] font-medium uppercase tracking-[var(--budget-period-tracking)] text-[var(--budget-topbar-muted)]">Orçamento de</p>
+              <p className="flex items-center justify-center gap-1 text-lg font-semibold text-[var(--budget-topbar-text)]">
                 {monthLabel}
               </p>
             </div>
@@ -75,18 +75,18 @@ export function BudgetTopbar({
             </button>
           </div>
           <div className="flex justify-center">
-            <div className="inline-flex w-full max-w-[220px] flex-col items-center gap-3 rounded-2xl border border-[#AEE96F] bg-[#CBFF86] px-5 py-4 text-center text-[#1C3A0D] shadow-[0_14px_34px_rgba(33,102,16,0.22)]">
-              <p className="text-[0.5625rem] font-semibold uppercase tracking-[0.32em] text-[#1C3A0D]/80">
+            <div className="inline-flex w-full max-w-[var(--budget-ready-max-width)] flex-col items-center gap-3 rounded-2xl border border-[var(--budget-ready-border)] bg-[var(--budget-ready-bg)] px-5 py-4 text-center text-[var(--budget-ready-text)] shadow-[var(--budget-ready-shadow)]">
+              <p className="text-[var(--budget-label-size)] font-semibold uppercase tracking-[var(--budget-label-tracking)] text-[var(--budget-ready-text-muted)]">
                 Pronto para atribuir
               </p>
-              <p className="text-2xl font-semibold leading-tight text-[#1C3A0D]">
+              <p className="text-2xl font-semibold leading-tight text-[var(--budget-ready-text)]">
                 {fmtBRL(readyToAssignCents)}
               </p>
               <button
                 type="button"
                 onClick={onOpenAutoAssign}
                 disabled={readyToAssignDisabled}
-                className="inline-flex w-full items-center justify-center gap-1 rounded-full bg-[#1C3A0D] px-3 py-2 text-[0.625rem] font-semibold uppercase tracking-[0.24em] text-white shadow-[0_8px_14px_rgba(33,102,16,0.35)] transition hover:bg-[#16300A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1C3A0D] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-1 rounded-full bg-[var(--budget-ready-cta-bg)] px-3 py-2 text-[var(--budget-cta-size)] font-semibold uppercase tracking-[var(--budget-cta-tracking)] text-[var(--cc-white)] shadow-[var(--budget-ready-cta-shadow)] transition hover:bg-[var(--budget-ready-cta-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--budget-ready-cta-outline)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Atribuir
                 <ChevronDown size={14} aria-hidden />
