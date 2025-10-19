@@ -209,11 +209,13 @@ main.cc-main::-webkit-scrollbar-thumb {
 
 /* Sidebar clara (versão leve) */
 .cc-sidebar--light {
-  --sidebar-bg: #1c1f58;
-  --sidebar-foreground: rgba(255, 255, 255, 0.96);
-  --sidebar-muted: rgba(255, 255, 255, 0.7);
-  --sidebar-hover: rgba(255, 255, 255, 0.1);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-bg: #101754;
+  --sidebar-foreground: rgba(248, 249, 255, 0.98);
+  --sidebar-muted: rgba(248, 249, 255, 0.7);
+  --sidebar-muted-strong: rgba(248, 249, 255, 0.85);
+  --sidebar-hover: rgba(255, 255, 255, 0.14);
+  --sidebar-active: rgba(255, 255, 255, 0.2);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
   background: var(--sidebar-bg);
   color: var(--sidebar-foreground);
   border-right: 1px solid var(--sidebar-border);
@@ -276,7 +278,11 @@ main.cc-main::-webkit-scrollbar-thumb {
 }
 
 :root[data-theme="dark"] .cc-sidebar--light {
-  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-muted: rgba(248, 249, 255, 0.72);
+  --sidebar-muted-strong: rgba(248, 249, 255, 0.88);
+  --sidebar-hover: rgba(255, 255, 255, 0.18);
+  --sidebar-active: rgba(255, 255, 255, 0.24);
 }
 :root{
   /* density */
