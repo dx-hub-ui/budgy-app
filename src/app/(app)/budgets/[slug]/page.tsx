@@ -769,7 +769,13 @@ export default function BudgetMonthPage() {
       if (!id) paramsObj.delete("cat");
       else paramsObj.set("cat", id);
       const query = paramsObj.toString();
-      router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
+      const currentQuery = searchParamsString;
+      const nextUrl = `${pathname}${query ? `?${query}` : ""}`;
+      const currentUrl = `${pathname}${currentQuery ? `?${currentQuery}` : ""}`;
+      if (nextUrl === currentUrl) {
+        return;
+      }
+      router.replace(nextUrl, { scroll: false });
     },
     [isBudgetMonthRoute, pathname, router, searchParamsString]
   );
