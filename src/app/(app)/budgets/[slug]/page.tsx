@@ -37,6 +37,7 @@ import {
 } from "@/stores/budgetPlannerStore";
 import { AutoAssignModal, type AutoAssignCategory } from "@/components/orcamento/AutoAssignModal";
 import { BudgetTopbar } from "@/components/orcamento/BudgetTopbar";
+import { HiddenCategoriesModal } from "@/components/orcamento/HiddenCategoriesModal";
 import { CategoryNameModal } from "@/components/orcamento/CategoryNameModal";
 import { CategoryDetailsPanel } from "@/components/budget/CategoryDetailsPanel";
 import { listCategoryActivity, monthToRange } from "@/domain/repo";
@@ -634,9 +635,9 @@ export default function BudgetMonthPage() {
   const selecionarMes = useBudgetPlannerStore((s) => s.selecionarMes);
   const abrirModalNome = useBudgetPlannerStore((s) => s.abrirModalNome);
   const fecharOverlays = useBudgetPlannerStore((s) => s.fecharOverlays);
-  const alternarOcultas = useBudgetPlannerStore((s) => s.alternarOcultas);
   const salvarNome = useBudgetPlannerStore((s) => s.salvarNome);
   const ocultarCategoria = useBudgetPlannerStore((s) => s.ocultarCategoria);
+  const mostrarCategoria = useBudgetPlannerStore((s) => s.mostrarCategoria);
   const excluirCategoria = useBudgetPlannerStore((s) => s.excluirCategoria);
   const editarAtribuido = useBudgetPlannerStore((s) => s.editarAtribuido);
   const distribuirAutomaticamente = useBudgetPlannerStore((s) => s.distribuirAutomaticamente);
@@ -651,6 +652,7 @@ export default function BudgetMonthPage() {
   const ui = budgetPlannerSelectors.useUI();
   const categories = budgetPlannerSelectors.useCategories();
   const groups = budgetPlannerSelectors.useGroups();
+  const hiddenCategories = budgetPlannerSelectors.useHiddenCategories();
   const monthSelected = budgetPlannerSelectors.useMonth();
   const currentMonth = monthSelected ?? mesAtual();
   const previousMonth = shiftMonth(currentMonth, -1);
@@ -672,6 +674,8 @@ export default function BudgetMonthPage() {
   });
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [autoAssignSubmitting, setAutoAssignSubmitting] = useState(false);
+  const [hiddenModalOpen, setHiddenModalOpen] = useState(false);
+  const [unhidingId, setUnhidingId] = useState<string | null>(null);
   const [activityModal, setActivityModal] = useState<ActivityModalState>(() => ({
     open: false,
     categoryId: null,
@@ -730,6 +734,12 @@ export default function BudgetMonthPage() {
   }, [groups]);
 
   useEffect(() => {
+    if (hiddenModalOpen && hiddenCategories.length === 0) {
+      setHiddenModalOpen(false);
+    }
+  }, [hiddenModalOpen, hiddenCategories.length]);
+
+  useEffect(() => {
     const params = new URLSearchParams(searchParamsString);
     const paramId = params.get("cat");
     setSelectedId(paramId);
@@ -767,6 +777,18 @@ export default function BudgetMonthPage() {
   const closeSelection = useCallback(() => {
     select(null);
   }, [select]);
+
+  const handleUnhideCategory = useCallback(
+    async (categoryId: string) => {
+      setUnhidingId(categoryId);
+      try {
+        await mostrarCategoria(categoryId);
+      } finally {
+        setUnhidingId((current) => (current === categoryId ? null : current));
+      }
+    },
+    [mostrarCategoria]
+  );
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -937,8 +959,6 @@ export default function BudgetMonthPage() {
           onRedo={refazer}
           canUndo={history.past.length > 0}
           canRedo={history.future.length > 0}
-          showHidden={ui.showHidden}
-          onToggleHidden={alternarOcultas}
           autoAssignDisabled={autoAssignCategories.length === 0 || readyToAssign <= 0}
         />
 
@@ -963,39 +983,77 @@ export default function BudgetMonthPage() {
                   Carregando orçamento…
                 </div>
               ) : (
-                groupsWithAllocations.map((group) => (
-                  <Fragment key={group.id}>
-                    <GroupRow
-                      group={{ id: group.id, name: group.name }}
-                      collapsed={collapsed[group.id] ?? false}
-                      onToggle={() =>
-                        setCollapsed((prev) => ({
-                          ...prev,
-                          [group.id]: !prev[group.id]
-                        }))
-                      }
-                      onAddCategory={() => setAddCategory({ open: true, groupId: group.name })}
-                    />
-                    {(collapsed[group.id] ?? false)
-                      ? null
-                      : group.categories.map((item) => (
-                          <CategoryRow
-                            key={item.category.id}
-                            category={item.category}
-                            allocation={item.allocation}
-                            goal={item.goal}
-                            selected={selectedId === item.category.id}
-                            onSelect={() => select(item.category.id)}
-                            onClear={closeSelection}
-                            onRename={() => abrirModalNome(item.category.id)}
-                            onAssign={(value) => handleAssign(item.category.id, value)}
-                            onShowActivity={() =>
-                              openActivityModal(item.category.id, item.category.name)
-                            }
-                          />
+                <>
+                  {groupsWithAllocations.map((group) => (
+                    <Fragment key={group.id}>
+                      <GroupRow
+                        group={{ id: group.id, name: group.name }}
+                        collapsed={collapsed[group.id] ?? false}
+                        onToggle={() =>
+                          setCollapsed((prev) => ({
+                            ...prev,
+                            [group.id]: !prev[group.id]
+                          }))
+                        }
+                        onAddCategory={() => setAddCategory({ open: true, groupId: group.name })}
+                      />
+                      {(collapsed[group.id] ?? false)
+                        ? null
+                        : group.categories.map((item) => (
+                            <CategoryRow
+                              key={item.category.id}
+                              category={item.category}
+                              allocation={item.allocation}
+                              goal={item.goal}
+                              selected={selectedId === item.category.id}
+                              onSelect={() => select(item.category.id)}
+                              onClear={closeSelection}
+                              onRename={() => abrirModalNome(item.category.id)}
+                              onAssign={(value) => handleAssign(item.category.id, value)}
+                              onShowActivity={() =>
+                                openActivityModal(item.category.id, item.category.name)
+                              }
+                            />
+                          ))}
+                    </Fragment>
+                  ))}
+                  {hiddenCategories.length > 0 ? (
+                    <div className="mt-6 rounded-2xl border border-[var(--tbl-border)] bg-white p-4 shadow-sm">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-4 text-left"
+                        onClick={() => setHiddenModalOpen(true)}
+                      >
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--cc-text)]">
+                            Categorias Ocultas
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--cc-text-muted)]">
+                            {hiddenCategories.length === 1
+                              ? "1 categoria oculta"
+                              : `${hiddenCategories.length} categorias ocultas`}
+                          </p>
+                        </div>
+                        <ChevronRight size={18} className="text-[var(--cc-text-muted)]" aria-hidden />
+                      </button>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {hiddenCategories.slice(0, 3).map((category) => (
+                          <span
+                            key={category.id}
+                            className="rounded-full bg-[var(--cc-bg-elev)] px-3 py-1 text-xs font-medium text-[var(--cc-text-muted)]"
+                          >
+                            {category.name}
+                          </span>
                         ))}
-                  </Fragment>
-                ))
+                        {hiddenCategories.length > 3 ? (
+                          <span className="rounded-full bg-[var(--cc-bg-elev)] px-3 py-1 text-xs font-medium text-[var(--cc-text-muted)]">
+                            +{hiddenCategories.length - 3}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               )}
             </div>
           </div>
@@ -1051,6 +1109,19 @@ export default function BudgetMonthPage() {
           }}
         />
       )}
+
+      <HiddenCategoriesModal
+        open={hiddenModalOpen}
+        categories={hiddenCategories}
+        onClose={() => {
+          if (unhidingId) return;
+          setHiddenModalOpen(false);
+        }}
+        onUnhide={(categoryId) => {
+          void handleUnhideCategory(categoryId);
+        }}
+        processingId={unhidingId}
+      />
 
       <AutoAssignModal
         open={autoAssignOpen}

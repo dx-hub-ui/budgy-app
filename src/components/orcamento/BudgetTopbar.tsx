@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  PlusCircle,
-  Redo2,
-  Undo2,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, PlusCircle, Redo2, Undo2 } from "lucide-react";
 
 import { fmtBRL, formatMonthLabel } from "@/domain/budgeting";
 
@@ -23,8 +15,6 @@ type BudgetTopbarProps = {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  showHidden: boolean;
-  onToggleHidden: () => void;
   autoAssignDisabled?: boolean;
 };
 
@@ -39,8 +29,6 @@ export function BudgetTopbar({
   onRedo,
   canUndo,
   canRedo,
-  showHidden,
-  onToggleHidden,
   autoAssignDisabled,
 }: BudgetTopbarProps) {
   const monthLabel = formatMonthLabel(month);
@@ -133,16 +121,7 @@ export function BudgetTopbar({
             </div>
           </div>
 
-          <div role="cell" className="flex justify-center md:justify-start xl:justify-end">
-            <button
-              type="button"
-              onClick={onToggleHidden}
-              className={`ghost-button ${showHidden ? "is-active" : ""}`}
-            >
-              <Eye size={16} aria-hidden />
-              {showHidden ? "Ocultar categorias" : "Mostrar ocultas"}
-            </button>
-          </div>
+          <div role="cell" className="flex justify-center md:justify-start xl:justify-end" aria-hidden />
         </div>
       </div>
     </header>

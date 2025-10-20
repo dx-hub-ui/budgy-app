@@ -15,6 +15,7 @@ import {
   mesAtual,
   normalizarValorMonetario,
   ocultarCategoria as apiOcultarCategoria,
+  mostrarCategoria as apiMostrarCategoria,
   removerMeta as apiRemoverMeta,
   salvarMeta as apiSalvarMeta,
   salvarNomeCategoria as apiSalvarNomeCategoria,
@@ -30,7 +31,6 @@ type UIState = {
   nameModalId: string | null;
   drawerCategoryId: string | null;
   wizardStep: WizardStep;
-  showHidden: boolean;
 };
 
 type CategoriesState = {
@@ -83,9 +83,9 @@ type BudgetPlannerState = {
   abrirDrawer: (id: string) => void;
   fecharOverlays: () => void;
   irParaPasso: (step: WizardStep) => void;
-  alternarOcultas: () => void;
   salvarNome: (id: string, nome: string) => Promise<void>;
   ocultarCategoria: (id: string) => Promise<void>;
+  mostrarCategoria: (id: string) => Promise<void>;
   excluirCategoria: (id: string) => Promise<void>;
   salvarMeta: (categoryId: string, payload: Partial<BudgetGoal>) => Promise<void>;
   removerMeta: (categoryId: string) => Promise<void>;
@@ -211,7 +211,6 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
       nameModalId: null,
       drawerCategoryId: null,
       wizardStep: 1,
-      showHidden: false,
     },
     month: { selected: mesAtual() },
     categories: { list: [], loading: false },
@@ -317,11 +316,6 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
         draft.ui.wizardStep = step;
       });
     },
-    alternarOcultas() {
-      setImmer((draft) => {
-        draft.ui.showHidden = !draft.ui.showHidden;
-      });
-    },
     definirToast(toast: ToastState) {
       setImmer((draft) => {
         draft.toast = toast;
@@ -349,6 +343,15 @@ export const useBudgetPlannerStore = create<BudgetPlannerState>((set, get) => {
         );
         draft.toast = { type: "info", message: "Categoria oculta" };
         draft.ui.nameModalId = null;
+      });
+    },
+    async mostrarCategoria(id: string) {
+      const updated = await apiMostrarCategoria(id);
+      setImmer((draft) => {
+        draft.categories.list = draft.categories.list.map((cat) =>
+          cat.id === id ? { ...cat, is_hidden: false } : cat,
+        );
+        draft.toast = { type: "success", message: "Categoria reexibida" };
       });
     },
     async excluirCategoria(id: string) {
@@ -644,10 +647,15 @@ export const budgetPlannerSelectors = {
   useGroups: () =>
     useBudgetPlannerStore((state) =>
       agruparCategorias(
-        state.categories.list.filter((cat) =>
-          state.ui.showHidden ? true : !cat.is_hidden && !cat.deleted_at,
-        ),
+        state.categories.list.filter((cat) => !cat.is_hidden && !cat.deleted_at),
       ),
+    ),
+  useHiddenCategories: () =>
+    useBudgetPlannerStore((state) =>
+      state.categories.list
+        .filter((cat) => cat.is_hidden && !cat.deleted_at)
+        .slice()
+        .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)),
     ),
   useLoading: () => useBudgetPlannerStore((state) => state.categories.loading),
   useToast: () => useBudgetPlannerStore((state) => state.toast),
