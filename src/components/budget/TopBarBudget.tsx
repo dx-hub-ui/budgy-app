@@ -1,34 +1,64 @@
-// src/components/budget/TopBarBudget.tsx
-import { fmtBRL } from "@/domain/format";
-import { MonthPicker } from "./MonthPicker";
+// src/components/orcamento/BudgetTopbar.tsx
+"use client";
 
-type SummaryChip = {
-  label: string;
-  value: number;
-};
+import { ChevronLeft, ChevronRight, Plus, RotateCcw, RotateCw } from "lucide-react";
+import { fmtBRL, formatMonthLabel } from "@/domain/budgeting";
 
-type TopBarBudgetProps = {
+type Props = {
   month: string;
-  months: { value: string; label: string }[];
-  toBeBudgeted: number;
-  summaryChips: SummaryChip[];
-  onMonthChange: (value: string) => void;
-  onAssign?: () => void;
+  readyToAssignCents: number;
+  onGoPrevious: () => void;
+  onGoNext: () => void;
+  onAddCategory: () => void;
+  onOpenAutoAssign: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  autoAssignDisabled?: boolean;
 };
 
-export function TopBarBudget({
+export function BudgetTopbar({
   month,
-  months,
-  toBeBudgeted,
-  summaryChips,
-  onMonthChange,
-  onAssign
-}: TopBarBudgetProps) {
+  readyToAssignCents,
+  onGoPrevious,
+  onGoNext,
+  onAddCategory,
+  onOpenAutoAssign,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  autoAssignDisabled
+}: Props) {
+  const monthLabel = formatMonthLabel(month);
+
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-[var(--cc-bg-elev)] px-4 py-3 shadow-[var(--cc-shadow-1)] lg:flex-row lg:items-center lg:justify-between">
-      <MonthPicker value={month} options={months} onChange={onMonthChange} />
+      {/* Month controls */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onGoPrevious}
+          className="ghost-button ghost-button--icon"
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="min-w-[180px] text-center text-sm font-semibold text-[var(--cc-text)]">
+          {monthLabel}
+        </div>
+        <button
+          type="button"
+          onClick={onGoNext}
+          className="ghost-button ghost-button--icon"
+          aria-label="Próximo mês"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
 
-      {/* Green "Ready to Assign" card */}
+      {/* Ready to Assign green card */}
       <div
         className="inline-flex items-center gap-3 rounded-lg border px-3 py-2 shadow-sm"
         style={{
@@ -49,21 +79,22 @@ export function TopBarBudget({
           >
             Ready to Assign
           </span>
-          <span
-            className="tabular font-semibold"
-            style={{
-              fontSize: "var(--budget-ready-amount-size)",
-              color: "var(--budget-ready-text)"
-            }}
-          >
-            {fmtBRL(toBeBudgeted)}
-          </span>
+            <span
+              className="tabular font-semibold"
+              style={{
+                fontSize: "var(--budget-ready-amount-size)",
+                color: "var(--budget-ready-text)"
+              }}
+            >
+              {fmtBRL(readyToAssignCents)}
+            </span>
         </div>
 
         <button
           type="button"
-          onClick={onAssign}
-          className="ml-auto inline-flex items-center gap-2 rounded-md px-3 py-1 font-semibold focus:outline-none"
+          onClick={onOpenAutoAssign}
+          disabled={autoAssignDisabled}
+          className="ml-auto inline-flex items-center gap-2 rounded-md px-3 py-1 font-semibold focus:outline-none disabled:opacity-60"
           style={{
             background: "var(--budget-ready-cta-bg)",
             color: "var(--cc-white)",
@@ -72,7 +103,7 @@ export function TopBarBudget({
             letterSpacing: "var(--budget-cta-tracking)"
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--budget-ready-cta-hover)";
+            if (!autoAssignDisabled) e.currentTarget.style.background = "var(--budget-ready-cta-hover)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "var(--budget-ready-cta-bg)";
@@ -85,18 +116,38 @@ export function TopBarBudget({
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {summaryChips.map((chip) => (
-          <div
-            key={chip.label}
-            className="inline-flex flex-col rounded-xl border border-[var(--cc-border)] bg-[var(--cc-surface)] px-4 py-2 text-xs font-medium text-[var(--cc-text-muted)] shadow-[var(--cc-shadow-1)]"
+      {/* Actions */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onAddCategory}
+          className="ghost-button primary"
+          aria-label="Adicionar categoria"
+        >
+          <Plus size={16} />
+          Adicionar categoria
+        </button>
+
+        <div className="ml-2 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="ghost-button ghost-button--icon"
+            aria-label="Desfazer"
           >
-            <span>{chip.label}</span>
-            <span className="text-base font-semibold text-[var(--cc-text)]">
-              {fmtBRL(chip.value)}
-            </span>
-          </div>
-        ))}
+            <RotateCcw size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="ghost-button ghost-button--icon"
+            aria-label="Refazer"
+          >
+            <RotateCw size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );
