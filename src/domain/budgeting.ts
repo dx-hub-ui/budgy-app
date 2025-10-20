@@ -228,6 +228,13 @@ export async function ocultarCategoria(id: string) {
   });
 }
 
+export async function mostrarCategoria(id: string) {
+  return fetchJson<BudgetCategory>(`${API_BASE}/category/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_hidden: false })
+  });
+}
+
 export async function excluirCategoria(id: string) {
   return fetchJson<BudgetCategory>(`${API_BASE}/category/${id}`, {
     method: "PATCH",
