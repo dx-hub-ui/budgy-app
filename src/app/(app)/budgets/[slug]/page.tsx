@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type CSSProperties,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent
 } from "react";
@@ -687,6 +688,82 @@ export default function BudgetMonthPage() {
   }));
 
   const didInitRef = useRef(false);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const resizingInspectorRef = useRef(false);
+
+  const [inspectorRatio, setInspectorRatio] = useState(0.34);
+  const [isResizingInspector, setIsResizingInspector] = useState(false);
+
+  const clampInspectorRatio = useCallback((value: number) => {
+    return Math.min(0.5, Math.max(0.25, value));
+  }, []);
+
+  const inspectorWidthPercent = useMemo(() => {
+    return `${(inspectorRatio * 100).toFixed(1)}%`;
+  }, [inspectorRatio]);
+
+  const inspectorGridStyle = useMemo(
+    () => ({ "--inspector-width": inspectorWidthPercent }) as CSSProperties,
+    [inspectorWidthPercent]
+  );
+
+  const inspectorWidthValue = useMemo(() => Math.round(inspectorRatio * 100), [inspectorRatio]);
+
+  const handleResizeStart = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!gridRef.current) return;
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      resizingInspectorRef.current = true;
+      setIsResizingInspector(true);
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      event.currentTarget.setPointerCapture(event.pointerId);
+      const rect = gridRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const offsetFromRight = rect.right - event.clientX;
+      const nextRatio = clampInspectorRatio(offsetFromRight / rect.width);
+      setInspectorRatio(nextRatio);
+    },
+    [clampInspectorRatio]
+  );
+
+  const handleResizeMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!gridRef.current || !resizingInspectorRef.current) return;
+      event.preventDefault();
+      const rect = gridRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const offsetFromRight = rect.right - event.clientX;
+      const nextRatio = clampInspectorRatio(offsetFromRight / rect.width);
+      setInspectorRatio(nextRatio);
+    },
+    [clampInspectorRatio]
+  );
+
+  const handleResizeEnd = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!resizingInspectorRef.current) return;
+    resizingInspectorRef.current = false;
+    setIsResizingInspector(false);
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  const handleResizeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+        return;
+      }
+      event.preventDefault();
+      const delta = event.key === "ArrowRight" ? 0.02 : -0.02;
+      setInspectorRatio((previous) => clampInspectorRatio(previous + delta));
+    },
+    [clampInspectorRatio]
+  );
 
   const isBudgetMonthRoute = useMemo(() => {
     if (!pathname) return false;
@@ -968,7 +1045,7 @@ export default function BudgetMonthPage() {
           </div>
         ) : null}
 
-        <section className="budget-grid">
+        <section className="budget-grid" ref={gridRef} style={inspectorGridStyle}>
           <div className="left-wide">
             <div className="tbl-head row tabular">
               <div className="cell">CATEGORIA</div>
@@ -1057,6 +1134,24 @@ export default function BudgetMonthPage() {
               )}
             </div>
           </div>
+
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuemin={25}
+            aria-valuemax={50}
+            aria-valuenow={inspectorWidthValue}
+            aria-valuetext={`${inspectorWidthValue}% da largura total`}
+            aria-label="Redimensionar painel do inspetor"
+            tabIndex={0}
+            className="budget-resizer"
+            data-active={isResizingInspector ? "true" : undefined}
+            onPointerDown={handleResizeStart}
+            onPointerMove={handleResizeMove}
+            onPointerUp={handleResizeEnd}
+            onPointerCancel={handleResizeEnd}
+            onKeyDown={handleResizeKeyDown}
+          />
 
           <InspectorPanel
             selected={selectedData}
