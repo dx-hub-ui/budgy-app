@@ -15,7 +15,7 @@
 ## Tokens centralizados no `globals.css`
 - Todos os valores personalizados de cor, espaçamento arbitrário e letter-spacing agora vivem em variáveis CSS com prefixo `--budget-*`, `--chart-*` e `--btn-*`, evitando hardcodes espalhados pelos componentes.
 - A paleta de gráficos (`--chart-palette-1` a `--chart-palette-12`) alimenta tanto os relatórios de pizza/listas quanto os componentes Chart.js; as leituras acontecem em tempo de execução e caem em valores de fallback quando o DOM ainda não está disponível.
-- O cartão “Pronto para atribuir” usa o conjunto `--budget-ready-*` para bordas, fundo, sombra e CTA, permitindo ajustes visuais globais sem alterar o JSX.
+- O cartão “Pronto para atribuir” usa o conjunto `--budget-ready-*` para bordas, fundo, sombra e CTA, permitindo ajustes visuais globais sem alterar o JSX. O bloco compacto agora também expõe `--budget-ready-max-width`, `--budget-ready-amount-size`, `--budget-label-size` e `--budget-cta-size` (todos definidos em `src/app/globals.css`, linhas 44-71) para controlar largura, tipografia e densidade sem sair do arquivo de tokens.
 - O input de cores de categorias consome `--category-default-color`, garantindo consistência entre o valor exibido ao usuário e o padrão persistido no banco.
 
 ## Proteção de acesso
@@ -55,6 +55,6 @@
 - A grade principal recebeu um ajuste recente para privilegiar a coluna de categorias: o template `grid-cols-[minmax(200px,2.4fr)_...]` amplia em 20 % a fração destinada aos nomes, reduzindo o risco de truncamento em listas extensas.
 - As alturas das linhas são controladas pelos tokens `--row-h` e `--row-h-group` definidos em `globals.css`, garantindo densidade compacta em telas médias e grandes.
 - Linhas de categoria aplicam o atributo `data-selected="true"` para destacar a seleção atual (`.row[data-selected]`).
-- Barras de progresso dentro das células usam a classe `.progress` com modificadores (`.progress--funded`, `.progress--under`, `.progress--over`, `.progress--neg`) para indicar o estado da meta.
+- Barras de progresso dentro das células usam a classe `.progress` com modificadores (`.progress--funded`, `.progress--under`, `.progress--over`, `.progress--neg`) para indicar o estado da meta. A faixa fica encapsulada no contêiner do nome da categoria, o que faz o preenchimento começar exatamente no texto e ganhar gradiente e altura definidos nos tokens de `globals.css` (linhas 360-374).
 - O painel lateral reutiliza os estilos `.card`, `.btn-link` e `.ghost-button` para manter consistência com o restante da interface. A `.ghost-button` ganhou tokens `--labelAction` e `--labelSecondary`, permitindo comandos leves (links, desfazer/refazer, alternar ocultas) sem blocos sólidos.
 - A topbar do orçamento posiciona o seletor de mês à esquerda e o cartão "Pronto para atribuir" centralizado com as cores definidas pelos tokens `--budget-ready-*`, mantendo contraste e alinhamento com o restante da paleta; os botões continuam no estilo fantasma (`.ghost-button`) para reduzir peso visual enquanto controles de desfazer/refazer e o atalho de grupos ficam agrupados à direita.
