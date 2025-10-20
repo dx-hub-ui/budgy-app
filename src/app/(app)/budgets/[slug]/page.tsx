@@ -315,18 +315,20 @@ function CategoryRow({
           {emoji}
         </span>
         <div className="flex-1 overflow-hidden">
-          <button
-            type="button"
-            className="inline-flex max-w-full truncate text-left text-sm font-medium text-[var(--cc-text)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRename();
-            }}
-          >
-            <span className="truncate">{category.name}</span>
-          </button>
+          <div className="relative pb-1">
+            <button
+              type="button"
+              className="inline-flex w-full max-w-full truncate text-left text-sm font-medium text-[var(--cc-text)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRename();
+              }}
+            >
+              <span className="truncate">{category.name}</span>
+            </button>
+            {renderProgress({ allocation, goal })}
+          </div>
         </div>
-        {renderProgress({ allocation, goal })}
       </div>
       <div className="flex justify-end pr-2">
         {isEditing ? (
