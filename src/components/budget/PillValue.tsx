@@ -1,3 +1,4 @@
+// src/components/budget/PillValue.tsx
 import { fmtBRL } from "@/domain/format";
 
 export type PillTone = "positive" | "negative" | "neutral" | "info";
@@ -7,6 +8,8 @@ type PillValueProps = {
   value: number;
   tone?: PillTone;
   emphasize?: boolean;
+  onAssign?: () => void;
+  ctaLabel?: string;
 };
 
 const toneStyles: Record<PillTone, string> = {
@@ -16,68 +19,72 @@ const toneStyles: Record<PillTone, string> = {
   info: "bg-sky-100 text-sky-700 border-sky-200"
 };
 
-export function PillValue({ label, value, tone, emphasize = false }: PillValueProps) {
+export function PillValue({
+  label,
+  value,
+  tone,
+  emphasize = false,
+  onAssign,
+  ctaLabel = "Assign"
+}: PillValueProps) {
   const resolvedTone: PillTone = tone ?? (value > 0 ? "positive" : value < 0 ? "negative" : "neutral");
 
+  // Emphasized version redesigned to match the green "Ready to Assign" card
   if (emphasize) {
-    const emphasizeStyles: Record<
-      PillTone,
-      {
-        container: string;
-        label: string;
-        amount: string;
-        button: string;
-      }
-    > = {
-      positive: {
-        container:
-          "flex min-w-[220px] max-w-[260px] items-center gap-4 rounded-lg border border-emerald-200 bg-emerald-100 px-4 py-3 shadow-[var(--cc-shadow-2)]",
-        label: "text-xs font-semibold uppercase tracking-wide text-emerald-700",
-        amount: "text-2xl font-bold text-emerald-900",
-        button:
-          "ml-auto rounded-md bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-[var(--cc-shadow-1)] transition-colors hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-      },
-      negative: {
-        container:
-          "flex min-w-[220px] max-w-[260px] items-center gap-4 rounded-lg border border-rose-200 bg-rose-100 px-4 py-3 shadow-[var(--cc-shadow-2)]",
-        label: "text-xs font-semibold uppercase tracking-wide text-rose-700",
-        amount: "text-2xl font-bold text-rose-900",
-        button:
-          "ml-auto rounded-md bg-rose-500 px-3 py-1 text-xs font-semibold text-white shadow-[var(--cc-shadow-1)] transition-colors hover:bg-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
-      },
-      neutral: {
-        container:
-          "flex min-w-[220px] max-w-[260px] items-center gap-4 rounded-lg border border-slate-300 bg-slate-100 px-4 py-3 shadow-[var(--cc-shadow-2)]",
-        label: "text-xs font-semibold uppercase tracking-wide text-slate-700",
-        amount: "text-2xl font-bold text-slate-900",
-        button:
-          "ml-auto rounded-md bg-slate-500 px-3 py-1 text-xs font-semibold text-white shadow-[var(--cc-shadow-1)] transition-colors hover:bg-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
-      },
-      info: {
-        container:
-          "flex min-w-[220px] max-w-[260px] items-center gap-4 rounded-lg border border-sky-200 bg-sky-100 px-4 py-3 shadow-[var(--cc-shadow-2)]",
-        label: "text-xs font-semibold uppercase tracking-wide text-sky-700",
-        amount: "text-2xl font-bold text-sky-900",
-        button:
-          "ml-auto rounded-md bg-sky-500 px-3 py-1 text-xs font-semibold text-white shadow-[var(--cc-shadow-1)] transition-colors hover:bg-sky-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
-      }
-    };
-
-    const { container, label: labelStyles, amount, button } = emphasizeStyles[resolvedTone];
-
     return (
-      <div className={container} role="status">
+      <div
+        className="inline-flex items-center gap-3 rounded-lg border px-3 py-2 shadow-sm"
+        role="status"
+        style={{
+          background: "var(--budget-ready-bg)",
+          borderColor: "var(--budget-ready-border)",
+          boxShadow: "var(--budget-ready-shadow)",
+          maxWidth: "var(--budget-ready-max-width)"
+        }}
+      >
         <div className="flex flex-col leading-tight">
-          <span className={labelStyles}>{label}</span>
-          <span className={amount}>{fmtBRL(value)}</span>
+          <span
+            className="uppercase tracking-wide"
+            style={{
+              fontSize: "var(--budget-label-size)",
+              letterSpacing: "var(--budget-label-tracking)",
+              color: "var(--budget-ready-text-muted)"
+            }}
+          >
+            {label}
+          </span>
+          <span
+            className="tabular font-semibold"
+            style={{ fontSize: "var(--budget-ready-amount-size)", color: "var(--budget-ready-text)" }}
+          >
+            {fmtBRL(value)}
+          </span>
         </div>
-        <button type="button" className={button}>
-          Atribuir
+
+        <button
+          type="button"
+          onClick={onAssign}
+          className="ml-auto inline-flex items-center gap-2 rounded-md px-3 py-1 font-semibold focus:outline-none"
+          style={{
+            background: "var(--budget-ready-cta-bg)",
+            color: "var(--cc-white)",
+            boxShadow: "var(--budget-ready-cta-shadow)",
+            fontSize: "var(--budget-cta-size)",
+            letterSpacing: "var(--budget-cta-tracking)"
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--budget-ready-cta-hover)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--budget-ready-cta-bg)")}
+        >
+          {ctaLabel}
+          <svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M5 7l5 6 5-6H5z" fill="currentColor" />
+          </svg>
         </button>
       </div>
     );
   }
 
+  // Small pill version unchanged
   const baseStyles = toneStyles[resolvedTone];
   return (
     <div
