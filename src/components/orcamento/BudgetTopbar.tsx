@@ -47,7 +47,7 @@ export function BudgetTopbar({
   const readyToAssignDisabled = autoAssignDisabled ?? readyToAssignCents <= 0;
 
   return (
-    <header className="rounded-3xl bg-[#f2f3f5] px-5 py-5 text-[var(--budget-topbar-text)] shadow-sm sm:px-6">
+    <header className="rounded-3xl bg-[var(--budget-topbar-bg)] px-5 py-5 text-[var(--budget-topbar-text)] shadow-sm sm:px-6">
       <div className="flex flex-col gap-6">
         <div className="grid items-center gap-4 sm:grid-cols-[auto_minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_auto]">
           <div className="flex items-center justify-between gap-3 rounded-full bg-[var(--budget-topbar-chip-bg)] px-4 py-2 shadow-sm sm:w-fit">

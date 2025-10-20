@@ -60,6 +60,7 @@
   --chart-palette-10: #0d9488;
   --chart-palette-11: #facc15;
   --chart-palette-12: #4f46e5;
+  --budget-topbar-bg: #f2f3f5;
   --budget-topbar-text: #1e1e1e;
   --budget-topbar-muted: #6e6e6e;
   --budget-topbar-chip-bg: #f5f5f7;
@@ -129,6 +130,7 @@
   --state-warning: #ffcd3c;
   --state-danger: #f87171;
   --state-neutral: #9ca3af;
+  --budget-topbar-bg: var(--cc-surface);
 }
 
 /* Utilitários de UI */
