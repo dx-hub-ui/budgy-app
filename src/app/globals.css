@@ -60,6 +60,7 @@
   --chart-palette-10: #0d9488;
   --chart-palette-11: #facc15;
   --chart-palette-12: #4f46e5;
+  --budget-topbar-bg: #f2f3f5;
   --budget-topbar-text: #1e1e1e;
   --budget-topbar-muted: #6e6e6e;
   --budget-topbar-chip-bg: #f5f5f7;
@@ -72,13 +73,13 @@
   --budget-ready-cta-bg: #1c3a0d;
   --budget-ready-cta-hover: #16300a;
   --budget-ready-cta-outline: #1c3a0d;
-  --budget-ready-max-width: 200px;
-  --budget-ready-amount-size: 1.25rem;
-  --budget-period-size: 0.6rem;
+  --budget-ready-max-width: 260px;
+  --budget-ready-amount-size: 1.125rem;
+  --budget-period-size: 0.56rem;
   --budget-period-tracking: 0.24em;
-  --budget-label-size: 0.5rem;
+  --budget-label-size: 0.46rem;
   --budget-label-tracking: 0.28em;
-  --budget-cta-size: 0.5625rem;
+  --budget-cta-size: 0.5rem;
   --budget-cta-tracking: 0.2em;
   --cc-on-accent: #0b1f11;
   --table-group-row-bg: #faf8f3;
@@ -129,6 +130,7 @@
   --state-warning: #ffcd3c;
   --state-danger: #f87171;
   --state-neutral: #9ca3af;
+  --budget-topbar-bg: var(--cc-surface);
 }
 
 /* Utilitários de UI */
