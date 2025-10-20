@@ -72,13 +72,13 @@
   --budget-ready-cta-bg: #1c3a0d;
   --budget-ready-cta-hover: #16300a;
   --budget-ready-cta-outline: #1c3a0d;
-  --budget-ready-max-width: 240px;
-  --budget-ready-amount-size: 1.25rem;
-  --budget-period-size: 0.6rem;
+  --budget-ready-max-width: 260px;
+  --budget-ready-amount-size: 1.125rem;
+  --budget-period-size: 0.56rem;
   --budget-period-tracking: 0.24em;
-  --budget-label-size: 0.5rem;
+  --budget-label-size: 0.46rem;
   --budget-label-tracking: 0.28em;
-  --budget-cta-size: 0.5625rem;
+  --budget-cta-size: 0.5rem;
   --budget-cta-tracking: 0.2em;
   --cc-on-accent: #0b1f11;
   --table-group-row-bg: #faf8f3;

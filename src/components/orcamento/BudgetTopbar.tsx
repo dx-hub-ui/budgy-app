@@ -75,18 +75,20 @@ export function BudgetTopbar({
             </button>
           </div>
           <div className="flex justify-center justify-self-center">
-            <div className="inline-flex w-full max-w-[var(--budget-ready-max-width)] flex-col items-center gap-2 rounded-xl border border-[var(--budget-ready-border)] bg-[var(--budget-ready-bg)] px-5 py-3 text-center text-[var(--budget-ready-text)] shadow-[var(--budget-ready-shadow)]">
-              <p className="text-[var(--budget-label-size)] font-semibold uppercase tracking-[var(--budget-label-tracking)] text-[var(--budget-ready-text-muted)]">
-                Pronto para atribuir
-              </p>
-              <p className="text-[var(--budget-ready-amount-size)] font-semibold leading-tight text-[var(--budget-ready-text)]">
-                {fmtBRL(readyToAssignCents)}
-              </p>
+            <div className="inline-flex w-full max-w-[var(--budget-ready-max-width)] items-center gap-4 rounded-xl border border-[var(--budget-ready-border)] bg-[var(--budget-ready-bg)] px-5 py-2 text-left text-[var(--budget-ready-text)] shadow-[var(--budget-ready-shadow)]">
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="text-[var(--budget-label-size)] font-semibold uppercase tracking-[var(--budget-label-tracking)] text-[var(--budget-ready-text-muted)]">
+                  Pronto para atribuir
+                </p>
+                <p className="truncate text-[var(--budget-ready-amount-size)] font-semibold leading-tight text-[var(--budget-ready-text)]">
+                  {fmtBRL(readyToAssignCents)}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={onOpenAutoAssign}
                 disabled={readyToAssignDisabled}
-                className="inline-flex items-center justify-center gap-1 rounded-full bg-[var(--budget-ready-cta-bg)] px-4 py-1.5 text-[var(--budget-cta-size)] font-semibold uppercase tracking-[var(--budget-cta-tracking)] text-[var(--cc-white)] shadow-[var(--budget-ready-cta-shadow)] transition hover:bg-[var(--budget-ready-cta-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--budget-ready-cta-outline)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="ml-auto inline-flex items-center justify-center gap-1 rounded-full bg-[var(--budget-ready-cta-bg)] px-3 py-1.5 text-[var(--budget-cta-size)] font-semibold uppercase tracking-[var(--budget-cta-tracking)] text-[var(--cc-white)] shadow-[var(--budget-ready-cta-shadow)] transition hover:bg-[var(--budget-ready-cta-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--budget-ready-cta-outline)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Atribuir
                 <ChevronDown size={14} aria-hidden />
