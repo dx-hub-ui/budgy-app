@@ -29,6 +29,12 @@
 - A barra de ações agora mantém o botão **Adicionar transação** alinhado à esquerda da listagem, enquanto **Reconciliar** fica
   sozinho no topo direito do cabeçalho, reproduzindo o layout exibido na captura de referência.
 - Métricas do cabeçalho permanecem visíveis como texto puro, evitando painéis destacados para facilitar leitura em telas grandes.
+- Em março/2025 reduzimos paddings, tamanhos de fonte e gaps verticais na tabela e no cabeçalho para aproximar a densidade visual
+  do ledger à referência compacta da captura do YNAB, mantendo a legibilidade em telas menores.
+- Abril/2025 consolidou classes utilitárias em constantes (`denseInputClass`, `headerCellClass`, etc.) para padronizar a densidade
+  e evitar regressões de espaçamento ao adicionar novas colunas ou campos ao rascunho inline.
+- Maio/2025 ajustou a tipagem de `AccountLedger` para usar `ReactElement`, eliminando erros de compilação no Next.js ao importar
+  `JSX` diretamente dos tipos do React.
 
 ## Visão consolidada (fev/2025)
 - O caminho `/contas` agora abre diretamente uma visão "Todas as contas" com o ledger unificado, exibindo colunas adicionais
