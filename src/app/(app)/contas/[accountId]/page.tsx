@@ -5,20 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/AuthGate";
 import AccountHeader, { type AccountMetric } from "@/components/accounts/AccountHeader";
-import ManagePayeesModal from "@/components/payees/ManagePayeesModal";
-import { ymd } from "@/domain/format";
+import AccountLedger, {
+  type CreateTransactionPayload,
+  type LedgerTransaction,
+} from "@/components/accounts/AccountLedger";
+import { useAccountsLedgerData } from "@/components/accounts/useAccountsLedgerData";
+import { usePayeeActions } from "@/components/accounts/usePayeeActions";
 import { ExpenseSchema, UpdateExpenseSchema } from "@/domain/models";
-import {
-  createExpense,
-  createPayee,
-  deletePayee,
-  listAccounts,
-  listBudgetCategories,
-  listExpenses,
-  listPayees,
-  updatePayee,
-  updateExpense
-} from "@/domain/repo";
+import { createExpense, updateExpense } from "@/domain/repo";
 
 const dateHelper = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -31,790 +25,33 @@ const currencyHelper = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-type AccountRow = Awaited<ReturnType<typeof listAccounts>>[number];
-type ExpenseRow = Awaited<ReturnType<typeof listExpenses>>[number];
-type CategoryRow = Awaited<ReturnType<typeof listBudgetCategories>>[number];
-type PayeeRow = Awaited<ReturnType<typeof listPayees>>[number];
-
-type LedgerTransaction = {
-  id: string;
-  occurred_on: string;
-  payeeId: string | null;
-  payeeName: string | null;
-  categoryId: string | null;
-  categoryName: string | null;
-  memo: string | null;
-  outflowCents: number;
-  inflowCents: number;
-};
-
-type DraftTransaction = {
-  id: string;
-  occurred_on: string;
-  payeeInput: string;
-  payeeId: string | null;
-  categoryId: string | null;
-  memo: string;
-  outflow: string;
-  inflow: string;
-  saving: boolean;
-  error: string | null;
-};
-
-type CategoryGroup = {
-  name: string;
-  items: CategoryRow[];
-};
-
-type CreateTransactionPayload = {
-  occurred_on: string;
-  payeeId: string;
-  payeeName: string;
-  categoryId: string | null;
-  memo: string | null;
-  outflowCents: number;
-  inflowCents: number;
-};
-
 function formatCurrency(valueCents: number) {
   return currencyHelper.format(valueCents / 100);
-}
-
-function newDraftTransaction(): DraftTransaction {
-  return {
-    id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    occurred_on: ymd(new Date()),
-    payeeInput: "",
-    payeeId: null,
-    categoryId: null,
-    memo: "",
-    outflow: "",
-    inflow: "",
-    saving: false,
-    error: null,
-  };
-}
-
-function parseCurrencyInput(value: string) {
-  if (!value) return 0;
-  const normalized = value
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[^0-9,.-]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
-  const parsed = Number.parseFloat(normalized);
-  if (!Number.isFinite(parsed)) return 0;
-  return Math.round(parsed * 100);
-}
-
-function formatCurrencyInput(value: string) {
-  if (!value) return "";
-  const cents = parseCurrencyInput(value);
-  if (cents === 0) return "";
-  return currencyHelper.format(cents / 100);
-}
-
-type AccountLedgerProps = {
-  categories: CategoryRow[];
-  transactions: LedgerTransaction[];
-  loading: boolean;
-  addSignal?: number;
-  onCreate: (payload: CreateTransactionPayload) => Promise<void>;
-  onAssignCategory: (id: string, categoryId: string | null) => Promise<void>;
-  onAddTransaction?: () => void;
-  onAddTransfer?: () => void;
-  payees: PayeeRow[];
-  onCreatePayee: (name: string) => Promise<PayeeRow>;
-  onRenamePayee: (id: string, name: string) => Promise<PayeeRow | void>;
-  onDeletePayee: (id: string) => Promise<void>;
-};
-
-function AccountLedger({
-  categories,
-  transactions,
-  loading,
-  addSignal,
-  onCreate,
-  onAssignCategory,
-  onAddTransaction,
-  onAddTransfer,
-  payees,
-  onCreatePayee,
-  onRenamePayee,
-  onDeletePayee
-}: AccountLedgerProps) {
-  const [drafts, setDrafts] = useState<DraftTransaction[]>([]);
-  const [search, setSearch] = useState("");
-  const [activePrompt, setActivePrompt] = useState<string | null>(null);
-  const [assigningId, setAssigningId] = useState<string | null>(null);
-  const [assignError, setAssignError] = useState<string | null>(null);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [activePayeeDraftId, setActivePayeeDraftId] = useState<string | null>(null);
-  const [managePayeesOpen, setManagePayeesOpen] = useState(false);
-
-  const payeesById = useMemo(() => {
-    const map = new Map<string, PayeeRow>();
-    payees.forEach((payee) => {
-      if (payee?.id) {
-        map.set(payee.id, payee);
-      }
-    });
-    return map;
-  }, [payees]);
-
-  function findPayeeByName(name: string) {
-    const normalized = name.trim();
-    if (!normalized) return null;
-    const match = payees.find(
-      (payee) => payee.name.localeCompare(normalized, "pt-BR", { sensitivity: "accent" }) === 0,
-    );
-    return match ?? null;
-  }
-
-  useEffect(() => {
-    if (!addSignal) return;
-    setDrafts((prev) => [...prev, newDraftTransaction()]);
-  }, [addSignal]);
-
-  const categoryGroups = useMemo<CategoryGroup[]>(() => {
-    const map = new Map<string, CategoryRow[]>();
-    categories.forEach((category) => {
-      const key = category.group_name ?? "Outras";
-      if (!map.has(key)) {
-        map.set(key, []);
-      }
-      map.get(key)!.push(category);
-    });
-    return Array.from(map.entries()).map(([name, items]) => ({ name, items }));
-  }, [categories]);
-
-  const filteredTransactions = useMemo(() => {
-    if (!search) return transactions;
-    const term = search.toLowerCase();
-    return transactions.filter((transaction) => {
-      const payee = (transaction.payeeName ?? "").toLowerCase();
-      const category = (transaction.categoryName ?? "").toLowerCase();
-      const memo = (transaction.memo ?? "").toLowerCase();
-      return payee.includes(term) || category.includes(term) || memo.includes(term);
-    });
-  }, [transactions, search]);
-
-  const activeTransaction = useMemo(
-    () => transactions.find((transaction) => transaction.id === activePrompt) ?? null,
-    [transactions, activePrompt],
-  );
-
-  useEffect(() => {
-    if (!activePrompt) {
-      setShowCategoryPicker(false);
-      setAssignError(null);
-    }
-  }, [activePrompt]);
-
-  function openPrompt(transaction: LedgerTransaction, options?: { showPicker?: boolean }) {
-    setActivePrompt(transaction.id);
-    setShowCategoryPicker(Boolean(options?.showPicker));
-    setAssignError(null);
-  }
-
-  function closePrompt() {
-    setActivePrompt(null);
-    setShowCategoryPicker(false);
-    setAssignError(null);
-  }
-
-  const isAssigningActive = activeTransaction ? assigningId === activeTransaction.id : false;
-
-  async function handlePromptSelection(categoryId: string | null) {
-    if (!activeTransaction) return;
-    await handleAssignCategory(activeTransaction, categoryId);
-  }
-
-  const activeDescription =
-    activeTransaction && typeof activeTransaction.payeeName === "string" &&
-    activeTransaction.payeeName.trim().length > 0
-      ? activeTransaction.payeeName
-      : "Beneficiário não informado";
-
-  const activeAmountLabel = activeTransaction
-    ? activeTransaction.inflowCents > 0
-      ? `Entrada de ${formatCurrency(activeTransaction.inflowCents)}`
-      : activeTransaction.outflowCents > 0
-        ? `Saída de ${formatCurrency(activeTransaction.outflowCents)}`
-        : null
-    : null;
-
-  function updateDraft(id: string, patch: Partial<DraftTransaction>) {
-    setDrafts((prev) => prev.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
-  }
-
-  function removeDraft(id: string) {
-    setDrafts((prev) => prev.filter((draft) => draft.id !== id));
-  }
-
-  async function handleQuickPayeeCreate(name: string, draftId: string) {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    try {
-      const created = await onCreatePayee(trimmed);
-      updateDraft(draftId, { payeeId: created.id, payeeInput: created.name, error: null });
-      setActivePayeeDraftId((current) => (current === draftId ? null : current));
-    } catch (error: any) {
-      updateDraft(draftId, {
-        error: error?.message ?? "Não foi possível criar o beneficiário informado.",
-      });
-    }
-  }
-
-  function handlePayeeSelect(draftId: string, payee: PayeeRow) {
-    updateDraft(draftId, { payeeId: payee.id, payeeInput: payee.name, error: null });
-    setActivePayeeDraftId((current) => (current === draftId ? null : current));
-  }
-
-  async function saveDraft(draft: DraftTransaction) {
-    const outflowCents = parseCurrencyInput(draft.outflow);
-    const inflowCents = parseCurrencyInput(draft.inflow);
-
-    if (outflowCents === 0 && inflowCents === 0) {
-      updateDraft(draft.id, { error: "Preencha saída ou entrada" });
-      return;
-    }
-
-    if (outflowCents > 0 && inflowCents > 0) {
-      updateDraft(draft.id, { error: "Use apenas saída ou entrada" });
-      return;
-    }
-
-    const payeeInput = draft.payeeInput.trim();
-    if (payeeInput.length === 0) {
-      updateDraft(draft.id, { error: "Informe um beneficiário" });
-      return;
-    }
-
-    updateDraft(draft.id, { saving: true, error: null });
-
-    try {
-      const memo = draft.memo.trim();
-      let selectedPayee = draft.payeeId ? payeesById.get(draft.payeeId) ?? null : null;
-      if (!selectedPayee) {
-        selectedPayee = findPayeeByName(payeeInput);
-      }
-      if (!selectedPayee) {
-        selectedPayee = await onCreatePayee(payeeInput);
-      }
-      if (!selectedPayee) {
-        throw new Error("Não foi possível salvar o beneficiário informado.");
-      }
-      await onCreate({
-        occurred_on: draft.occurred_on,
-        payeeId: selectedPayee.id,
-        payeeName: selectedPayee.name,
-        categoryId: draft.categoryId,
-        memo: memo.length > 0 ? memo : null,
-        outflowCents,
-        inflowCents,
-      });
-      setActivePayeeDraftId((current) => (current === draft.id ? null : current));
-      removeDraft(draft.id);
-    } catch (error: any) {
-      updateDraft(draft.id, {
-        saving: false,
-        error: error?.message ?? "Não foi possível salvar",
-      });
-    }
-  }
-
-  async function handleAssignCategory(transaction: LedgerTransaction, categoryId: string | null) {
-    setAssignError(null);
-    setAssigningId(transaction.id);
-    try {
-      await onAssignCategory(transaction.id, categoryId);
-      closePrompt();
-    } catch (error: any) {
-      setAssignError(error?.message ?? "Falha ao atualizar a categoria");
-    } finally {
-      setAssigningId(null);
-    }
-  }
-
-  return (
-    <section className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="text-sm font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-            Lançamentos
-          </div>
-          {onAddTransaction && (
-            <button
-              type="button"
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--brand-soft-fill)]/60 px-4 text-sm font-semibold text-[var(--cc-text)] shadow-sm transition hover:bg-[var(--brand-soft-fill)]"
-              onClick={onAddTransaction}
-            >
-              Adicionar transação
-            </button>
-          )}
-          {onAddTransfer && (
-            <button
-              type="button"
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--cc-border)] bg-white px-4 text-sm font-medium text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-bg)]"
-              onClick={onAddTransfer}
-            >
-              Adicionar transferência
-            </button>
-          )}
-        </div>
-        <div className="flex w-full items-center gap-3 sm:w-auto">
-          <input
-            type="search"
-            className="h-10 flex-1 rounded-lg border border-[var(--cc-border)] px-3 text-sm shadow-none focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30"
-            placeholder="Buscar por beneficiário, categoria ou memo"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <span className="text-xs text-[var(--cc-text-muted)]">{filteredTransactions.length} itens</span>
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-[var(--cc-border)] bg-white">
-        <table className="min-w-full divide-y divide-[var(--cc-border)]">
-          <thead className="bg-[var(--brand-soft-fill)]/40 text-[var(--cc-text-muted)]">
-            <tr>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
-                Data
-              </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
-                Beneficiário
-              </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
-                Categoria
-              </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
-                Memo
-              </th>
-              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
-                Saída
-              </th>
-              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
-                Entrada
-              </th>
-              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--cc-border)]">
-            {drafts.map((draft) => {
-              const normalizedPayeeInput = draft.payeeInput.trim().toLowerCase();
-              const existingPayee = findPayeeByName(draft.payeeInput);
-              const matchingPayees = (
-                normalizedPayeeInput
-                  ? payees.filter((payee) =>
-                      payee.name.toLowerCase().includes(normalizedPayeeInput),
-                    )
-                  : payees
-              ).slice(0, 6);
-              const showCreateOption = normalizedPayeeInput.length > 0 && !existingPayee;
-
-              return (
-                <tr key={draft.id} className="bg-[var(--brand-soft-fill)]/20">
-                  <td className="px-4 py-2 text-sm">
-                    <input
-                      type="date"
-                      className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
-                      value={draft.occurred_on}
-                      onChange={(event) => updateDraft(draft.id, { occurred_on: event.target.value })}
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
-                        placeholder="Quem recebeu?"
-                        value={draft.payeeInput}
-                        onFocus={() => {
-                          setActivePayeeDraftId(draft.id);
-                        }}
-                        onChange={(event) => {
-                          setActivePayeeDraftId(draft.id);
-                          updateDraft(draft.id, { payeeInput: event.target.value, payeeId: null });
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => {
-                            setActivePayeeDraftId((current) =>
-                              current === draft.id ? null : current,
-                            );
-                          }, 120);
-                        }}
-                      />
-                      {activePayeeDraftId === draft.id ? (
-                        <div className="absolute left-0 right-0 top-full z-30 mt-2 w-full min-w-[16rem] rounded-xl border border-[var(--cc-border)] bg-white shadow-2xl">
-                          <div className="p-3">
-                            {showCreateOption ? (
-                              <button
-                                type="button"
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                  void handleQuickPayeeCreate(draft.payeeInput, draft.id);
-                                }}
-                                className="block w-full rounded-lg bg-[var(--brand-soft-fill)]/30 px-3 py-2 text-left text-sm font-medium text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-fill)]/60"
-                              >
-                                Criar &ldquo;{draft.payeeInput.trim()}&rdquo; beneficiário
-                              </button>
-                            ) : null}
-                            <div className="mt-3 rounded-lg border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/15 p-3">
-                              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
-                                Beneficiários salvos
-                              </div>
-                              <div className="mt-2 max-h-48 overflow-y-auto">
-                                {matchingPayees.length === 0 ? (
-                                  <p className="text-xs text-[var(--cc-text-muted)]">
-                                    Nenhum beneficiário encontrado.
-                                  </p>
-                                ) : (
-                                  <ul className="space-y-1">
-                                    {matchingPayees.map((payee) => (
-                                      <li key={payee.id}>
-                                        <button
-                                          type="button"
-                                          onMouseDown={(event) => {
-                                            event.preventDefault();
-                                            handlePayeeSelect(draft.id, payee);
-                                          }}
-                                          className="w-full rounded-md px-2 py-1 text-left text-sm text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-fill)]/60"
-                                        >
-                                          {payee.name}
-                                        </button>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onMouseDown={(event) => {
-                                event.preventDefault();
-                                setManagePayeesOpen(true);
-                                setActivePayeeDraftId(null);
-                              }}
-                              className="mt-3 w-full rounded-lg border border-[var(--cc-border)] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)] transition hover:bg-[var(--brand-soft-fill)]/40"
-                            >
-                              Gerenciar beneficiários
-                            </button>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </td>
-                <td className="px-4 py-2">
-                  <select
-                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
-                    value={draft.categoryId ?? ""}
-                    onChange={(event) =>
-                      updateDraft(draft.id, { categoryId: event.target.value || null })
-                    }
-                  >
-                    <option value="">Sem categoria</option>
-                    {categoryGroups.map((group) => (
-                      <optgroup key={group.name} label={group.name}>
-                        {group.items.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="text"
-                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-sm"
-                    placeholder="Observação"
-                    value={draft.memo}
-                    onChange={(event) => updateDraft(draft.id, { memo: event.target.value })}
-                  />
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-right text-sm"
-                    placeholder="0,00"
-                    value={draft.outflow}
-                    onChange={(event) => updateDraft(draft.id, { outflow: event.target.value })}
-                    onBlur={(event) => updateDraft(draft.id, { outflow: formatCurrencyInput(event.target.value) })}
-                  />
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    className="h-9 w-full rounded-lg border border-[var(--cc-border)] px-2 text-right text-sm"
-                    placeholder="0,00"
-                    value={draft.inflow}
-                    onChange={(event) => updateDraft(draft.id, { inflow: event.target.value })}
-                    onBlur={(event) => updateDraft(draft.id, { inflow: formatCurrencyInput(event.target.value) })}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <button
-                      type="button"
-                      className="rounded-full border border-[var(--cc-border)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--cc-text)]"
-                      onClick={() => saveDraft(draft)}
-                      disabled={draft.saving}
-                    >
-                      {draft.saving ? "Salvando…" : "Salvar"}
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-full border border-[var(--cc-border)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]"
-                      onClick={() => removeDraft(draft.id)}
-                      disabled={draft.saving}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                  {draft.error && (
-                    <p className="pt-2 text-xs text-red-600" role="alert">
-                      {draft.error}
-                    </p>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-
-          {filteredTransactions.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-[var(--cc-text-muted)]">
-                  {loading ? "Carregando…" : "Nenhum lançamento encontrado."}
-                </td>
-              </tr>
-            ) : (
-              filteredTransactions.map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-[var(--cc-bg-elev)]">
-                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
-                  {dateHelper.format(new Date(`${transaction.occurred_on}T00:00:00`))}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
-                    {transaction.payeeName || "—"}
-                  </td>
-                  <td
-                    className="relative px-4 py-3 text-sm text-[var(--cc-text)]"
-                    onDoubleClick={() => openPrompt(transaction, { showPicker: true })}
-                  >
-                    {transaction.categoryName ? (
-                      transaction.categoryName
-                    ) : (
-                      <div className="relative">
-                        <span className="text-[var(--cc-text-muted)]">Sem categoria</span>
-                        <button
-                          type="button"
-                          className="absolute -top-2 left-0 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-700 shadow"
-                          onClick={() => openPrompt(transaction)}
-                          aria-pressed={activePrompt === transaction.id}
-                        >
-                          Requer uma categoria
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
-                    {transaction.memo || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm font-medium text-rose-600">
-                    {transaction.outflowCents > 0 ? formatCurrency(transaction.outflowCents) : ""}
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm font-medium text-emerald-600">
-                    {transaction.inflowCents > 0 ? formatCurrency(transaction.inflowCents) : ""}
-                  </td>
-                  <td className="px-4 py-3 text-right text-xs text-[var(--cc-text-muted)]">
-                    —
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      {activeTransaction && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
-          <div className="pointer-events-auto w-full max-w-3xl rounded-2xl border border-blue-200 bg-blue-600 text-white shadow-2xl">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
-                  1 transação selecionada
-                </p>
-                <p className="text-sm font-semibold">{activeDescription}</p>
-                <p className="text-xs text-blue-100">
-                  {dateHelper.format(new Date(`${activeTransaction.occurred_on}T00:00:00`))}
-                  {activeAmountLabel ? ` • ${activeAmountLabel}` : ""}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                    showCategoryPicker
-                      ? "border-white bg-white text-blue-700 shadow-sm"
-                      : "border-white/40 text-white hover:bg-white/10"
-                  }`}
-                  onClick={() => setShowCategoryPicker((value) => !value)}
-                  aria-expanded={showCategoryPicker}
-                  disabled={isAssigningActive}
-                >
-                  Categorizar
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                    activeTransaction.categoryId === null
-                      ? "border-white bg-white text-blue-700 shadow-sm"
-                      : "border-white/40 text-white hover:bg-white/10"
-                  }`}
-                  onClick={() => handlePromptSelection(null)}
-                  disabled={isAssigningActive}
-                >
-                  Sem categoria
-                </button>
-                <button
-                  type="button"
-                  className="rounded-full border border-white/40 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/10"
-                  onClick={closePrompt}
-                >
-                  Fechar
-                </button>
-              </div>
-            </div>
-            {showCategoryPicker && (
-              <div className="max-h-64 space-y-3 overflow-y-auto border-t border-blue-500/40 px-6 py-4">
-                <button
-                  type="button"
-                  className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                    activeTransaction.categoryId === null
-                      ? "bg-white text-blue-700 shadow-sm"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
-                  onClick={() => handlePromptSelection(null)}
-                  disabled={isAssigningActive}
-                >
-                  Sem categoria
-                </button>
-                {categoryGroups.map((group) => (
-                  <div key={group.name} className="space-y-2">
-                    <p className="text-xs uppercase tracking-wide text-blue-100">{group.name}</p>
-                    <div className="space-y-1">
-                      {group.items.map((category) => {
-                        const isSelected = activeTransaction.categoryId === category.id;
-                        return (
-                          <button
-                            key={category.id}
-                            type="button"
-                            className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                              isSelected
-                                ? "bg-white text-blue-700 shadow-sm"
-                                : "bg-white/10 text-white hover:bg-white/20"
-                            }`}
-                            onClick={() => handlePromptSelection(category.id)}
-                            disabled={isAssigningActive}
-                          >
-                            {category.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {assignError && (
-              <div className="border-t border-blue-500/40 bg-white/20 px-6 py-3 text-xs" role="alert">
-                {assignError}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      <ManagePayeesModal
-        open={managePayeesOpen}
-        payees={payees}
-        onClose={() => {
-          setManagePayeesOpen(false);
-          setActivePayeeDraftId(null);
-        }}
-        onRename={async (id, name) => {
-          await onRenamePayee(id, name);
-        }}
-        onDelete={onDeletePayee}
-        onCreate={onCreatePayee}
-      />
-    </section>
-  );
 }
 
 export default function AccountPage() {
   const params = useParams<{ accountId?: string }>();
   const router = useRouter();
-  const { displayName, orgId, user } = useAuth();
+  const { orgId } = useAuth();
 
-  const [accounts, setAccounts] = useState<AccountRow[]>([]);
-  const [categories, setCategories] = useState<CategoryRow[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
-  const [payees, setPayees] = useState<PayeeRow[]>([]);
-  const [loadingInitial, setLoadingInitial] = useState(true);
-  const [loadingTransactions, setLoadingTransactions] = useState(true);
-  const [pageError, setPageError] = useState<string | null>(null);
+  const {
+    accounts,
+    categories,
+    expenses,
+    payees,
+    loadingInitial,
+    loadingTransactions,
+    pageError,
+    setPayees,
+    refreshExpenses,
+  } = useAccountsLedgerData();
+
+  const { create: createPayeeAction, rename: renamePayeeAction, remove: deletePayeeAction } =
+    usePayeeActions(payees, setPayees);
+
   const [addDraftSignal, setAddDraftSignal] = useState<number>(0);
   const [showTransferInfo, setShowTransferInfo] = useState(false);
   const [showReconcileInfo, setShowReconcileInfo] = useState(false);
-
-  function sortPayeesList(items: PayeeRow[]) {
-    return [...items].sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
-  }
-
-  useEffect(() => {
-    let active = true;
-    setLoadingInitial(true);
-    setLoadingTransactions(true);
-    setPageError(null);
-
-    const payeesPromise = listPayees()
-      .then((data) => ({ data, error: null }))
-      .catch((error: any) => ({ data: null, error }));
-
-    Promise.all([listAccounts(), listBudgetCategories(), listExpenses(), payeesPromise])
-      .then(([accountsData, categoriesData, expensesData, payeesResult]) => {
-        if (!active) return;
-        setAccounts(Array.isArray(accountsData) ? accountsData : []);
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        setExpenses(Array.isArray(expensesData) ? expensesData : []);
-        if (payeesResult?.error) {
-          const message = payeesResult.error?.message ?? "Não foi possível carregar os beneficiários.";
-          setPageError((prev) => prev ?? message);
-        } else if (Array.isArray(payeesResult?.data)) {
-          setPayees(sortPayeesList(payeesResult.data));
-        } else {
-          setPayees([]);
-        }
-      })
-      .catch((error: any) => {
-        if (!active) return;
-        setPageError(error?.message ?? "Não foi possível carregar os dados de contas.");
-      })
-      .finally(() => {
-        if (!active) return;
-        setLoadingInitial(false);
-        setLoadingTransactions(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const accountIdParam = useMemo(() => {
     const raw = params?.accountId;
@@ -869,55 +106,6 @@ export default function AccountPage() {
     return map;
   }, [expenses]);
 
-  function normalizePayeeName(value: string) {
-    return value.trim();
-  }
-
-  function findExistingPayee(name: string, ignoreId?: string) {
-    const normalized = normalizePayeeName(name);
-    if (!normalized) return null;
-    return (
-      payees.find(
-        (payee) =>
-          (ignoreId ? payee.id !== ignoreId : true) &&
-          payee.name.localeCompare(normalized, "pt-BR", { sensitivity: "accent" }) === 0,
-      ) ?? null
-    );
-  }
-
-  async function handleCreatePayee(name: string) {
-    const normalized = normalizePayeeName(name);
-    if (!normalized) {
-      throw new Error("Informe um nome válido para o beneficiário.");
-    }
-    const existing = findExistingPayee(normalized);
-    if (existing) {
-      return existing;
-    }
-    const created = await createPayee(normalized);
-    setPayees((prev) => sortPayeesList([...prev, created]));
-    return created;
-  }
-
-  async function handleRenamePayee(id: string, name: string) {
-    const normalized = normalizePayeeName(name);
-    if (!normalized) {
-      throw new Error("Informe um nome válido para o beneficiário.");
-    }
-    const duplicate = findExistingPayee(normalized, id);
-    if (duplicate) {
-      throw new Error("Já existe um beneficiário com este nome.");
-    }
-    const updated = await updatePayee(id, normalized);
-    setPayees((prev) => sortPayeesList(prev.map((payee) => (payee.id === id ? updated : payee))));
-    return updated;
-  }
-
-  async function handleDeletePayee(id: string) {
-    await deletePayee(id);
-    setPayees((prev) => prev.filter((payee) => payee.id !== id));
-  }
-
   const transactions: LedgerTransaction[] = useMemo(() => {
     if (!selectedAccount) return [];
     return expenses
@@ -930,7 +118,9 @@ export default function AccountPage() {
         return {
           id: expense.id,
           occurred_on: expense.occurred_on,
-          payeeId: payeeId,
+          accountId: expense.account_id ?? null,
+          accountName: selectedAccount.name,
+          payeeId,
           payeeName,
           categoryId: expense.category_id ?? null,
           categoryName: category?.name ?? null,
@@ -954,25 +144,15 @@ export default function AccountPage() {
     ? dateHelper.format(new Date(`${transactions[0].occurred_on}T00:00:00`))
     : null;
 
-  async function refreshExpenses() {
-    setLoadingTransactions(true);
-    try {
-      const nextExpenses = await listExpenses();
-      setExpenses(Array.isArray(nextExpenses) ? nextExpenses : []);
-    } catch (error: any) {
-      setPageError(error?.message ?? "Não foi possível atualizar as movimentações.");
-    } finally {
-      setLoadingTransactions(false);
-    }
-  }
-
   async function handleCreateTransaction(payload: CreateTransactionPayload) {
     if (!selectedAccount) {
       throw new Error("Selecione uma conta antes de registrar uma transação.");
     }
 
     if (!orgId) {
-      throw new Error("Não foi possível identificar a organização atual. Atualize a página e tente novamente.");
+      throw new Error(
+        "Não foi possível identificar a organização atual. Atualize a página e tente novamente.",
+      );
     }
 
     const direction = payload.outflowCents > 0 ? "outflow" : "inflow";
@@ -1044,9 +224,9 @@ export default function AccountPage() {
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden bg-white">
-      <div className="flex flex-1 min-h-0 flex-col gap-6 overflow-y-auto px-6 py-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
         {pageError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {pageError}
           </div>
         )}
@@ -1055,30 +235,31 @@ export default function AccountPage() {
           <>
             <AccountHeader
               name={selectedAccount.name}
-              subtitle={`Saldo projetado: ${formatCurrency(totalsByAccount.get(selectedAccount.id) ?? 0)}`}
+              subtitle={`Saldo projetado: ${formatCurrency(
+                totalsByAccount.get(selectedAccount.id) ?? 0,
+              )}`}
               metrics={metrics}
               onReconcile={() => setShowReconcileInfo((value) => !value)}
             />
 
             {(showTransferInfo || showReconcileInfo) && (
-              <div className="space-y-4 rounded-lg border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/20 p-5 text-sm text-[var(--cc-text)]">
+              <div className="space-y-3 rounded-md border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/25 px-4 py-4 text-sm text-[var(--cc-text)]">
                 {showTransferInfo && (
                   <div>
-                    <h2 className="text-base font-semibold">Como registrar uma transferência</h2>
-                    <p className="mt-2 text-sm text-[var(--cc-text-muted)]">
-                      Registre duas transações reais: uma saída na conta de origem e uma entrada na conta de destino. Use o memo
-                      para identificar a transferência e mantenha os valores idênticos para que o saldo total permaneça
-                      equilibrado.
+                    <h2 className="text-sm font-semibold">Como registrar uma transferência</h2>
+                    <p className="mt-1 text-sm text-[var(--cc-text-muted)]">
+                      Registre duas transações: uma saída na conta de origem e uma entrada na conta de destino.
+                      Use o memo para identificar a transferência e mantenha valores idênticos para preservar o
+                      saldo consolidado.
                     </p>
                   </div>
                 )}
                 {showReconcileInfo && (
                   <div>
-                    <h2 className="text-base font-semibold">Conciliação rápida</h2>
-                    <p className="mt-2 text-sm text-[var(--cc-text-muted)]">
-                      Compare o saldo atual ({formatCurrency(workingBalance)}) com o extrato do banco. Marque entradas e saídas
-                      pendentes como reconciliadas ajustando o memo das transações. Quando os valores coincidirem, sua conta
-                      estará conciliada.
+                    <h2 className="text-sm font-semibold">Conciliação rápida</h2>
+                    <p className="mt-1 text-sm text-[var(--cc-text-muted)]">
+                      Compare o saldo atual ({formatCurrency(workingBalance)}) com o extrato do banco. Ajuste
+                      memos ou categorias conforme necessário até que os valores coincidam.
                     </p>
                   </div>
                 )}
@@ -1086,24 +267,28 @@ export default function AccountPage() {
             )}
 
             <AccountLedger
+              accountOptions={selectedAccount ? [{ id: selectedAccount.id, name: selectedAccount.name }] : []}
+              defaultAccountId={selectedAccount.id}
               categories={categories}
               transactions={transactions}
               loading={loadingTransactions}
               addSignal={addDraftSignal}
+              showAccountColumn={false}
               onCreate={handleCreateTransaction}
               onAssignCategory={handleAssignCategory}
               onAddTransaction={() => setAddDraftSignal(Date.now())}
               onAddTransfer={() => setShowTransferInfo((value) => !value)}
               payees={payees}
-              onCreatePayee={handleCreatePayee}
-              onRenamePayee={handleRenamePayee}
-              onDeletePayee={handleDeletePayee}
+              onCreatePayee={createPayeeAction}
+              onRenamePayee={renamePayeeAction}
+              onDeletePayee={deletePayeeAction}
             />
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center">
-            <div className="rounded-lg border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/40 px-6 py-10 text-center text-sm text-[var(--cc-text-muted)]">
-              Nenhuma conta selecionada. Utilize o menu de contas na barra lateral para escolher uma conta ou criar uma nova.
+            <div className="rounded-md border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/40 px-6 py-10 text-center text-sm text-[var(--cc-text-muted)]">
+              Nenhuma conta selecionada. Utilize o menu de contas na barra lateral para escolher uma conta ou
+              criar uma nova.
             </div>
           </div>
         )}
