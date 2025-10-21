@@ -16,6 +16,12 @@ Esta página descreve a implementação da rota `/como-usar`, que transforma o d
 
 O item "Como usar" foi adicionado ao menu lateral autenticado (`Sidebar.tsx`). Ele pode ser acessado por qualquer usuário logado e está localizado após o item de contas.
 
+### Atualização de navegação na Sidebar
+
+Para garantir que a seleção de menu reflita imediatamente a página ativa, os cliques nos itens da Sidebar agora acionam `router.push` diretamente no `onClick` dos links. Isso evita estados inconsistentes do `pathname` e assegura que indicadores de item ativo sejam atualizados assim que a navegação ocorre.
+
+Além disso, todos os destinos expostos na Sidebar (dashboard de orçamentos, relatórios, contas específicas e o atalho da home) são pré-carregados via `router.prefetch`. Isso garante que cada rota responda com fluidez mesmo na primeira interação e ajuda a validar que cada item do menu está devidamente roteando para sua página correspondente.
+
 ## Próximos passos sugeridos
 
 - Integrar métricas em tempo real (por exemplo, "Idade do Dinheiro") diretamente nesta página quando os dados estiverem disponíveis na API.

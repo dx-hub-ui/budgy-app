@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import {
   PiggyBank,
   Receipt,
@@ -139,6 +139,28 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
     [currentMonth]
   );
 
+  useEffect(() => {
+    items.forEach((item) => {
+      void router.prefetch(item.href);
+    });
+  }, [items, router]);
+
+  useEffect(() => {
+    void router.prefetch("/");
+  }, [router]);
+
+  useEffect(() => {
+    if (!accountsHref) return;
+    void router.prefetch(accountsHref);
+  }, [accountsHref, router]);
+
+  useEffect(() => {
+    if (accounts.length === 0) return;
+    accounts.forEach((account) => {
+      void router.prefetch(`/contas/${account.id}`);
+    });
+  }, [accounts, router]);
+
   const currencyFormatter = useMemo(
     () =>
       new Intl.NumberFormat("pt-BR", {
@@ -146,6 +168,21 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         currency: "BRL",
       }),
     [],
+  );
+
+  const handleSidebarClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0) return;
+      if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
+
+      event.preventDefault();
+
+      if (href && href !== pathname) {
+        router.push(href);
+      }
+    },
+    [pathname, router],
   );
 
   const fetchAccounts = useCallback(async () => {
@@ -257,6 +294,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         <div className={headerClass} style={{ borderColor: "var(--sidebar-border)" }}>
           <Link
             href="/"
+            onClick={(event) => handleSidebarClick(event, "/")}
             className={cn(
               "flex items-center justify-center rounded-2xl bg-white/10",
               collapsed ? "h-11 w-11" : "h-10 w-10"
@@ -276,6 +314,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
               <li key={it.href} className="px-2">
                 <Link
                   href={it.href}
+                  onClick={(event) => handleSidebarClick(event, it.href)}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "cc-nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -316,6 +355,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
             >
               <Link
                 href={accountsHref}
+                onClick={(event) => handleSidebarClick(event, accountsHref)}
                 aria-current={isAccountsActive ? "page" : undefined}
                 className="flex flex-1 items-center gap-3 rounded-md px-1 py-1 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sidebar-bg)]"
               >
@@ -390,6 +430,7 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
                           <li key={account.id}>
                             <Link
                               href={`/contas/${account.id}`}
+                              onClick={(event) => handleSidebarClick(event, `/contas/${account.id}`)}
                               className={cn(
                                 "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition",
                                 isActive
