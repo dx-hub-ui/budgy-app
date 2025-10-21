@@ -38,18 +38,18 @@ export default function AccountHeader({ name, subtitle, metrics, onReconcile, ba
   const showBadge = typeof badgeText === "string" && badgeText.trim().length > 0;
 
   return (
-    <header className="space-y-4 border-b border-[var(--cc-border)] pb-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-1.5">
+    <header className="space-y-3 border-b border-[var(--cc-border)] pb-3">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold text-[var(--cc-text)]">{name}</h1>
+            <h1 className="text-lg font-semibold text-[var(--cc-text)]">{name}</h1>
             {showBadge ? (
               <span className="rounded-full bg-[var(--brand-soft-fill)] px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                 {badgeText}
               </span>
             ) : null}
           </div>
-          {subtitle && <p className="text-sm text-[var(--cc-text-muted)]">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[var(--cc-text-muted)]">{subtitle}</p>}
         </div>
         {onReconcile && (
           <button
@@ -62,7 +62,7 @@ export default function AccountHeader({ name, subtitle, metrics, onReconcile, ba
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         {cards.map((metric) => {
           const toneClass = metric.tone === "positive"
             ? "text-emerald-600"
@@ -71,11 +71,11 @@ export default function AccountHeader({ name, subtitle, metrics, onReconcile, ba
             : "text-[var(--cc-text)]";
           return (
             <div key={metric.id} className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                 {metric.label}
               </p>
-              <p className={`text-xl font-semibold ${toneClass}`}>{formatCurrency(metric.valueCents)}</p>
-              {metric.helper && <p className="text-xs text-[var(--cc-text-muted)]">{metric.helper}</p>}
+              <p className={`text-lg font-semibold ${toneClass}`}>{formatCurrency(metric.valueCents)}</p>
+              {metric.helper && <p className="text-[0.7rem] text-[var(--cc-text-muted)]">{metric.helper}</p>}
             </div>
           );
         })}
