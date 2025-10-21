@@ -34,108 +34,74 @@ export function BudgetTopbar({
   const readyToAssignDisabled = autoAssignDisabled ?? readyToAssignCents <= 0;
 
   return (
-    <header className="rounded-3xl bg-[var(--budget-topbar-bg)] px-5 py-5 text-[var(--budget-topbar-text)] sm:px-6">
-      <div className="flex flex-col gap-6">
-        <div className="grid items-center gap-4 sm:grid-cols-[auto_minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_auto]">
-          {/* Month switcher */}
-          <div className="flex items-center justify-between gap-3 rounded-full bg-[var(--budget-topbar-chip-bg)] px-4 py-2 sm:w-fit">
+    <header className="rounded-2xl border border-[var(--tbl-border)] bg-white/90 px-4 py-4 text-[var(--budget-topbar-text)] shadow-sm backdrop-blur">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 rounded-full border border-transparent bg-[var(--budget-topbar-chip-bg)] px-3 py-1.5">
             <button type="button" onClick={onGoPrevious} className="ghost-button ghost-button--icon" aria-label="Mês anterior">
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
-            <div className="min-w-[8rem] text-center lg:min-w-[9rem]">
-              <p className="text-[var(--budget-period-size)] font-medium uppercase tracking-[var(--budget-period-tracking)] text-[var(--budget-topbar-muted)]">
+            <div className="min-w-[7.5rem] text-center">
+              <p className="text-[0.65rem] font-medium uppercase tracking-[var(--budget-period-tracking)] text-[var(--budget-topbar-muted)]">
                 Orçamento de
               </p>
-              <p className="flex items-center justify-center gap-1 text-lg font-semibold text-[var(--budget-topbar-text)]">
+              <p className="flex items-center justify-center gap-1 text-base font-semibold text-[var(--budget-topbar-text)]">
                 {monthLabel}
               </p>
             </div>
             <button type="button" onClick={onGoNext} className="ghost-button ghost-button--icon" aria-label="Próximo mês">
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
           </div>
 
-          {/* YNAB-like Ready to Assign card: no shadow, taller, amount on top, subtitle below */}
-          <div className="flex justify-center justify-self-center">
-            <div
-              className="inline-flex w-full max-w-[var(--budget-ready-max-width)] items-center gap-4 rounded-md border px-4 py-3"
-              style={{
-                background: "var(--budget-ready-bg)",
-                borderColor: "var(--budget-ready-border)"
+          <div className="flex w-full max-w-md items-center gap-4 rounded-xl border border-[var(--budget-ready-border)] bg-[var(--budget-ready-bg)] px-4 py-2">
+            <div className="flex min-w-0 flex-col leading-tight">
+              <span
+                className="tabular truncate text-base font-semibold text-[var(--budget-ready-text)]"
+                style={{ lineHeight: 1.1 }}
+              >
+                {fmtBRL(readyToAssignCents)}
+              </span>
+              <span className="text-xs text-[var(--budget-ready-text-muted)]">Pronto para atribuir</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenAutoAssign}
+              disabled={readyToAssignDisabled}
+              className="ml-auto inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-[var(--budget-cta-tracking)] text-white transition disabled:opacity-60"
+              style={{ background: "var(--budget-ready-cta-bg)" }}
+              onMouseEnter={(event) => {
+                if (!readyToAssignDisabled) {
+                  event.currentTarget.style.background = "var(--budget-ready-cta-hover)";
+                }
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.background = "var(--budget-ready-cta-bg)";
               }}
             >
-              <div className="flex min-w-0 flex-col leading-tight">
-                <span
-                  className="tabular truncate"
-                  style={{
-                    fontSize: "1rem", // ~16px
-                    fontWeight: 700,
-                    color: "var(--budget-ready-text)",
-                    lineHeight: 1.15
-                  }}
-                >
-                  {fmtBRL(readyToAssignCents)}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.75rem", // ~12px
-                    color: "var(--budget-ready-text-muted)"
-                  }}
-                >
-                  Pronto para atribuir
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={onOpenAutoAssign}
-                disabled={readyToAssignDisabled}
-                className="ml-auto inline-flex items-center justify-center gap-1 rounded-md px-3 py-1.5 font-semibold uppercase disabled:opacity-60"
-                style={{
-                  background: "var(--budget-ready-cta-bg)",
-                  color: "var(--cc-white)",
-                  fontSize: "0.75rem", // ~12px
-                  letterSpacing: "var(--budget-cta-tracking)"
-                }}
-                onMouseEnter={(e) => {
-                  if (!readyToAssignDisabled) e.currentTarget.style.background = "var(--budget-ready-cta-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "var(--budget-ready-cta-bg)";
-                }}
-              >
-                Atribuir
-                <ChevronDown size={12} aria-hidden />
-              </button>
-            </div>
-          </div>
-
-          <div className="hidden xl:block" aria-hidden />
-        </div>
-
-        {/* Actions */}
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" role="row">
-          <div role="cell" className="flex justify-center md:justify-start">
-            <button type="button" onClick={onAddCategory} className="ghost-button">
-              <PlusCircle size={16} aria-hidden />
-              Adicionar categoria
+              Atribuir
+              <ChevronDown size={12} aria-hidden />
             </button>
           </div>
+        </div>
 
-          <div role="cell" className="flex justify-center md:justify-start">
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={onUndo} disabled={!canUndo} className="ghost-button" title="Desfazer (Ctrl+Z)">
-                <Undo2 size={14} aria-hidden />
-                Desfazer
-              </button>
-              <button type="button" onClick={onRedo} disabled={!canRedo} className="ghost-button" title="Refazer (Shift+Ctrl+Z)">
-                <Redo2 size={14} aria-hidden />
-                Refazer
-              </button>
-            </div>
+        <div className="flex flex-wrap items-center gap-2" role="row">
+          <button type="button" onClick={onAddCategory} className="ghost-button">
+            <PlusCircle size={16} aria-hidden />
+            Adicionar categoria
+          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={onUndo} disabled={!canUndo} className="ghost-button" title="Desfazer (Ctrl+Z)">
+              <Undo2 size={14} aria-hidden />
+              Desfazer
+            </button>
+            <button type="button" onClick={onRedo} disabled={!canRedo} className="ghost-button" title="Refazer (Shift+Ctrl+Z)">
+              <Redo2 size={14} aria-hidden />
+              Refazer
+            </button>
           </div>
-
-          <div role="cell" className="flex justify-center md:justify-start xl:justify-end" aria-hidden />
         </div>
       </div>
     </header>
