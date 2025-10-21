@@ -393,10 +393,15 @@ main.cc-main::-webkit-scrollbar-thumb {
 .budget-grid {
   --inspector-width: 34%;
   --budget-resizer-width: 14px;
+  --budget-column-gap: 16px;
   display: grid;
-  grid-template-columns: minmax(0, calc(100% - var(--inspector-width) - var(--budget-resizer-width))) var(--budget-resizer-width)
-    minmax(0, var(--inspector-width));
-  column-gap: 16px;
+  grid-template-columns: minmax(
+      0,
+      calc(
+        100% - var(--inspector-width) - var(--budget-resizer-width) - (2 * var(--budget-column-gap))
+      )
+    ) var(--budget-resizer-width) minmax(0, var(--inspector-width));
+  column-gap: var(--budget-column-gap);
   align-items: stretch;
 }
 
