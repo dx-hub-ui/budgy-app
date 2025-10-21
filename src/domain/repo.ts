@@ -1,6 +1,6 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
+import { supabase, getSupabaseOrgId } from "@/lib/supabase";
 import type { AccountInput, CategoryInput, ExpenseInput, UpdateExpenseInput } from "./models";
 
 export async function getSessionUser() {
@@ -41,9 +41,14 @@ export async function createPayee(name: string) {
   if (!trimmed) {
     throw new Error("Informe um nome válido para o beneficiário.");
   }
+  const orgId = getSupabaseOrgId();
+  const payload: { name: string; org_id?: string } = { name: trimmed };
+  if (orgId) {
+    payload.org_id = orgId;
+  }
   const { data, error } = await supabase
     .from("payees")
-    .insert({ name: trimmed })
+    .insert(payload)
     .select()
     .single();
   if (error) throw error;

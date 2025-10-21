@@ -323,6 +323,7 @@ function CategoryRow({
               className="inline-flex w-full max-w-full truncate text-left text-sm font-medium text-[var(--cc-text)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
               onClick={(event) => {
                 event.stopPropagation();
+                onSelect();
                 onRename();
               }}
             >
@@ -374,16 +375,6 @@ function CategoryRow({
         </button>
       </div>
       <div className="text-right pr-2">{availablePill(available)}</div>
-    </div>
-  );
-}
-
-function SummaryCard({ title, value, description }: { title: string; value: string; description?: string }) {
-  return (
-    <div className="card">
-      <p className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">{title}</p>
-      <p className="mt-1 text-xl font-medium text-[var(--cc-text)]">{value}</p>
-      {description ? <p className="mt-1 text-xs text-[var(--cc-text-muted)]">{description}</p> : null}
     </div>
   );
 }
@@ -480,22 +471,38 @@ function SummaryInspector({ month, readyToAssign, totals }: { month: string; rea
   }, [month]);
 
   return (
-    <div>
-      <div className="card">
+    <div className="inspector-content">
+      <header>
         <p className="text-[0.65rem] font-medium uppercase tracking-[0.32em] text-[var(--cc-text-muted)]">Resumo do mês</p>
         <h2 className="mt-2 text-xl font-medium leading-tight text-[var(--cc-text)]">{monthLabel}</h2>
         <p className="mt-3 text-xs text-[var(--cc-text-muted)]">
           Distribua o orçamento disponível para alcançar suas metas financeiras.
         </p>
-      </div>
-      <SummaryCard
-        title="Pronto para atribuir"
-        value={fmtBRL(readyToAssign)}
-        description="Saldo a distribuir neste mês"
-      />
-      <SummaryCard title="Atribuído" value={fmtBRL(totals.assigned)} description="Total destinado às categorias" />
-      <SummaryCard title="Atividade" value={fmtBRL(totals.activity)} description="Movimentações do mês" />
-      <SummaryCard title="Disponível" value={fmtBRL(totals.available)} description="Quanto resta após a atividade" />
+      </header>
+      <dl className="grid gap-4 text-sm sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">
+            Pronto para atribuir
+          </dt>
+          <dd className="text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(readyToAssign)}</dd>
+          <dd className="text-xs text-[var(--cc-text-muted)]">Saldo a distribuir neste mês</dd>
+        </div>
+        <div className="flex flex-col gap-1">
+          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">Atribuído</dt>
+          <dd className="text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(totals.assigned)}</dd>
+          <dd className="text-xs text-[var(--cc-text-muted)]">Total destinado às categorias</dd>
+        </div>
+        <div className="flex flex-col gap-1">
+          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">Atividade</dt>
+          <dd className="text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(totals.activity)}</dd>
+          <dd className="text-xs text-[var(--cc-text-muted)]">Movimentações do mês</dd>
+        </div>
+        <div className="flex flex-col gap-1">
+          <dt className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--cc-text-muted)]">Disponível</dt>
+          <dd className="text-lg font-semibold text-[var(--cc-text)]">{fmtBRL(totals.available)}</dd>
+          <dd className="text-xs text-[var(--cc-text-muted)]">Quanto resta após a atividade</dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -515,24 +522,26 @@ function InspectorPanel({
 }: InspectorPanelProps) {
   return (
     <aside className="inspector" aria-label="Painel do orçamento">
-      {selected ? (
-        <CategoryDetailsPanel
-          category={selected.category}
-          allocation={selected.allocation}
-          previousAllocation={selected.previousAllocation}
-          goal={selected.goal}
-          month={month}
-          onClose={onClose}
-          onAssign={onAssign}
-          onArchive={onArchive}
-          onRename={onRename}
-          onSaveGoal={onSaveGoal}
-          onApplyGoal={onApplyGoal}
-          onRemoveGoal={onRemoveGoal}
-        />
-      ) : (
-        <SummaryInspector month={month} readyToAssign={readyToAssign} totals={totals} />
-      )}
+      <div className="inspector-card">
+        {selected ? (
+          <CategoryDetailsPanel
+            category={selected.category}
+            allocation={selected.allocation}
+            previousAllocation={selected.previousAllocation}
+            goal={selected.goal}
+            month={month}
+            onClose={onClose}
+            onAssign={onAssign}
+            onArchive={onArchive}
+            onRename={onRename}
+            onSaveGoal={onSaveGoal}
+            onApplyGoal={onApplyGoal}
+            onRemoveGoal={onRemoveGoal}
+          />
+        ) : (
+          <SummaryInspector month={month} readyToAssign={readyToAssign} totals={totals} />
+        )}
+      </div>
     </aside>
   );
 }
@@ -1023,7 +1032,7 @@ export default function BudgetMonthPage() {
   };
 
   return (
-    <main className="px-4">
+    <main className="budget-page px-4">
       <div className="flex flex-1 flex-col gap-6 py-6">
         <BudgetTopbar
           month={currentMonth}
@@ -1046,7 +1055,7 @@ export default function BudgetMonthPage() {
         />
 
         {error ? (
-          <div className="rounded-2xl border border-[var(--state-danger)] bg-rose-50 px-4 py-3 text-sm text-rose-600 shadow-sm">
+          <div className="border border-[var(--state-danger)] bg-rose-50 px-4 py-3 text-sm text-rose-600">
             {error}
           </div>
         ) : null}
@@ -1062,7 +1071,7 @@ export default function BudgetMonthPage() {
 
             <div className="budget-categories-scroll">
               {loading ? (
-                <div className="mt-6 rounded-lg border border-[var(--tbl-border)] bg-white px-4 py-8 text-center text-sm text-[var(--cc-text-muted)]">
+                <div className="mt-6 border border-[var(--tbl-border)] bg-white px-4 py-8 text-center text-sm text-[var(--cc-text-muted)]">
                   Carregando orçamento…
                 </div>
               ) : (
