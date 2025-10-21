@@ -669,9 +669,8 @@ export default function AccountLedger({
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-1.5 text-[0.7rem]">
-              <button
-                type="button"
-                className="ghost-button"
+              <GhostButton
+                icon={ListChecks}
                 onClick={() => openPrompt(activeTransaction, { showPicker: true })}
                 disabled={isAssigningActive}
               >
