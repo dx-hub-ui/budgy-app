@@ -2,6 +2,8 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Plus, RotateCcw, RotateCw } from "lucide-react";
+
+import GhostButton from "@/components/ui/GhostButton";
 import { fmtBRL, formatMonthLabel } from "@/domain/budgeting";
 
 type Props = {
@@ -118,15 +120,9 @@ export function BudgetTopbar({
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onAddCategory}
-          className="ghost-button primary"
-          aria-label="Adicionar categoria"
-        >
-          <Plus size={16} />
+        <GhostButton icon={Plus} onClick={onAddCategory} variant="primary" aria-label="Adicionar categoria">
           Adicionar categoria
-        </button>
+        </GhostButton>
 
         <div className="ml-2 flex items-center gap-1">
           <button

@@ -36,7 +36,8 @@
 - O componente `AccountLedger` passou a aceitar uma lista de contas para exibir o seletor na linha de rascunho; ao salvar, o
   payload inclui `accountId` para roteamento correto da transação.
 - Todos os botões de ação (adicionar transação, transferência, categorizar) utilizam o estilo `.ghost-button`, reduzindo o peso
-  visual e aproximando o layout das referências de interface fornecidas.
+  visual e aproximando o layout das referências de interface fornecidas. A variante atual inclui um ícone circular à esquerda —
+  fornecido pelo componente `GhostButton` — para diferenciar rapidamente cada ação na lista.
 - O cabeçalho aceita um `badgeLabel` opcional para diferenciar entre contas individuais e a visão consolidada, mantendo as
   métricas compactas e consistentes.
 
