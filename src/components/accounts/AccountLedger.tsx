@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { JSX } from "react";
 import { ArrowLeftRight, Check, CircleSlash, ListChecks, Plus, Tag, X } from "lucide-react";
 
 import GhostButton from "@/components/ui/GhostButton";

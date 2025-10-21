@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type JSX } from "react";
+import { useMemo } from "react";
 import { RefreshCcw } from "lucide-react";
 
 import GhostButton from "@/components/ui/GhostButton";
