@@ -397,8 +397,8 @@ export function CategoryDetailsPanel({
     : "Último dia do mês";
 
   return (
-    <div className="flex h-full flex-col gap-6">
-      <header className="flex items-start justify-between gap-3">
+    <div className="inspector-content">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span aria-hidden className="text-xl">{category.icon ?? "🏷️"}</span>
           <div>
@@ -433,7 +433,7 @@ export function CategoryDetailsPanel({
         </div>
       </header>
 
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+      <section className="space-y-4">
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-sm font-semibold text-[var(--cc-text)]">Saldo disponível</h3>
@@ -477,7 +477,7 @@ export function CategoryDetailsPanel({
         )}
       </section>
 
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+      <section className="space-y-4">
         <button
           type="button"
           className="flex w-full items-center justify-between text-left"
@@ -730,7 +730,7 @@ export function CategoryDetailsPanel({
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+      <section className="space-y-4">
         <button
           type="button"
           className="flex w-full items-center justify-between text-left"
@@ -782,7 +782,7 @@ export function CategoryDetailsPanel({
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface)] p-5 shadow-[var(--shadow-1)]">
+      <section className="space-y-4">
         <h3 className="text-sm font-semibold text-[var(--cc-text)]">Notas</h3>
         <textarea
           className="mt-3 min-h-[120px] w-full resize-y rounded-xl border border-[var(--cc-border)] bg-[var(--cc-bg-elev)] px-4 py-3 text-sm text-[var(--cc-text)] shadow-sm focus:border-[var(--ring)] focus:outline-none"
