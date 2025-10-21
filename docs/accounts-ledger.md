@@ -41,6 +41,8 @@
 - Todos os botões de ação (adicionar transação, transferência, categorizar) utilizam o estilo `.ghost-button`, reduzindo o peso
   visual e aproximando o layout das referências de interface fornecidas. A variante atual inclui um ícone circular à esquerda —
   fornecido pelo componente `GhostButton` — para diferenciar rapidamente cada ação na lista.
+- A ação **Escolher categoria** dentro da barra azul reutiliza `GhostButton` com o ícone `ListChecks`, garantindo consistência
+  visual com os demais atalhos e evitando marcação HTML incorreta.
 - O cabeçalho aceita um `badgeLabel` opcional para diferenciar entre contas individuais e a visão consolidada, mantendo as
   métricas compactas e consistentes.
 
