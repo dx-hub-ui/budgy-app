@@ -11,6 +11,7 @@
 - Ao clicar no alerta, uma barra de ações azul surge fixa no rodapé da tela com atalhos como **Categorizar** e **Sem categoria**. A seleção confirma imediatamente via `updateExpense`.
 - Um duplo clique na célula de categoria também abre a barra já com o seletor expandido para acelerar a triagem de múltiplos lançamentos.
 - O campo **Beneficiário** oferece busca incremental e cria registros em `public.payees` sob demanda, preenchendo `payee_id` na transação. O botão "Gerenciar beneficiários" abre o modal administrativo para renomear ou arquivar entradas.
+- Ao criar um beneficiário inline, o client envia explicitamente o `org_id` ativo (derivado de `x-cc-org-id`/cookie `cc_org_id`) para evitar violações de RLS ao inserir em `public.payees`.
 - Memos vazios continuam sendo enviados como `null`, preservando integrações que diferenciam campos em branco de campos não informados.
 
 ## Tratamento de valores
@@ -40,7 +41,8 @@
 - O componente `AccountLedger` passou a aceitar uma lista de contas para exibir o seletor na linha de rascunho; ao salvar, o
   payload inclui `accountId` para roteamento correto da transação.
 - Todos os botões de ação (adicionar transação, transferência, categorizar) utilizam o estilo `.ghost-button`, reduzindo o peso
-  visual e aproximando o layout das referências de interface fornecidas.
+  visual e aproximando o layout das referências de interface fornecidas. A variante atual inclui um ícone circular à esquerda —
+  fornecido pelo componente `GhostButton` — para diferenciar rapidamente cada ação na lista.
 - O cabeçalho aceita um `badgeLabel` opcional para diferenciar entre contas individuais e a visão consolidada, mantendo as
   métricas compactas e consistentes.
 
