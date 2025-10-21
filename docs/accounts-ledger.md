@@ -30,6 +30,16 @@
   sozinho no topo direito do cabeçalho, reproduzindo o layout exibido na captura de referência.
 - Métricas do cabeçalho permanecem visíveis como texto puro, evitando painéis destacados para facilitar leitura em telas grandes.
 
+## Visão consolidada (fev/2025)
+- O caminho `/contas` agora abre diretamente uma visão "Todas as contas" com o ledger unificado, exibindo colunas adicionais
+  para identificar a origem de cada lançamento.
+- O componente `AccountLedger` passou a aceitar uma lista de contas para exibir o seletor na linha de rascunho; ao salvar, o
+  payload inclui `accountId` para roteamento correto da transação.
+- Todos os botões de ação (adicionar transação, transferência, categorizar) utilizam o estilo `.ghost-button`, reduzindo o peso
+  visual e aproximando o layout das referências de interface fornecidas.
+- O cabeçalho aceita um `badgeLabel` opcional para diferenciar entre contas individuais e a visão consolidada, mantendo as
+  métricas compactas e consistentes.
+
 ## Menu lateral unificado (jan/2025)
 - A navegação principal agora inclui o bloco **Contas** com saldo total e agrupamento por `group_label`, permitindo alternar entre
   contas diretamente pela sidebar.
