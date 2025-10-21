@@ -1,6 +1,8 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, PlusCircle, Redo2, Undo2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, Redo2, Undo2 } from "lucide-react";
+
+import GhostButton from "@/components/ui/GhostButton";
 import { fmtBRL, formatMonthLabel } from "@/domain/budgeting";
 
 type BudgetTopbarProps = {
@@ -87,20 +89,17 @@ export function BudgetTopbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2" role="row">
-          <button type="button" onClick={onAddCategory} className="ghost-button">
-            <PlusCircle size={16} aria-hidden />
+          <GhostButton icon={Plus} onClick={onAddCategory}>
             Adicionar categoria
-          </button>
+          </GhostButton>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={onUndo} disabled={!canUndo} className="ghost-button" title="Desfazer (Ctrl+Z)">
-              <Undo2 size={14} aria-hidden />
+            <GhostButton icon={Undo2} onClick={onUndo} disabled={!canUndo} title="Desfazer (Ctrl+Z)">
               Desfazer
-            </button>
-            <button type="button" onClick={onRedo} disabled={!canRedo} className="ghost-button" title="Refazer (Shift+Ctrl+Z)">
-              <Redo2 size={14} aria-hidden />
+            </GhostButton>
+            <GhostButton icon={Redo2} onClick={onRedo} disabled={!canRedo} title="Refazer (Shift+Ctrl+Z)">
               Refazer
-            </button>
+            </GhostButton>
           </div>
         </div>
       </div>

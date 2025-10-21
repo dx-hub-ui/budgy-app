@@ -36,6 +36,10 @@ function resolveOrgIdHeader(): string | null {
   return null;
 }
 
+export function getSupabaseOrgId(): string | null {
+  return resolveOrgIdHeader();
+}
+
 function withOrgHeader(init?: RequestInit): RequestInit | undefined {
   const orgId = resolveOrgIdHeader();
   if (!orgId) {

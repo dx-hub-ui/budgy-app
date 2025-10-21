@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ArrowLeftRight, Check, CircleSlash, ListChecks, Plus, Tag, X } from "lucide-react";
 
+import GhostButton from "@/components/ui/GhostButton";
 import ManagePayeesModal from "@/components/payees/ManagePayeesModal";
 import { ymd } from "@/domain/format";
 
@@ -354,14 +356,14 @@ export default function AccountLedger({
         <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-[var(--cc-text-muted)]">
           <span className="uppercase tracking-wide text-[0.65rem]">Lançamentos</span>
           {onAddTransaction && (
-            <button type="button" className="ghost-button" onClick={onAddTransaction}>
+            <GhostButton icon={Plus} onClick={onAddTransaction}>
               Adicionar transação
-            </button>
+            </GhostButton>
           )}
           {onAddTransfer && (
-            <button type="button" className="ghost-button" onClick={onAddTransfer}>
+            <GhostButton icon={ArrowLeftRight} onClick={onAddTransfer}>
               Adicionar transferência
-            </button>
+            </GhostButton>
           )}
         </div>
         <div className="flex w-full items-center gap-2 text-xs text-[var(--cc-text-muted)] lg:w-auto">
@@ -570,17 +572,12 @@ export default function AccountLedger({
                   </td>
                   <td className="px-3 py-1.5 text-right text-[0.7rem]">
                     <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        className="ghost-button"
-                        disabled={draft.saving}
-                        onClick={() => saveDraft(draft)}
-                      >
+                      <GhostButton icon={Check} disabled={draft.saving} onClick={() => saveDraft(draft)}>
                         Salvar
-                      </button>
-                      <button type="button" className="ghost-button" onClick={() => removeDraft(draft.id)}>
+                      </GhostButton>
+                      <GhostButton icon={X} onClick={() => removeDraft(draft.id)}>
                         Cancelar
-                      </button>
+                      </GhostButton>
                     </div>
                     {draft.error ? (
                       <p className="mt-2 text-left text-xs text-red-600" role="alert">
@@ -646,13 +643,9 @@ export default function AccountLedger({
                     </td>
                     <td className="px-3 py-2 text-right text-[0.7rem]">
                       <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          className="ghost-button"
-                          onClick={() => openPrompt(transaction)}
-                        >
+                        <GhostButton icon={Tag} onClick={() => openPrompt(transaction)}>
                           Categorizar
-                        </button>
+                        </GhostButton>
                       </div>
                     </td>
                   </tr>
@@ -683,18 +676,13 @@ export default function AccountLedger({
                 disabled={isAssigningActive}
               >
                 Escolher categoria
-              </button>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => handlePromptSelection(null)}
-                disabled={isAssigningActive}
-              >
+              </GhostButton>
+              <GhostButton icon={CircleSlash} onClick={() => handlePromptSelection(null)} disabled={isAssigningActive}>
                 Sem categoria
-              </button>
-              <button type="button" className="ghost-button" onClick={closePrompt}>
+              </GhostButton>
+              <GhostButton icon={X} onClick={closePrompt}>
                 Fechar
-              </button>
+              </GhostButton>
             </div>
           </div>
           {showCategoryPicker && (
