@@ -351,10 +351,10 @@ export default function AccountLedger({
   const hasAccountColumn = Boolean(showAccountColumn);
 
   return (
-    <section className="space-y-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-[var(--cc-text-muted)]">
-          <span className="uppercase tracking-wide text-xs">Lançamentos</span>
+    <section className="space-y-2">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-[var(--cc-text-muted)]">
+          <span className="uppercase tracking-wide text-[0.65rem]">Lançamentos</span>
           {onAddTransaction && (
             <GhostButton icon={Plus} onClick={onAddTransaction}>
               Adicionar transação
@@ -366,46 +366,46 @@ export default function AccountLedger({
             </GhostButton>
           )}
         </div>
-        <div className="flex w-full items-center gap-2 text-sm text-[var(--cc-text-muted)] lg:w-auto">
+        <div className="flex w-full items-center gap-2 text-xs text-[var(--cc-text-muted)] lg:w-auto">
           <input
             type="search"
-            className="h-9 flex-1 rounded-md border border-[var(--cc-border)] bg-white px-3 text-sm shadow-none focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30"
+            className="h-8 flex-1 rounded-md border border-[var(--cc-border)] bg-white px-2 text-sm shadow-none focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30"
             placeholder="Buscar por conta, beneficiário, categoria ou memo"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-          <span className="text-xs">{filteredTransactions.length} itens</span>
+          <span className="text-[0.65rem]">{filteredTransactions.length} itens</span>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-[var(--cc-border)] bg-white">
-        <table className="min-w-full divide-y divide-[var(--cc-border)] text-sm">
+        <table className="min-w-full divide-y divide-[var(--cc-border)] text-xs">
           <thead className="bg-[var(--brand-soft-fill)]/40 text-[var(--cc-text-muted)]">
             <tr>
               {hasAccountColumn && (
-                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
                   Conta
                 </th>
               )}
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
                 Data
               </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
                 Beneficiário
               </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
                 Categoria
               </th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
                 Memo
               </th>
-              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-right text-[0.65rem] font-semibold uppercase tracking-wide">
                 Saída
               </th>
-              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-right text-[0.65rem] font-semibold uppercase tracking-wide">
                 Entrada
               </th>
-              <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+              <th scope="col" className="px-3 py-2 text-right text-[0.65rem] font-semibold uppercase tracking-wide">
                 Ações
               </th>
             </tr>
@@ -422,11 +422,11 @@ export default function AccountLedger({
               const showCreateOption = normalizedPayeeInput.length > 0 && !existingPayee;
 
               return (
-                <tr key={draft.id} className="bg-[var(--brand-soft-fill)]/20">
+                <tr key={draft.id} className="bg-[var(--brand-soft-fill)]/20 text-xs">
                   {hasAccountColumn && (
-                    <td className="px-4 py-2">
+                    <td className="px-3 py-1.5">
                       <select
-                        className="h-9 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                        className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
                         value={draft.accountId ?? ""}
                         onChange={(event) => updateDraft(draft.id, { accountId: event.target.value || null })}
                       >
@@ -439,19 +439,19 @@ export default function AccountLedger({
                       </select>
                     </td>
                   )}
-                  <td className="px-4 py-2 text-sm">
+                  <td className="px-3 py-1.5 text-xs">
                     <input
                       type="date"
-                      className="h-9 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-xs"
                       value={draft.occurred_on}
                       onChange={(event) => updateDraft(draft.id, { occurred_on: event.target.value })}
                     />
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-1.5">
                     <div className="relative">
                       <input
                         type="text"
-                        className="h-9 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                        className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
                         placeholder="Quem recebeu?"
                         value={draft.payeeInput}
                         onFocus={() => {
@@ -468,8 +468,8 @@ export default function AccountLedger({
                         }}
                       />
                       {activePayeeDraftId === draft.id ? (
-                        <div className="absolute left-0 right-0 top-full z-30 mt-2 w-full min-w-[16rem] rounded-lg border border-[var(--cc-border)] bg-white shadow-2xl">
-                          <div className="p-3">
+                        <div className="absolute left-0 right-0 top-full z-30 mt-1.5 w-full min-w-[16rem] rounded-lg border border-[var(--cc-border)] bg-white shadow-2xl">
+                          <div className="p-2.5">
                             {showCreateOption ? (
                               <button
                                 type="button"
@@ -477,16 +477,16 @@ export default function AccountLedger({
                                   event.preventDefault();
                                   void handleQuickPayeeCreate(draft.payeeInput, draft.id);
                                 }}
-                                className="block w-full rounded-md bg-[var(--brand-soft-fill)]/30 px-3 py-2 text-left text-sm font-medium text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-fill)]/60"
+                                className="block w-full rounded-md bg-[var(--brand-soft-fill)]/30 px-3 py-1.5 text-left text-sm font-medium text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-fill)]/60"
                               >
                                 Criar &ldquo;{draft.payeeInput.trim()}&rdquo; beneficiário
                               </button>
                             ) : null}
-                            <div className="mt-3 rounded-md border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/15 p-3">
+                            <div className="mt-2 rounded-md border border-[var(--cc-border)] bg-[var(--brand-soft-fill)]/15 p-2.5">
                               <div className="text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
                                 Beneficiários salvos
                               </div>
-                              <div className="mt-2 max-h-48 overflow-y-auto">
+                              <div className="mt-1.5 max-h-48 overflow-y-auto">
                                 {matchingPayees.length === 0 ? (
                                   <p className="text-xs text-[var(--cc-text-muted)]">Nenhum beneficiário encontrado.</p>
                                 ) : (
@@ -499,7 +499,7 @@ export default function AccountLedger({
                                             event.preventDefault();
                                             handlePayeeSelect(draft.id, payee);
                                           }}
-                                          className="w-full rounded px-2 py-1 text-left text-sm text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-fill)]/60"
+                                          className="w-full rounded px-2 py-1 text-left text-xs text-[var(--cc-text)] transition hover:bg-[var(--brand-soft-fill)]/60"
                                         >
                                           {payee.name}
                                         </button>
@@ -516,7 +516,7 @@ export default function AccountLedger({
                                 setManagePayeesOpen(true);
                                 setActivePayeeDraftId(null);
                               }}
-                              className="mt-3 w-full rounded-md border border-[var(--cc-border)] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-[var(--cc-text-muted)] transition hover:bg-[var(--brand-soft-fill)]/40"
+                              className="mt-2 w-full rounded-md border border-[var(--cc-border)] px-3 py-1.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)] transition hover:bg-[var(--brand-soft-fill)]/40"
                             >
                               Gerenciar beneficiários
                             </button>
@@ -525,9 +525,9 @@ export default function AccountLedger({
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-1.5">
                     <select
-                      className="h-9 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
                       value={draft.categoryId ?? ""}
                       onChange={(event) => updateDraft(draft.id, { categoryId: event.target.value || null })}
                     >
@@ -543,34 +543,34 @@ export default function AccountLedger({
                       ))}
                     </select>
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-1.5">
                     <input
                       type="text"
-                      className="h-9 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
                       placeholder="Opcional"
                       value={draft.memo}
                       onChange={(event) => updateDraft(draft.id, { memo: event.target.value })}
                     />
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-1.5">
                     <input
                       type="text"
-                      className="h-9 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
                       placeholder="0,00"
                       value={draft.outflow}
                       onChange={(event) => updateDraft(draft.id, { outflow: event.target.value })}
                     />
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-3 py-1.5">
                     <input
                       type="text"
-                      className="h-9 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
                       placeholder="0,00"
                       value={draft.inflow}
                       onChange={(event) => updateDraft(draft.id, { inflow: event.target.value })}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right text-xs">
+                  <td className="px-3 py-1.5 text-right text-[0.7rem]">
                     <div className="flex justify-end gap-2">
                       <GhostButton icon={Check} disabled={draft.saving} onClick={() => saveDraft(draft)}>
                         Salvar
@@ -593,7 +593,7 @@ export default function AccountLedger({
               <tr>
                 <td
                   colSpan={hasAccountColumn ? 8 : 7}
-                  className="px-6 py-12 text-center text-sm text-[var(--cc-text-muted)]"
+                  className="px-4 py-8 text-center text-xs text-[var(--cc-text-muted)]"
                 >
                   {loading ? "Carregando transações…" : "Nenhuma transação encontrada."}
                 </td>
@@ -607,22 +607,22 @@ export default function AccountLedger({
                 const needsCategory = transaction.categoryId === null;
 
                 return (
-                  <tr key={transaction.id} className="align-top">
+                  <tr key={transaction.id} className="align-top text-xs">
                     {hasAccountColumn && (
-                      <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
+                      <td className="px-3 py-2 text-xs text-[var(--cc-text)]">
                         {transaction.accountName ?? "—"}
                       </td>
                     )}
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-[var(--cc-text)]">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-[var(--cc-text)]">
                       {formattedDate}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
+                    <td className="px-3 py-2 text-xs text-[var(--cc-text)]">
                       {transaction.payeeName ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--cc-text)]">
+                    <td className="px-3 py-2 text-xs text-[var(--cc-text)]">
                       <button
                         type="button"
-                        className={`rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wide transition ${
+                        className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide transition ${
                           needsCategory
                             ? "bg-amber-100 text-amber-800"
                             : "bg-[var(--brand-soft-fill)]/60 text-[var(--cc-text)]"
@@ -632,16 +632,16 @@ export default function AccountLedger({
                         {transaction.categoryName ?? "Sem categoria"}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--cc-text-muted)]">
+                    <td className="px-3 py-2 text-xs text-[var(--cc-text-muted)]">
                       {transaction.memo ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm text-rose-600">
+                    <td className="px-3 py-2 text-right text-xs text-rose-600">
                       {transaction.outflowCents > 0 ? formatCurrency(transaction.outflowCents) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm text-emerald-600">
+                    <td className="px-3 py-2 text-right text-xs text-emerald-600">
                       {transaction.inflowCents > 0 ? formatCurrency(transaction.inflowCents) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right text-xs">
+                    <td className="px-3 py-2 text-right text-[0.7rem]">
                       <div className="flex justify-end gap-2">
                         <GhostButton icon={Tag} onClick={() => openPrompt(transaction)}>
                           Categorizar
@@ -658,19 +658,20 @@ export default function AccountLedger({
 
       {activeTransaction ? (
         <div className="rounded-lg border border-blue-200 bg-blue-50">
-          <div className="flex flex-col gap-3 border-b border-blue-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <div className="text-sm font-semibold text-blue-800">{activeDescription}</div>
+          <div className="flex flex-col gap-2 border-b border-blue-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-0.5">
+              <div className="text-xs font-semibold text-blue-800">{activeDescription}</div>
               {activeAmountLabel ? (
-                <div className="text-xs text-blue-700">{activeAmountLabel}</div>
+                <div className="text-[0.65rem] text-blue-700">{activeAmountLabel}</div>
               ) : null}
               {activeTransaction.accountName && hasAccountColumn ? (
-                <div className="text-xs text-blue-700">{activeTransaction.accountName}</div>
+                <div className="text-[0.65rem] text-blue-700">{activeTransaction.accountName}</div>
               ) : null}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <GhostButton
-                icon={ListChecks}
+            <div className="flex flex-wrap items-center gap-1.5 text-[0.7rem]">
+              <button
+                type="button"
+                className="ghost-button"
                 onClick={() => openPrompt(activeTransaction, { showPicker: true })}
                 disabled={isAssigningActive}
               >
@@ -685,10 +686,10 @@ export default function AccountLedger({
             </div>
           </div>
           {showCategoryPicker && (
-            <div className="max-h-64 space-y-3 overflow-y-auto border-b border-blue-200 px-4 py-3">
+            <div className="max-h-64 space-y-2 overflow-y-auto border-b border-blue-200 px-3 py-2">
               <button
                 type="button"
-                className={`block w-full rounded-md px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`block w-full rounded-md px-3 py-1.5 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   activeTransaction.categoryId === null
                     ? "bg-white text-blue-700 shadow-sm"
                     : "bg-white/40 text-blue-800 hover:bg-white/70"
@@ -699,8 +700,8 @@ export default function AccountLedger({
                 Sem categoria
               </button>
               {categoryGroups.map((group) => (
-                <div key={group.name} className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-blue-600">{group.name}</p>
+                <div key={group.name} className="space-y-1.5">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-blue-600">{group.name}</p>
                   <div className="space-y-1">
                     {group.items.map((category) => {
                       const isSelected = activeTransaction.categoryId === category.id;
@@ -708,7 +709,7 @@ export default function AccountLedger({
                         <button
                           key={category.id}
                           type="button"
-                          className={`block w-full rounded-md px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                          className={`block w-full rounded-md px-3 py-1.5 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-60 ${
                             isSelected
                               ? "bg-white text-blue-700 shadow-sm"
                               : "bg-white/40 text-blue-800 hover:bg-white/70"
@@ -726,7 +727,7 @@ export default function AccountLedger({
             </div>
           )}
           {assignError && (
-            <div className="px-4 py-3 text-xs text-blue-800" role="alert">
+            <div className="px-3 py-2 text-[0.65rem] text-blue-800" role="alert">
               {assignError}
             </div>
           )}

@@ -30,6 +30,8 @@
 - A barra de ações agora mantém o botão **Adicionar transação** alinhado à esquerda da listagem, enquanto **Reconciliar** fica
   sozinho no topo direito do cabeçalho, reproduzindo o layout exibido na captura de referência.
 - Métricas do cabeçalho permanecem visíveis como texto puro, evitando painéis destacados para facilitar leitura em telas grandes.
+- Em março/2025 reduzimos paddings, tamanhos de fonte e gaps verticais na tabela e no cabeçalho para aproximar a densidade visual
+  do ledger à referência compacta da captura do YNAB, mantendo a legibilidade em telas menores.
 
 ## Visão consolidada (fev/2025)
 - O caminho `/contas` agora abre diretamente uma visão "Todas as contas" com o ledger unificado, exibindo colunas adicionais
