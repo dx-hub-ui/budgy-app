@@ -32,6 +32,9 @@
 - Métricas do cabeçalho permanecem visíveis como texto puro, evitando painéis destacados para facilitar leitura em telas grandes.
 - Em março/2025 reduzimos paddings, tamanhos de fonte e gaps verticais na tabela e no cabeçalho para aproximar a densidade visual
   do ledger à referência compacta da captura do YNAB, mantendo a legibilidade em telas menores.
+- Abril/2025 consolidou classes utilitárias em constantes (`denseInputClass`, `headerCellClass`, etc.) para padronizar a densidade
+  e evitar regressões de espaçamento ao adicionar novas colunas ou campos ao rascunho inline.
+- Maio/2025 atualizou a tipagem de `AccountLedger` para usar `JSX.Element`, assegurando que o Next.js faça o parse correto do JSX durante os builds de produção.
 
 ## Visão consolidada (fev/2025)
 - O caminho `/contas` agora abre diretamente uma visão "Todas as contas" com o ledger unificado, exibindo colunas adicionais

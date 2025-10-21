@@ -35,7 +35,12 @@ type Props = {
 
 export type AccountHeaderProps = Props;
 
-export default function AccountHeader({ name, subtitle, metrics, onReconcile, badgeLabel }: Props) {
+const headerTitleClass = "text-lg font-semibold text-[var(--cc-text)]";
+const badgeClass =
+  "rounded-full bg-[var(--brand-soft-fill)] px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]";
+const metricLabelClass = "text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]";
+
+export default function AccountHeader({ name, subtitle, metrics, onReconcile, badgeLabel }: Props): JSX.Element {
   const cards = useMemo(() => metrics, [metrics]);
   const badgeText = badgeLabel === undefined ? "Conta ativa" : badgeLabel;
   const showBadge = typeof badgeText === "string" && badgeText.trim().length > 0;
@@ -45,9 +50,9 @@ export default function AccountHeader({ name, subtitle, metrics, onReconcile, ba
       <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg font-semibold text-[var(--cc-text)]">{name}</h1>
+            <h1 className={headerTitleClass}>{name}</h1>
             {showBadge ? (
-              <span className="rounded-full bg-[var(--brand-soft-fill)] px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+              <span className={badgeClass}>
                 {badgeText}
               </span>
             ) : null}
@@ -70,7 +75,7 @@ export default function AccountHeader({ name, subtitle, metrics, onReconcile, ba
             : "text-[var(--cc-text)]";
           return (
             <div key={metric.id} className="space-y-1">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]">
+              <p className={metricLabelClass}>
                 {metric.label}
               </p>
               <p className={`text-lg font-semibold ${toneClass}`}>{formatCurrency(metric.valueCents)}</p>

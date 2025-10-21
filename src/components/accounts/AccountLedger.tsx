@@ -88,6 +88,18 @@ const currencyHelper = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+const denseInputClass = "h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm";
+const denseInputNarrowClass = "h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-xs";
+const headerCellClass =
+  "px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]";
+const headerCellNumericClass =
+  "px-3 py-2 text-right text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--cc-text-muted)]";
+const tableCellClass = "px-3 py-2 text-xs text-[var(--cc-text)]";
+const tableCellMutedClass = "px-3 py-2 text-xs text-[var(--cc-text-muted)]";
+const amountOutCellClass = "px-3 py-2 text-right text-xs text-rose-600";
+const amountInCellClass = "px-3 py-2 text-right text-xs text-emerald-600";
+const actionCellClass = "px-3 py-2 text-right text-[0.7rem]";
+
 function formatCurrency(valueCents: number) {
   return currencyHelper.format(valueCents / 100);
 }
@@ -137,7 +149,7 @@ export default function AccountLedger({
   onCreatePayee,
   onRenamePayee,
   onDeletePayee,
-}: AccountLedgerProps) {
+}: AccountLedgerProps): JSX.Element {
   const [drafts, setDrafts] = useState<DraftTransaction[]>([]);
   const [search, setSearch] = useState("");
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
@@ -383,29 +395,29 @@ export default function AccountLedger({
           <thead className="bg-[var(--brand-soft-fill)]/40 text-[var(--cc-text-muted)]">
             <tr>
               {hasAccountColumn && (
-                <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
+                <th scope="col" className={headerCellClass}>
                   Conta
                 </th>
               )}
-              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
+              <th scope="col" className={headerCellClass}>
                 Data
               </th>
-              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
+              <th scope="col" className={headerCellClass}>
                 Beneficiário
               </th>
-              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
+              <th scope="col" className={headerCellClass}>
                 Categoria
               </th>
-              <th scope="col" className="px-3 py-2 text-left text-[0.65rem] font-semibold uppercase tracking-wide">
+              <th scope="col" className={headerCellClass}>
                 Memo
               </th>
-              <th scope="col" className="px-3 py-2 text-right text-[0.65rem] font-semibold uppercase tracking-wide">
+              <th scope="col" className={headerCellNumericClass}>
                 Saída
               </th>
-              <th scope="col" className="px-3 py-2 text-right text-[0.65rem] font-semibold uppercase tracking-wide">
+              <th scope="col" className={headerCellNumericClass}>
                 Entrada
               </th>
-              <th scope="col" className="px-3 py-2 text-right text-[0.65rem] font-semibold uppercase tracking-wide">
+              <th scope="col" className={headerCellNumericClass}>
                 Ações
               </th>
             </tr>
@@ -426,7 +438,7 @@ export default function AccountLedger({
                   {hasAccountColumn && (
                     <td className="px-3 py-1.5">
                       <select
-                        className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                        className={denseInputClass}
                         value={draft.accountId ?? ""}
                         onChange={(event) => updateDraft(draft.id, { accountId: event.target.value || null })}
                       >
@@ -442,7 +454,7 @@ export default function AccountLedger({
                   <td className="px-3 py-1.5 text-xs">
                     <input
                       type="date"
-                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-xs"
+                      className={denseInputNarrowClass}
                       value={draft.occurred_on}
                       onChange={(event) => updateDraft(draft.id, { occurred_on: event.target.value })}
                     />
@@ -451,7 +463,7 @@ export default function AccountLedger({
                     <div className="relative">
                       <input
                         type="text"
-                        className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                        className={denseInputClass}
                         placeholder="Quem recebeu?"
                         value={draft.payeeInput}
                         onFocus={() => {
@@ -527,7 +539,7 @@ export default function AccountLedger({
                   </td>
                   <td className="px-3 py-1.5">
                     <select
-                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className={denseInputClass}
                       value={draft.categoryId ?? ""}
                       onChange={(event) => updateDraft(draft.id, { categoryId: event.target.value || null })}
                     >
@@ -546,7 +558,7 @@ export default function AccountLedger({
                   <td className="px-3 py-1.5">
                     <input
                       type="text"
-                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className={denseInputClass}
                       placeholder="Opcional"
                       value={draft.memo}
                       onChange={(event) => updateDraft(draft.id, { memo: event.target.value })}
@@ -555,7 +567,7 @@ export default function AccountLedger({
                   <td className="px-3 py-1.5">
                     <input
                       type="text"
-                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className={denseInputClass}
                       placeholder="0,00"
                       value={draft.outflow}
                       onChange={(event) => updateDraft(draft.id, { outflow: event.target.value })}
@@ -564,7 +576,7 @@ export default function AccountLedger({
                   <td className="px-3 py-1.5">
                     <input
                       type="text"
-                      className="h-8 w-full rounded-md border border-[var(--cc-border)] px-2 text-sm"
+                      className={denseInputClass}
                       placeholder="0,00"
                       value={draft.inflow}
                       onChange={(event) => updateDraft(draft.id, { inflow: event.target.value })}
@@ -609,17 +621,17 @@ export default function AccountLedger({
                 return (
                   <tr key={transaction.id} className="align-top text-xs">
                     {hasAccountColumn && (
-                      <td className="px-3 py-2 text-xs text-[var(--cc-text)]">
+                      <td className={tableCellClass}>
                         {transaction.accountName ?? "—"}
                       </td>
                     )}
-                    <td className="whitespace-nowrap px-3 py-2 text-xs text-[var(--cc-text)]">
+                    <td className={`${tableCellClass} whitespace-nowrap`}>
                       {formattedDate}
                     </td>
-                    <td className="px-3 py-2 text-xs text-[var(--cc-text)]">
+                    <td className={tableCellClass}>
                       {transaction.payeeName ?? "—"}
                     </td>
-                    <td className="px-3 py-2 text-xs text-[var(--cc-text)]">
+                    <td className={tableCellClass}>
                       <button
                         type="button"
                         className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide transition ${
@@ -632,16 +644,16 @@ export default function AccountLedger({
                         {transaction.categoryName ?? "Sem categoria"}
                       </button>
                     </td>
-                    <td className="px-3 py-2 text-xs text-[var(--cc-text-muted)]">
+                    <td className={tableCellMutedClass}>
                       {transaction.memo ?? "—"}
                     </td>
-                    <td className="px-3 py-2 text-right text-xs text-rose-600">
+                    <td className={amountOutCellClass}>
                       {transaction.outflowCents > 0 ? formatCurrency(transaction.outflowCents) : "—"}
                     </td>
-                    <td className="px-3 py-2 text-right text-xs text-emerald-600">
+                    <td className={amountInCellClass}>
                       {transaction.inflowCents > 0 ? formatCurrency(transaction.inflowCents) : "—"}
                     </td>
-                    <td className="px-3 py-2 text-right text-[0.7rem]">
+                    <td className={actionCellClass}>
                       <div className="flex justify-end gap-2">
                         <GhostButton icon={Tag} onClick={() => openPrompt(transaction)}>
                           Categorizar
