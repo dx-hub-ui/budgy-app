@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, type JSX } from "react";
+import { RefreshCcw } from "lucide-react";
+
+import GhostButton from "@/components/ui/GhostButton";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -57,13 +60,9 @@ export default function AccountHeader({ name, subtitle, metrics, onReconcile, ba
           {subtitle && <p className="text-xs text-[var(--cc-text-muted)]">{subtitle}</p>}
         </div>
         {onReconcile && (
-          <button
-            type="button"
-            className="ghost-button primary self-start"
-            onClick={onReconcile}
-          >
+          <GhostButton icon={RefreshCcw} onClick={onReconcile} variant="primary" className="self-start">
             Reconciliar
-          </button>
+          </GhostButton>
         )}
       </div>
 
