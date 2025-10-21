@@ -55,5 +55,6 @@
 - Um separador interativo `.budget-resizer` aparece entre as colunas: ele é arrastável, responde a teclado (setas esquerda/direita) e limita a largura do inspector entre 25 % e 50 % da área principal, mantendo o mínimo de leitura para categorias largas.
 - As alturas das linhas são controladas pelos tokens `--row-h` e `--row-h-group` definidos em `globals.css`, garantindo densidade compacta em telas médias e grandes. Linhas selecionadas continuam sinalizadas com `data-selected="true"`.
 - As barras de progresso (`.progress` + modificadores) seguem encaixadas no cabeçalho de cada categoria para indicar metas cumpridas ou atrasadas sem adicionar ruído cromático.
-- O painel lateral reutiliza os estilos `.card`, `.btn-link` e `.ghost-button`, agora com botões fantasma mais estreitos (`height: 34 px`, padding reduzido e raio 9999 px) para caberem nos agrupamentos compactos do cabeçalho.
+- O painel lateral agora concentra todo o conteúdo dentro de um único contêiner retangular, sem cantos arredondados, e usa divisórias tipo *hairline* para separar as seções internas enquanto deixa o fundo cinza aparecer nas laterais.
+- A coluna de categorias permanece chapada em branco: removemos os cartões da visão principal para alinhar o layout à referência plana do YNAB.
 - O `BudgetTopbar` foi redesenhado como um cartão branco compacto com borda sutil, navegadores de mês encapsulados em uma pílula e o bloco "Pronto para atribuir" alinhado à direita; o CTA verde mantém `--budget-ready-*` e ganha tracking em caixa alta para replicar a referência visual.
