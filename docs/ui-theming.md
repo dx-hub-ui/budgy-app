@@ -36,6 +36,7 @@
 - O atalho "Contas" na barra lateral consulta o `localStorage` (`cc_last_account`) para reabrir a última conta visitada quando disponível, ou volta ao índice `/contas` quando não há histórico, evitando cliques que não produzem navegação. O item passou a ser um painel recolhível inspirado no YNAB: o cabeçalho mostra o total consolidado e um botão seta alterna entre expandir e recolher os subitens.
 - Os subitens de contas são agrupados pelo `group_label` retornado do Supabase (ex.: "Contas à vista", "Contas de crédito"), preservando o mesmo agrupamento usado no modal de criação para que o usuário consiga localizar rapidamente cada categoria.
 - Identificadores inválidos armazenados no `localStorage` são ignorados e limpados automaticamente: o link volta a apontar para a primeira conta carregada (quando existir) ou para `/contas`, garantindo que a navegação funcione mesmo após exclusões ou dados corrompidos no navegador.
+- Itens da barra lateral que apontam para ferramentas administrativas externas (como o Crawler) agora deixam o clique seguir o comportamento padrão do navegador, evitando que o handler de navegação interna do Next.js bloqueie redirecionamentos para outros domínios.
 - A largura da barra lateral é controlada pelo token `--dynamic-sidebar-w`, que alterna entre `--cc-sidebar-w` e `--cc-sidebar-w-collapsed`; o próprio `<nav class="cc-sidebar">` fixa `width`, `min-width` e `max-width` com transição suave para que o colapso funcione mesmo antes do carregamento completo do React.
 
 ## Painel financeiro

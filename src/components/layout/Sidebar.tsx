@@ -175,10 +175,16 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
       if (event.defaultPrevented) return;
       if (event.button !== 0) return;
       if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
+      if (!href) return;
+
+      const isExternal = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href);
+      if (isExternal) {
+        return;
+      }
 
       event.preventDefault();
 
-      if (href && href !== pathname) {
+      if (href !== pathname) {
         router.push(href);
       }
     },
