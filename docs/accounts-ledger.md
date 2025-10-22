@@ -22,6 +22,7 @@
 ## Acessibilidade
 - A barra flutuante pode ser fechada pelo botão "Fechar" ou salvando uma categoria, e permanece acessível via teclado (os botões recebem `aria-expanded`/`aria-pressed` adequados).
 - Todos os rótulos da UI permanecem em PT-BR conforme o padrão do produto.
+- O atalho **Escolher categoria** voltou a utilizar um `<button>` nativo (abr/2025), garantindo semântica correta e evitando que o build do Next.js interrompa por JSX inválido quando o componente é renderizado.
 
 ## Layout atualizado (dez/2024)
 - O conteúdo principal ocupa toda a largura útil do `Shell`, sem cartões elevados. Sidebar e cabeçalho foram simplificados para
