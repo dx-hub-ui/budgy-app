@@ -676,7 +676,7 @@ export default function AccountLedger({
                 disabled={isAssigningActive}
               >
                 Escolher categoria
-              </GhostButton>
+              </button>
               <GhostButton icon={CircleSlash} onClick={() => handlePromptSelection(null)} disabled={isAssigningActive}>
                 Sem categoria
               </GhostButton>
